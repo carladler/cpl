@@ -1,0 +1,9 @@
+[package]
+name = "opcode"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+[lib]
+name="opcode"
+path="../allsources/opcode.rs"

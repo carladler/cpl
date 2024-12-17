@@ -1,0 +1,1906 @@
+#![allow(unused_imports)]
+use std::fs::File;
+use std::fs::metadata;
+use std::fs::OpenOptions;
+use std::io::BufReader;
+use std::io::BufWriter;
+use std::io::Read;
+use std::io::BufRead;
+use std::io::Write;
+use std::cmp::Ordering;
+
+use std::fmt;
+use std::collections::HashMap;
+use std::str;
+
+use opcode::*;
+use tokenizer::*;
+use macrolib::*;
+use csvparser::*;
+
+#[derive(PartialOrd, Ord, PartialEq, Copy, Clone, Eq, Hash)]
+pub enum RustDataType{
+	Uninitialized,
+	Int,
+	Real,
+	String,
+	Bool,
+	Char,
+	Opcode,
+	FileHandle,
+	NONE,
+}
+
+impl fmt::Display for RustDataType{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+       match self {
+			RustDataType::Uninitialized => write!(f, "Uninitialized"),
+			RustDataType::Int => write!(f, "int"),
+			RustDataType::Real => write!(f, "real"),
+			RustDataType::String => write!(f, "string"),
+			RustDataType::Bool => write!(f, "bool"),
+			RustDataType::Char => write!(f, "char"),
+			RustDataType::Opcode => write!(f, "opcode"),
+			RustDataType::FileHandle => write!(f, "filehandle"),
+			RustDataType::NONE => write!(f, "NONE"),
+	   }
+	}
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub enum CplDataType{
+	CplNumber(CplNumber),
+	CplString(CplString),
+	CplBool(CplBool),
+	CplArray(CplArray),
+	CplStruct(CplArray),					// An array with a different type name
+	CplDict(CplDict),
+	CplVarRef(CplVarRef),					// pointer to a CplVar
+	CplFileReader(CplFileReader),
+	CplFileWriter(CplFileWriter),
+	CplFileAppender(CplFileAppender),
+	CplUninitialized(CplUninitialized),
+	CplUndefined(CplUndefined),
+}
+impl fmt::Display for CplDataType{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    	match self {
+			CplDataType::CplUninitialized(_) => write!(f,"CplUninitialized"),
+			CplDataType::CplUndefined(_) => write!(f, "CplUndefined"),
+			CplDataType::CplNumber(s) => write!(f,"CplNumber({})", s.cpl_number),
+			CplDataType::CplBool(b) => write!(f,"CplBool: {}", b.cpl_bool),
+			CplDataType::CplVarRef(r) => write!(f,"CplVarRef: {},{},{}",r.frame_num, r.block_num, r.address),
+			CplDataType::CplArray(a) => write!(f,"CplArray: {}",a.array_text()),
+			CplDataType::CplDict(_) => write!(f,"CplDict"),
+			CplDataType::CplString(s) => write!(f,"\"{}\"", s.cpl_string),
+			CplDataType::CplFileReader(s) => write!(f,"CplFileReader: \"{}\"", s.file_name),
+			CplDataType::CplFileWriter(s) => write!(f,"CplFileWriter: \"{}\"", s.file_name),
+			CplDataType::CplFileAppender(s) => write!(f,"CplFileAppender: \"{}\"", s.file_name),
+			CplDataType::CplStruct(_) => write!(f,"CplStruct"),
+	   }
+	}
+}
+
+impl Clone for CplDataType{
+	fn clone(&self) -> CplDataType{
+    	match self {
+			CplDataType::CplUninitialized(_) => CplDataType::CplUninitialized(CplUninitialized::new()),
+			CplDataType::CplUndefined(_) => CplDataType::CplUndefined(CplUndefined::new()),
+			CplDataType::CplNumber(v) => CplDataType::CplNumber(CplNumber::new(v.rust_data_type, v.cpl_number)),
+			CplDataType::CplBool(b) => CplDataType::CplBool(CplBool::new(b.cpl_bool)),
+			CplDataType::CplVarRef(r) => CplDataType::CplVarRef(CplVarRef::new(r.frame_num, r.block_num, r.address)),
+			CplDataType::CplArray(a) => CplDataType::CplArray(a.clone()),
+			CplDataType::CplDict(d) => CplDataType::CplDict(d.clone()),
+			CplDataType::CplString(v) => CplDataType::CplString(CplString::new(v.cpl_string.clone())),
+			CplDataType::CplFileReader(_) => abend!(format!("Unable to clone CplFileReader")),
+			CplDataType::CplFileWriter(_) => abend!(format!("Unable to clone CplFileWriter")),
+			CplDataType::CplFileAppender(_) => abend!(format!("Unable to clone CplFileAppender")),
+			CplDataType::CplStruct(a) => CplDataType::CplStruct(a.clone()),
+	   }
+	}
+}
+
+/****************************************
+****	Operand Stack
+*****************************************/
+//	This is the CPU's "main" memory.  It is partitioned dynamically
+//	into frames, which are created when a new executor is created and blocks
+//	which are created for the Function, WHILE, IF, ELSE, etc.  In otherwords,
+//
+//		operand_stack
+//			frame 0
+//				block 0
+//				block 1
+//			frame 1
+//				block 0
+//				block 1
+//			etc.
+//	
+//	That is, there is always at least 1 frame. Variables are created dynamically
+//	within a function and placed on the operand stack in the frame belonging to
+//	that function. A VarRef variable can refer to another variable in either the same
+//	frame or a different frame.
+//
+//	The operand stack is created once by main() and a reference to it is passed
+//	to all subsequent executors.  In other words, the operand stack is global to
+//	an executing program.
+pub struct OperandStack{
+	pub operand_frames : Vec<OperandFrame>,	
+}
+impl OperandStack{
+	pub fn new() -> OperandStack{
+		OperandStack{
+			//  create the first frame when the operand stack is instantiated
+			operand_frames : Vec::new(),
+		}
+	}
+
+
+	pub fn current_frame(&self) -> usize{
+		self.operand_frames.len() - 1
+	}
+
+	//	push a copy of a variable from a fully qualified address
+	pub fn push_copy(mut self, frame_num:usize, block_num:usize, address:usize){
+		let var = &self.fetch_var(frame_num, block_num, address);
+		self.push(var);
+	}
+
+	//	push a local copy of the variable at the address onto the operand stack.
+	//	local, as in the current block
+	pub fn push_local_copy(&mut self, block_num : usize, address:usize){
+		let var = &self.fetch_local_var(block_num, address);
+		self.push(var);
+	}
+
+	//	push a variable onto the current block in the current frame
+	pub fn push(&mut self, var : &CplVar){
+		let operand_frame : &mut OperandFrame = self.operand_frames.last_mut().unwrap();
+		let operand_block : &mut OperandBlock = operand_frame.operand_blocks.last_mut().unwrap();
+		operand_block.operand_block.push(var.clone());
+	}
+	
+	//	pop a variable off the current block in the current frame
+	pub fn pop(&mut self) -> CplVar{
+		let operand_frame = self.operand_frames.last_mut().unwrap();
+		let operand_block = operand_frame.operand_blocks.last_mut().unwrap();
+		operand_block.operand_block.pop().unwrap()
+	}
+
+	//	Returns the value at the top of the stack without destroying it
+	pub fn peek(&mut self) -> CplVar{
+		let operand_frame = self.operand_frames.last_mut().unwrap();
+		let operand_block = operand_frame.operand_blocks.last_mut().unwrap();
+		operand_block.operand_block.last_mut().unwrap().clone()
+	}
+
+	//	adds a new frame to the operand stack
+	pub fn push_frame(&mut self){
+		self.operand_frames.push(OperandFrame::new());
+	}
+
+	//	removes the last frame in the operand stack
+	pub fn pop_frame(&mut self){
+		self.operand_frames.pop().unwrap();
+	}
+
+	//	push a new block on the current frame
+	pub fn push_block(&mut self){
+		//	get the current frame
+		let frame_num = self.operand_frames.len() - 1;
+		let frame = self.operand_frames.get_mut(frame_num).unwrap();
+		frame.operand_blocks.push(OperandBlock::new());
+	}
+
+	//	remove the last block of the current frame
+	pub fn pop_block(&mut self){
+		let frame_num = self.operand_frames.len() - 1;
+		let frame = self.operand_frames.get_mut(frame_num).unwrap();
+		frame.operand_blocks.pop();
+	}
+
+	//	get the number of variables in the current block of the
+	//	current frame
+	pub fn variable_count (&self) -> usize{
+		let frame = self.operand_frames.last().unwrap();
+
+		//	if there aren't any blocks to get the length of, return an impossible number
+		if frame.operand_blocks.len() == 0{
+			return 0;
+		}
+
+		let block = frame.operand_blocks.last().unwrap();
+		return block.operand_block.len();
+	}
+
+	//	get the number blocks in the current frame
+	pub fn block_count(&self) -> usize{
+		let frame = self.operand_frames.last().unwrap();
+		return frame.operand_blocks.len();
+	}
+
+	//	determines if there is a variable at the fully qualified address
+	//	specified.
+	//
+	//	return false if there isn't one.
+	pub fn exists(&self, frame_num : usize, block_num:usize, address:usize) -> bool{
+		if self.operand_frames.len() == 0 {return false}
+		let frame = &self.operand_frames[frame_num];
+		if frame.operand_blocks.len() == 0 {return false}
+		let block = &frame.operand_blocks[block_num];
+		if block.operand_block.len() == 0 {return false}
+
+		//	if the address specified is past the end of the block
+		//	return false, else the var exists
+		if address >= block.operand_block.len() {return false}
+		true
+	}
+
+	//	same as exists but assumes the current frame
+	pub fn exists_locally(&self, block_num:usize, address:usize) -> bool{
+		if self.operand_frames.len() == 0 {return false}
+		let frame = &self.operand_frames.last().unwrap();
+		if frame.operand_blocks.len() == 0 {return false}
+		let block = &frame.operand_blocks[block_num];
+		if block.operand_block.len() == 0 {return false}
+
+		//	if the address specified is past the end of the block
+		//	return false, else the var exists
+		if address >= block.operand_block.len() {return false}
+		true
+	}
+
+
+	//	fetch a variable at the fully qualified address
+	pub fn fetch_var(&self, frame_num : usize, block_num : usize, address : usize) -> CplVar{
+		//println!("{}fetch_var {},{},{}",DEBUG_INDENT, frame_num, block_num, address);
+		let frame = &self.operand_frames[frame_num];
+		let block = &frame.operand_blocks[block_num];
+		block.operand_block[address].clone()
+	}
+
+	//	fetch a variable from a partially qualified address (i.e.
+	//	in the current frame).  If the local variable is a collection
+	//	return a VarRef reference to it.  We don't every want to
+	//	make a copy of an array or dictionary.
+	pub fn fetch_local_var(&self, block_num : usize, address : usize) -> CplVar{
+		let frame = &self.operand_frames.last().unwrap();
+		let frame_num = self.operand_frames.len() - 1;
+
+		if frame.operand_blocks.len() == 0{
+			abend!(format!("from CplVar.fetch_local_var: from {},{}, No operand blocks available", block_num, address));
+		}
+
+		let block_option = &frame.operand_blocks.get(block_num);
+
+		match block_option{
+			None => abend!(format!("from CplVar.fetch_local_var: from {},{}, Block Not Available. Last block is {}", block_num, address, frame.operand_blocks.len()-1)),
+			Some(block) => if block.operand_block.len() == 0 {
+				panic!("from CplVar.fetch_local_var: operand block {} is empty", frame.operand_blocks.len()-1);
+			}else if address > block.operand_block.len()-1{
+				panic!("from CplVar.fetch_local_var: address {} > operand block len {}", address, block.operand_block.len());
+			}else{
+				match block.operand_block[address].var{
+					CplDataType::CplArray(_) |
+					CplDataType::CplDict(_) => {
+						return CplVar::new(CplDataType::CplVarRef(CplVarRef::new(frame_num, block_num, address)));
+					},
+					_ =>{}
+				}
+				block.operand_block[address].clone()
+			}
+		}
+	}
+
+	fn fetch_indexed(&mut self, collection : &mut CplVar, index : &CplVar) -> CplVar{
+		if let CplDataType::CplArray(ref mut array) = collection.var{
+			return array.fetch_indexed(index);
+		}else if let CplDataType::CplDict(ref mut dict) = collection.var{
+			return dict.fetch_indexed(index);
+		}else{
+			abend!(format!("From OperandStack.fetch_indexed:  Expecing either an array or a dictionary. Got:{}",collection.var));
+		}
+	}
+
+	fn fetch_indexed_indirect(&mut self, index : &CplVar, frame_num : usize, block_num : usize, address : usize) -> CplVar{
+		if let CplDataType::CplArray(ref mut array) = &mut self.operand_frames[frame_num].operand_blocks[block_num].operand_block[address].var{
+			return array.fetch_indexed(index);
+		}else if let CplDataType::CplDict(ref mut dict) = &mut self.operand_frames[frame_num].operand_blocks[block_num].operand_block[address].var{
+			return dict.fetch_indexed(index);
+		}else{
+			abend!(format!("From OperandStack.fetch_indexed_indirect:  Expecing either an array or a dictionary. Got: {}", self.operand_frames[frame_num].operand_blocks[block_num].operand_block[address].var));
+		}
+	}
+
+	//	fetch an element from a collection at the top of the stack:
+	//	tos=index, tos-1=collection and return it to the caller
+	//	If the index or collection is a VarRef, a dereference is performed
+	//	the value returned may be either a reference or an actual value
+	//	depending on what was stored in the array.
+	pub fn fetch_indexed_from_operand_stack(&mut self) -> CplVar{
+		//	The index is at tos.  We know that if it's a reference that
+		//	it's just a scalar (and presumably and integer) so we an just
+		//	dereference here without a huge performance issue.
+		let index = self.dereference_tos();
+
+		//	The collection is at tos-1.  On the other hand, this cold be a million items
+		//	so we don't dererence it.  We want to act directly on it the collection
+		let mut collection = self.pop();
+
+		//	If the collection is actually a reference to a collection, get a pointer to it
+		//	and do the index on the referenced item.  Just in case we dererenced this elsewhere...
+		if let CplDataType::CplVarRef(varref) = collection.var{
+			//	get a pointer to the actual collection
+			return self.fetch_indexed_indirect(&index, varref.frame_num, varref.block_num, varref.address);
+		}else{
+			return self.fetch_indexed(&mut collection, &index);
+		}		
+	}
+
+	//	Returns a reference to the top of the stack
+	pub fn fetch_tos_ref(&self) -> &CplVar{
+		self.operand_frames.last().unwrap().operand_blocks.last().unwrap().operand_block.last().unwrap()
+	}
+
+	pub fn fetch_mutable_tos_ref(&mut self) -> &mut CplVar{
+		self.operand_frames.last_mut().unwrap().operand_blocks.last_mut().unwrap().operand_block.last_mut().unwrap()
+	}
+
+	pub fn fetch_ref(&self, frame_num : usize, block_num : usize, address : usize) -> &CplVar{
+		self.operand_frames.get(frame_num).unwrap().operand_blocks.get(block_num).unwrap().operand_block.get(address).unwrap()
+	}
+
+	pub fn fetch_mutable_ref (&mut self, frame_num : usize, block_num : usize, address : usize) -> &mut CplVar{
+		self.operand_frames.get_mut(frame_num).unwrap().operand_blocks.get_mut(block_num).unwrap().operand_block.get_mut(address).unwrap()
+	}
+
+
+	pub fn update_local(&mut self, target_block_num:usize, target_address:usize){
+		let target_frame_num = self.operand_frames.len()-1;
+		self.update(target_frame_num, target_block_num, target_address);
+	}
+
+	//	update the value at the fully qualified address specified with the var at the top
+	//	of the stack and then remove it.  Assumes the current frame.
+	pub fn update (&mut self, target_frame_num:usize, target_block_num:usize, target_address:usize){
+		//self.dump_operands_with_message("AT UPDATE...");
+		let tos = self.pop();
+
+		//	get the frame of the target
+		let target_frame = self.operand_frames.get_mut(target_frame_num).unwrap();
+
+		//	get the block specified
+		let target_block = target_frame.operand_blocks.get_mut(target_block_num).unwrap();
+
+		//	and update the value at target_frame.target_block.target_address
+		target_block.operand_block[target_address] = tos.clone();
+	}
+
+	
+	pub fn current_block_num(&self) -> usize{
+		let operand_frame : &OperandFrame = self.operand_frames.last().unwrap();
+		return operand_frame.operand_blocks.len()-1;
+	}
+
+	//	creates (or reuses) an uninitialized variable in the current block
+	//	DESIGN NOTE:  I can't think of a reason to allocate space anywhere
+	//	else in the operand stack.
+	pub fn alloc(&mut self, block_num:usize, address:usize){
+		//	if the location already exists then we're done
+		if self.exists_locally(block_num, address){
+			return;
+		}
+
+		//	so we need to create a new variable in the current block and frame
+		let frame = self.operand_frames.last_mut().unwrap();
+
+		//	get the current block
+		let block = frame.operand_blocks.get_mut(block_num).unwrap();
+
+		//	create a new uninitialized variable at the top of the block
+		block.operand_block.push(CplVar::new(CplDataType::CplUninitialized(CplUninitialized::new())));
+
+		//	Another sanity check.  We expect address of this new var to be the
+		//  address requested
+		if address != block.operand_block.len() - 1{
+			panic!("from CplVar.alloc:  address of the new variable is not what was requested {} != {}", address, block.operand_block.len() - 1);
+		}
+	}
+
+	//	pushes the value at tos onto the array at tos-1.  Removes the
+	//	value being pushed
+	pub fn push_array_element(&mut self){
+		//	get the element to add to the array
+		let element = self.dereference_tos();
+
+		//	get a reference to the array at the top of stack
+		let array = self.fetch_mutable_tos_ref();
+
+
+		//	now get the underlying array
+		if let CplDataType::CplArray(ref mut a) = array.var{
+			a.cpl_array.push(element);
+		}else{
+			panic!("from OperandStack.push_array_element:  expecting an Array at the top of the stack.  Got {}",array);
+		}
+	}
+
+	//	inserts the key (tos-1)/value(tos) into a dictionary at tos-2
+	pub fn insert_dict (&mut self){		
+		//	get the element to add to the array
+		let value = self.pop();
+		let key = self.pop();
+		let mut dict = self.pop();
+
+		//	now get the underlying dictionary and insert the key/value pair
+		if let CplDataType::CplDict(ref mut a) = dict.var{
+			a.cpl_dict.insert(CplKey::to_key(&key.var),value);
+		}
+
+		//	add the dictinary back to the operands
+		self.push(&dict);		
+	}
+
+	//	Perform assignment opperator on a scalar value (e.g. x += 1);
+	pub fn apply_binary_operator_scalar (&mut self, block_num : usize, address : usize, opcode : Opcode){
+		//	get the new value from the top of the stack	
+		let tos = self.dereference_tos();
+
+		//	compute the address of the target (which is either a scalar or a VarRef)
+		let frame = self.operand_frames.last_mut().unwrap();
+		let block = frame.operand_blocks.get_mut(block_num).unwrap();
+		let var = block.operand_block.get_mut(address).unwrap(); 
+
+		//	get a reference to the target (it must be a number)
+		match var.var{
+			CplDataType::CplNumber (ref mut n) => n.apply_binary_operator_to_number(&tos, opcode),
+			CplDataType::CplString (ref mut s) => s.append(&tos),
+			_=> abend!(format!("from CplVar.apply_binary_operator_scalar:  unable to perform {} on type {}", opcode, var.var)),
+		}		
+	}
+
+	//	Perform assignment opperator on an element of a collection (e.g. x[0] += 1);
+	//	NOTE this is for direct access to the collection (i.e. not via a VarRef)
+	pub fn apply_binary_operator_indexed (&mut self, block_num : usize, address : usize, opcode : Opcode){
+		//	get the new value from the top of the stack
+		let new_value = self.dereference_tos();
+
+		//  get the index from the stack
+		let index = self.dereference_tos();
+
+		//	get a reference to the target.  It is either a collection or a VarRef (in which
+		//	case we are updating an element of a collection)
+		match self.operand_frames.last_mut().unwrap().operand_blocks.get_mut(block_num).unwrap().operand_block.get_mut(address).unwrap().var{
+			CplDataType::CplArray (ref mut a) =>{
+				a.update_indexed_op(&index, &new_value, opcode);
+			}
+
+			CplDataType::CplDict (ref mut d) => {
+				d.update_indexed_op(&index, &new_value, opcode);
+			}
+						
+			_=> abend!(format!("from CplVar.apply_binary_operator_indexed:  unable to perform {}", opcode)),
+		}		
+	}
+
+	//	updates the value of a local array element whose index is at tos-1 with
+	//	the new value at tos	
+	pub fn update_local_collection(&mut self, block_num : usize, address: usize){
+		let value = self.dereference_tos();
+		let index_var = self.dereference_tos();
+
+		//	get the current frame
+		let frame = self.operand_frames.last_mut().unwrap();
+
+		//	get array at the address
+		let collection = frame.operand_blocks.get_mut(block_num).unwrap().operand_block.get_mut(address).unwrap();
+		if let CplDataType::CplArray(ref mut a) = collection.var{
+			a.update_indexed(&index_var, &value);
+		} else if let CplDataType::CplDict(ref mut d) = collection.var{
+			d.update_indexed(&index_var, &value);
+		}else{
+			abend!(format!("from OperandStack.update_local_collection:  collection needs to be an array or dictionary.  It was {}", collection.var));
+		}
+	}
+
+	//	given a CplVar return its type as a string
+	pub fn get_cpl_type(&mut self, var : &CplVar) -> String{
+		let rtn : &str;
+
+		match var.var{
+			CplDataType::CplNumber(_) 				=> rtn = "CplNumber",
+			CplDataType::CplString(_)				=> rtn = "CplString",
+			CplDataType::CplBool(_)					=> rtn = "CplBool",
+			CplDataType::CplUninitialized(_) 		=> rtn = "CplUnitialized",
+			CplDataType::CplUndefined(_) 			=> rtn = "CplUndefined",
+			CplDataType::CplArray(_) 				=> rtn = "CplArray",
+			CplDataType::CplVarRef(_)				=> rtn = "CplVarRef",
+			CplDataType::CplFileReader(_) 			=> rtn = "CplFileHandle",
+			CplDataType::CplFileWriter(_) 			=> rtn = "CplFileHandle",
+			CplDataType::CplFileAppender(_) 		=> rtn = "CplFileHandle",
+			CplDataType::CplDict(_) 				=> rtn = "CplDict",
+			CplDataType::CplStruct(_)				=> rtn = "CplStruct",
+		}
+
+		return rtn.to_string();
+	}
+
+	//	Does a unary operatorion on the local variable specified by the address
+	//	But if the variable is a VarRef, the actual location can be anywhere
+	//	in the operand stack.
+	pub fn perform_unary_op(&mut self, _address: usize, opcode : Opcode){
+		
+		//	get the frame and block
+		// let frame = self.operand_frames.last_mut().unwrap();
+		// let block = frame.operand_blocks.last_mut().unwrap();
+		// let var = block.operand_block.get_mut(address).unwrap(); 
+
+		let mut var = self.pop();
+		match var.var{
+			CplDataType::CplNumber (ref mut n) => n.apply_unary_operator(opcode),
+			CplDataType::CplBool(ref mut b) => b.apply_daminit(),
+			_=> abend!(format!("from CplVar.perform_unary_op:  unable to perform {} on type {}", opcode, var.var)),
+		}
+
+		self.push(&var);
+	}
+
+	// pub fn operand_list_text(&self) -> String{
+	// 	if self.operand_frames.is_empty(){
+	// 		return "Operands: NONE - No Frames".to_string();
+	// 	}
+	// 	let mut rtn = "Operands\n".to_string();
+
+	// 	let mut i = 0;
+	// 	while i < self.operand_frames.len(){
+	// 		rtn.push_str(&self.operand_frames[i].operand_list_text());
+	// 		i+=1;
+	// 	}
+	// 	rtn.clone()
+	// }
+
+	fn len_deref(&mut self, var : &CplVar) -> usize{
+		let local = self.dereference(var);
+		self.len(&local)
+	}
+
+	//	get the length of a variable:
+	//
+	//		Array:  number of elements
+	//		String:  number of characters
+	//		Dictionary: number of keys
+	//		All other types: 1
+	pub fn len(&mut self, var : &CplVar) -> usize{
+		return match var.var{
+			CplDataType::CplVarRef(_) 		=> {
+				self.len_deref(&var)
+			}
+			CplDataType::CplArray(ref a)	=> a.len(),
+			CplDataType::CplString(ref s)	=> s.len(),
+			CplDataType::CplDict(ref d)		=> d.len(),
+			_=> 1,
+		};
+	}
+
+	pub fn dump_operands_with_message(&self, msg : &str){
+		println!("OPERAND STACK DUMP : {}", msg);
+		self.dump_operands_without_title();
+	}
+
+	pub fn dump_operands(&self){
+		println!("--- OPERAND STACK DUMP --\n");
+		self.dump_operands_without_title();
+	}
+
+	pub fn dump_operands_without_title(&self){
+		if self.operand_frames.len() == 0{
+			println!("No Frames");
+			return;
+		}
+		
+		let mut frame_num = 0;
+		while frame_num < self.operand_frames.len(){
+			let block_count = self.operand_frames[frame_num].operand_blocks.len();
+			if block_count == 0{
+				println!("   No blocks in frame# {}",frame_num);
+			}else{
+				println!("Frame# {} Block Count={}", frame_num, block_count);
+				let mut block_num = 0;
+				while block_num < block_count{
+					// println!("   Block# {}", block_num);
+					let variable_count = self.operand_frames[frame_num].operand_blocks[block_num].operand_block.len();
+					if variable_count == 0{
+						println!("   No variables in block# {}", block_num);
+					}else{
+						println!("   Block# {} Variable count={}", block_num, variable_count);
+						let mut variable_num = 0;
+						while variable_num < variable_count{
+							let variable = &self.operand_frames[frame_num].operand_blocks[block_num].operand_block[variable_num];
+							println!("      {}: {}",variable_num, variable);
+							variable_num += 1;
+						}	
+					}
+					block_num += 1;
+				}
+			}
+			frame_num += 1;
+		}
+		println!("");
+	}
+
+	fn get_data_loc_from_ref(&self, var_ref : &CplVar) -> (usize, usize, usize){
+		if let CplDataType::CplVarRef(ref vr) = var_ref.var{
+			return (vr.frame_num, vr.block_num, vr.address);
+		}else{
+			abend!(format!("From get_frame_num_from_ref: Expecting a VarRef, got {}", var_ref.var));
+		}
+	}
+
+	pub fn dereference(&mut self, var : &CplVar) -> CplVar{
+		let mut rtn = var.clone();
+		loop{
+			if let CplDataType::CplVarRef(_) = rtn.var{
+				let data_loc = self.get_data_loc_from_ref(&rtn);
+				let frame_num = data_loc.0;
+				let block_num = data_loc.1;
+				let address = data_loc.2;
+				let operand_frame = self.operand_frames.get_mut(frame_num).unwrap();
+				let operand_block = operand_frame.operand_blocks.get_mut(block_num).unwrap();
+				rtn = operand_block.operand_block.get_mut(address).unwrap().clone();
+				if let CplDataType::CplVarRef(_) = rtn.var{
+					continue;
+				}
+			}else{
+				break;
+			}
+		}
+		return rtn.clone();
+	}
+
+
+	//	return a reference to the var pointed to by a VarRef
+	// pub fn dereference_to_ref(&self) -> &CplVar{
+
+	// }
+	//	pop the VarRef at the top of the stack and if it's a CplVarRef return
+	//	the actual value otherwise just return what got popped without any fuss.  NOTE:
+	//	if the actual value is also a VarRef we need to recurse until we get to
+	//	the real thing.  But so far, I haven't seen an alloc for a VarRef
+	pub fn dereference_tos(&mut self) -> CplVar{
+		let var = self.pop();
+		self.dereference(&var)
+	}
+}
+
+/****************************************
+****	Operand Frame
+*****************************************/
+pub struct OperandFrame{
+	//cli : & 'a CLI<'a>,
+	pub operand_blocks : Vec<OperandBlock>,
+}
+
+impl OperandFrame{
+	pub fn new() -> OperandFrame{
+		OperandFrame{
+			//cli : cli,
+			operand_blocks : Vec::new(),
+		}
+	}
+	pub fn operand_list_text(&self) -> String{
+		if self.operand_blocks.is_empty(){
+			return "No Blocks".to_string();
+		}
+		let mut rtn = "Operands\n".to_string();
+
+		let mut i = 0;
+
+		while i < self.operand_blocks.len(){
+			if self.operand_blocks.is_empty(){
+				rtn.push_str(&format!("   Block {} NONE\n", i));
+			}else{
+				rtn.push_str(&format!("   Block: {}\n", i));
+				rtn.push_str(&self.operand_blocks[i].operand_list_text());
+			}		
+			i += 1;
+		}
+		rtn.clone()
+	}
+}
+
+/****************************************
+****	Operand Block
+*****************************************/
+
+//	An operand block is a partition of the operand stack created for
+//	IF, WHILE, ELSE, etc.  When a function begins executing one of these
+//	is created.  Variables in a frame are accessed via frame number and index.
+pub struct OperandBlock{
+	//cli : & 'a CLI<'a>,
+	pub operand_block : Vec<CplVar>,
+}
+
+impl OperandBlock{
+	pub fn new() -> OperandBlock{
+		OperandBlock{
+			//cli : cli,
+			operand_block: Vec::new(),
+		}
+	}
+
+	// pub fn dump_array(&self, address : usize, array : &CplArray){
+	// 	print!("       {}: [", address);
+	// 	for element in &array.cpl_array{
+	// 		match &element.var{
+	// 			CplDataType::CplArray(a) => self.dump_array(address, &a),
+	// 			CplDataType::CplBool(b) => print!("{} ", b.cpl_bool),
+	// 			CplDataType::CplNumber(n) => print!("{} ", n.cpl_number),
+	// 			CplDataType::CplString(s) => print!("\"{}\" ", s.cpl_string),
+	// 			_=> print!("dumping array element {} but I don't know what {} is", address, element.var),
+	// 		}
+	// 	}
+	// 	print!("]\n");
+	// }
+
+	pub fn operand_list_text(&self) -> String{
+		let mut rtn = String::new();
+		let mut i=0;
+		for var in &self.operand_block{
+			match &var.var{
+				CplDataType::CplArray(array) => rtn.push_str(&array.array_text()),
+				_=> rtn.push_str(&format!("       {}: {}\n", i, var.var)),
+			}
+			i += 1;
+		}
+		rtn.clone()
+	}
+}
+
+
+/****************************************
+****	CplVar
+*****************************************/
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct CplVar{
+	pub var : CplDataType,
+}
+
+impl CplVar{
+	pub fn new(var : CplDataType) ->CplVar{
+		CplVar{
+			var : var,
+		}
+	}
+
+	pub fn is_type_equal (&self, v : &CplVar) -> bool{
+		match v.var{
+			CplDataType::CplUninitialized(_) => if let CplDataType::CplUninitialized(_) = self.var {return true}else{false},
+			CplDataType::CplUndefined(_) => if let CplDataType::CplUndefined(_) = self.var {return true}else{return false},
+			CplDataType::CplNumber(_) => if let CplDataType::CplNumber(_) = self.var {return true}else{return false},
+			CplDataType::CplBool(_) => if let CplDataType::CplBool(_) = self.var {return true}else{return false},
+			CplDataType::CplVarRef(_) => if let CplDataType::CplVarRef(_) = self.var {return true}else{return false},
+			CplDataType::CplArray(_) => if let CplDataType::CplArray(_) = self.var {return true}else{return false},
+			CplDataType::CplDict(_) => if let CplDataType::CplDict(_) = self.var {return true}else{return false},
+			CplDataType::CplString(_) => if let CplDataType::CplString(_) = self.var {return true}else{return false},
+			CplDataType::CplFileReader(_) => if let CplDataType::CplFileReader(_) = self.var {return true}else{return false},
+			CplDataType::CplFileWriter(_) => if let CplDataType::CplFileWriter(_) = self.var {return true}else{return false},
+			CplDataType::CplFileAppender(_) => if let CplDataType::CplFileAppender(_) = self.var {return true}else{return false},
+			CplDataType::CplStruct(_) => if let CplDataType::CplStruct(_) = self.var {return true}else{return false},
+		}
+	}
+
+	fn is_disallowed(&self, v : &CplVar, warn : bool) -> bool{
+		match self.var{
+			CplDataType::CplUninitialized(_) |
+			CplDataType::CplUndefined(_) |
+			CplDataType::CplVarRef(_) |
+			CplDataType::CplArray(_) |
+			CplDataType::CplDict(_) |
+			CplDataType::CplFileReader(_) |
+			CplDataType::CplFileWriter(_) |
+			CplDataType::CplFileAppender(_) => {
+				if warn{
+					println!("Warning: unable compare {} with {}", self.var, v.var);
+				}
+				return true;
+			},
+			_ => return false,
+		}
+	}
+
+	
+	//	Compare the value of this instance with another instance.  Only Numbers, Booleans and Strings
+	//	can be compared (we'll add arrays later).  If the types are not the same then
+	//	an attempt is made to convert the argument to the same type as this instance.  For example
+	//	if this instance is a string and a number is passed, the number is turned into a string.  If this
+	//	instance is a number and a string is passed, at attempt is made to turn it into a number
+	//	and then compared.  If the conversion fails then false is returned.
+	//
+	//	If the warn flag is true, messages about type mismatch and failed conversions are printed
+	//	these do not abend the program.
+
+	pub fn is_equal (&self, v : &CplVar, warn : bool) -> bool{
+
+		//	filter out any types that can't be compared
+		if self.is_disallowed(&self, warn) {return false}
+		if self.is_disallowed(v, warn) {return false}
+
+		//	If the types are equal, just go ahead and compare their values
+		if self.is_type_equal(v){
+			match &v.var{
+				CplDataType::CplNumber(n1) => if let CplDataType::CplNumber(ref n2) = self.var {return n1.cpl_number == n2.cpl_number}else{return false},
+				CplDataType::CplBool(b1) => if let CplDataType::CplBool(ref b2) = self.var {return b1.cpl_bool == b2.cpl_bool}else{return false},
+				CplDataType::CplString(s1) => if let CplDataType::CplString(ref s2) = self.var {return s1.cpl_string == s2.cpl_string}else{return false},
+				_ => if warn {
+					println!("Warning from CplVar.is_equal:  I don't know what this is {}", v.var);
+				},
+			}
+		}
+		return false;
+	}
+
+	pub fn is_not_equal (&self, v : &CplVar, warn : bool) -> bool{
+
+		//	filter out any types that can't be compared
+		if self.is_disallowed(&self, warn) {return false}
+		if self.is_disallowed(v, warn) {return false}
+
+		//	If the types are equal, just go ahead and compare their values
+		if self.is_type_equal(v){
+			match &v.var{
+				CplDataType::CplNumber(n1) => if let CplDataType::CplNumber(ref n2) = self.var {return n1.cpl_number != n2.cpl_number}else{return false},
+				CplDataType::CplBool(b1) => if let CplDataType::CplBool(ref b2) = self.var {return b1.cpl_bool != b2.cpl_bool}else{return false},
+				CplDataType::CplString(s1) => if let CplDataType::CplString(ref s2) = self.var {return s1.cpl_string != s2.cpl_string}else{return false},
+				_ => if warn {
+					println!("Warning from CplVar.is_equal:  I don't know what this is {}", v.var);
+				},
+			}
+		}
+		return false;
+	}
+
+
+	pub fn as_string(&self) -> String{
+		let dt = match &self.var{
+			CplDataType::CplString(s) => s,
+			//_ => abend!(format!("From CplVar.as_string: Var is not a string, it's a {}", self.var)),
+			_ => panic!("From CplVar.as_string: Var is not a string, it's a {}", self.var),
+		};
+		dt.cpl_string.clone()
+	}
+
+	pub fn as_number(&self) -> f64{
+		match &self.var{
+			CplDataType::CplNumber(s) => return s.cpl_number,
+			CplDataType::CplString(s) => {
+				match s.cpl_string.parse::<f64>(){
+					Ok(n) => return n,
+					Err(_) => abend!(format!("From CplString.as_number: couldn't covert {} into a number", s.cpl_string)),
+				}
+			},
+			_ => abend!(format!("From CplVar.as_scalar: Var is not a scalar, it's a {}", self.var)),
+		}
+	}
+
+	pub fn as_boolean(&self) -> bool{
+		match &self.var{
+			CplDataType::CplBool(s) => return s.cpl_bool,
+			_ => abend!(format!("From CplVar.as_string: Var is not a boolean, it's a {}", self.var)),
+		}
+	}
+
+	pub fn len(&self, _of_what : &CplVar) -> usize{
+		return 0;
+	}
+
+	pub fn get_keys(&self) -> Vec<String>{
+		return vec!("akey".to_string());
+	}
+
+	pub fn print(&self){
+		match &self.var{
+			CplDataType::CplNumber(n) 				=> println!("{}",n.cpl_number),
+			CplDataType::CplString(s)				=> println!("{}",s.cpl_string),
+			CplDataType::CplBool(b)					=> println!("{}",b.cpl_bool),
+			CplDataType::CplVarRef(v)				=> println!("VarRef: {},{},{}", v.frame_num, v.block_num, v.address),
+			CplDataType::CplArray(a)				=> a.print(),
+			CplDataType::CplUninitialized(_) 		=> println!("Uninitialized"),
+			CplDataType::CplUndefined(_) 			=> println!("Undefined"),
+			CplDataType::CplDict(_) 				=> println!("Dictionary"),
+			CplDataType::CplFileReader(_) 			=> println!("File Reader"),
+			CplDataType::CplFileWriter(_) 			=> println!("File Writer"),
+			CplDataType::CplFileAppender(_) 		=> println!("File Appender"),
+			CplDataType::CplStruct(a)				=> a.print(),
+		}
+	}
+}
+
+impl fmt::Display for CplVar{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match &self.var{
+			CplDataType::CplNumber(n) 			=> write!(f,"{}",n.cpl_number),
+			CplDataType::CplString(s)			=> write!(f,"{}",s.cpl_string),
+			CplDataType::CplBool(b)				=> write!(f,"{}",b.cpl_bool),
+			CplDataType::CplVarRef(v)			=> write!(f,"VarRef: {},{},{}", v.frame_num, v.block_num, v.address),
+			CplDataType::CplArray(a)			=> write!(f,"Array: {}",a),
+			CplDataType::CplUninitialized(_) 	=> write!(f,"Uninitialized"),
+			CplDataType::CplUndefined(_) 		=> write!(f,"Undefined"),
+			CplDataType::CplDict(_) 			=> write!(f,"Dictionary"),
+			CplDataType::CplFileReader(_) 		=> write!(f,"File Reader"),
+			CplDataType::CplFileWriter(_) 		=> write!(f,"File Writer"),
+			CplDataType::CplFileAppender(_) 	=> write!(f,"File Appender"),
+			CplDataType::CplStruct(_)			=> write!(f,"Struct"),
+		}	
+	}
+}
+
+impl Clone for CplVar{
+	fn clone(&self) -> CplVar{
+		CplVar{
+			var : self.var.clone(),
+		}
+	}
+}
+
+
+/****************************************
+****	CplData
+*****************************************/
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CplVarRef{
+	pub frame_num : usize,
+	pub block_num : usize,
+	pub address : usize,
+}
+impl CplVarRef{
+	pub fn new(frame_num : usize, block_num : usize, address : usize) -> CplVarRef{
+		CplVarRef{
+			frame_num : frame_num,
+			block_num : block_num,
+			address : address,
+		}
+	}
+
+	// pub fn update_via_ref(&mut self, cpl_var : &CplVar, operand_stack : & mut OperandStack){
+	// 	let operand_frame = operand_stack.operand_frames.get_mut(self.frame_num).unwrap();
+	// 	let operand_block = operand_frame.operand_blocks.get_mut(self.block_num).unwrap();
+	// 	operand_block.operand_block[self.address] = cpl_var.clone();
+	// }
+
+	pub fn apply_binary_operator_indexed(&mut self, _operand_stack : &OperandStack, _new_value : &CplVar, _index : &CplVar, _opcode : Opcode){
+
+		println!("================ CplVarRef:apply_binary_operator_indexed!!")
+
+	}
+}
+
+impl fmt::Display for CplVarRef{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "VarRef: {},{},{}", self.frame_num, self.block_num, self.address)
+	}
+}
+
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct CplUninitialized{
+//	dummy : String,
+}
+impl CplUninitialized{
+	pub fn new() -> CplUninitialized{
+		CplUninitialized{
+			// dummy : "Uninitialized Data".to_string(),
+		}
+	}
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct CplUndefined{
+	//dummy : String,
+}
+impl CplUndefined{
+	pub fn new() -> CplUndefined{
+		CplUndefined{
+			//dummy : "Undefined Data".to_string(),
+		}
+	}
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct CplArray{
+	pub cpl_array : Vec<CplVar>,
+}
+
+impl CplArray{
+	pub fn new() -> CplArray{
+		CplArray{
+			cpl_array : Vec::new(),
+		}
+	}
+
+	pub fn push(&mut self, item : &CplVar){
+		self.cpl_array.push(item.clone());
+	}
+
+	pub fn pop(&mut self) -> CplVar{
+		self.cpl_array.pop().unwrap()
+	}
+
+	pub fn get (&mut self, index : usize) -> CplVar{
+		if index >= self.cpl_array.len() {
+			return CplVar::new(CplDataType::CplUndefined(CplUndefined::new()));
+		}
+		self.cpl_array.get(index).unwrap().clone()
+	}
+
+	pub fn fetch_indexed(&mut self, index : &CplVar) -> CplVar{
+		if let CplDataType::CplNumber(ref n) = index.var{
+			if n.cpl_number < 0.0 {
+				abend!(format!("From CplArray.fetch_indexed Index is negative {}", n.cpl_number));
+			}
+			return self.get(n.cpl_number as usize);
+		}else{
+			abend!(format!("from CplArray.fetch_indexed: index should be a number.  It is a {}", index.var));
+		}
+	}
+
+	//	update the element at index
+	pub fn update_indexed(&mut self, index : &CplVar, new_value : &CplVar){
+		if let CplDataType::CplNumber(ref n) = index.var{
+			if n.cpl_number as usize >= self.cpl_array.len(){
+				abend!(format!("From CplArray.update_indexed:  index is out of range"));
+			}else{
+				self.cpl_array[n.cpl_number as usize] = new_value.clone();
+			}
+		}
+	}
+
+	//	We'll treat append as kind of special case since it only works with strings
+	fn update_indexed_append(&mut self, index : usize, new_value : &CplVar){
+		let mut updated_value : String = String::new();
+		if let CplDataType::CplString(ref s) = self.cpl_array[index].var{
+			updated_value = s.cpl_string.clone();
+			if let CplDataType::CplString(ref new_s) = new_value.var{
+				updated_value.push_str(&new_s.cpl_string);
+			}else if let CplDataType::CplNumber(ref new_n) = new_value.var{
+				updated_value.push_str(&new_n.cpl_number.to_string());
+			}
+		}
+
+		self.cpl_array[index] = CplVar::new(CplDataType::CplString(CplString::new(updated_value)));
+	}
+
+	fn update_indexed_op_number(&mut self, index : usize, raw_value : f64){
+		self.cpl_array[index] = CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Real, raw_value)));
+	}
+
+	//	Perform an operation on an element
+	pub fn update_indexed_op(&mut self, index : &CplVar, new_value : &CplVar, op : Opcode){
+		let local_index : usize;
+
+		//	otherwise, first make sure the index is in range and is a number
+		if let CplDataType::CplNumber(ref n) = index.var{
+			if n.cpl_number as usize >= self.cpl_array.len(){
+				abend!(format!("From CplArray.update_indexed_op:  index {} is out of range.  ", n.cpl_number));
+			}else{
+				local_index = n.cpl_number as usize;
+			}
+		}else{
+			abend!(format!("From CplArray.update_indexed_op:  index expected to be a number.  It is a {}", index.var));
+		}
+
+		//	Treat .= as a special case since it only works with strings
+		if op == Opcode::AppendEq{
+			self.update_indexed_append(local_index, new_value);
+			return;
+		}
+
+		if let CplDataType::CplNumber(ref new_v) = new_value.var{
+			if let CplDataType::CplNumber(ref e) = self.cpl_array[local_index].var{
+				match op{
+					Opcode::AddEq => self.update_indexed_op_number(local_index, e.cpl_number+new_v.cpl_number),
+					Opcode::SubEq => self.update_indexed_op_number(local_index, e.cpl_number-new_v.cpl_number),
+					Opcode::DivEq => self.update_indexed_op_number(local_index, e.cpl_number/new_v.cpl_number),
+					Opcode::MulEq => self.update_indexed_op_number(local_index, e.cpl_number*new_v.cpl_number),
+					Opcode::ModEq => self.update_indexed_op_number(local_index, (e.cpl_number as i64%new_v.cpl_number as i64) as f64),
+					Opcode::OrEq  => self.update_indexed_op_number(local_index, (e.cpl_number as i64|new_v.cpl_number as i64) as f64),
+					Opcode::AndEq => self.update_indexed_op_number(local_index, (e.cpl_number as i64&new_v.cpl_number as i64) as f64),
+					_=> abend!(format!("from CplArray:update_indexed_op: Expecting an assignment operator.  Got {}", op)),
+				}
+			}else{
+				abend!(format!("from CplArray:update_indexed_op: Op {} only works on numbers. Array element is {}", op, index));
+			}
+		}
+	}
+
+	pub fn delete(&mut self, key : &CplVar){
+		if let CplDataType::CplNumber(ref n) = key.var{
+			self.cpl_array.remove(n.cpl_number as usize);
+		}
+		abend!(format!("Deleting values from an array requires a number.  Found: {}", key.var));
+	}
+
+	pub fn append(&mut self, appendee : &CplVar){
+		match &appendee.var{
+			CplDataType::CplArray(a) =>{
+				for element in &a.cpl_array{
+					self.cpl_array.push(element.clone());
+				}
+			},
+			CplDataType::CplNumber(_) | CplDataType::CplString(_) | CplDataType::CplBool(_) => return self.push(appendee),
+			_ => abend!(format!("Unable to append {} to an array", appendee.var)),
+		}
+	}
+
+	pub fn sort(&mut self){
+		self.cpl_array.sort();
+	}
+
+	pub fn len(&self) -> usize{
+		self.cpl_array.len()
+	}
+
+	pub fn print(&self){
+		println!("Array len: {}", self.cpl_array.len());
+
+		let mut i = 0;
+		for var in &self.cpl_array{
+			println!("    {}:{}", i, var.var);
+			i += 1;
+		}
+	}
+
+	pub fn array_text(&self) -> String{
+		let mut rtn = String::new();
+		for var in &self.cpl_array{
+			rtn.push_str(&format!("[{}], ",var.var));
+		}
+		if rtn.len() > 1{
+			rtn.truncate(rtn.len()-2);
+		}
+		rtn.clone()
+	}
+}
+
+impl Clone for CplArray{
+	fn clone(&self) -> CplArray{
+		let mut cpl_array  = CplArray::new();
+		
+		for var in &self.cpl_array{
+			match &var.var{
+				CplDataType::CplNumber(n) 				=> cpl_array.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(n.rust_data_type, n.cpl_number)))),
+				CplDataType::CplString(n)				=> cpl_array.push(&CplVar::new(CplDataType::CplString(CplString::new(n.cpl_string.clone())))),
+				CplDataType::CplBool(n)					=> cpl_array.push(&CplVar::new(CplDataType::CplBool(CplBool::new(n.cpl_bool)))),
+				CplDataType::CplArray(a)				=> cpl_array.push(&CplVar::new(CplDataType::CplArray(a.clone()))),
+				CplDataType::CplUninitialized(_) 		=> cpl_array.push(&CplVar::new(CplDataType::CplUninitialized(CplUninitialized::new()))),
+				CplDataType::CplUndefined(_) 			=> cpl_array.push(&CplVar::new(CplDataType::CplUndefined(CplUndefined::new()))),
+				CplDataType::CplDict(d) 				=> cpl_array.push(&CplVar::new(CplDataType::CplDict(d.clone()))),
+				_ 										=> abend!(format!("Unable to clone an array with a {} object in it", var.var)),
+			};
+		}
+
+		cpl_array
+	}
+}
+
+impl fmt::Display for CplArray{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		if self.cpl_array.len() == 0{
+			write!(f,"Empty")
+		}else{	
+			let mut dump_string = String::new();
+			let mut begin = true;
+			for var in &self.cpl_array {
+				if begin{
+					dump_string.push_str (&format!("{}",var));
+					begin = false;
+				}else{
+					dump_string.push_str (&format!(",{}",var));
+				}
+			}
+			write!(f,"{}",dump_string)
+		}
+	}
+}
+
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct CplString{
+	pub cpl_string : String,
+}
+
+impl CplString{
+	pub fn new(s : String) -> CplString{
+		CplString{
+			cpl_string : s,
+		}
+	}
+
+	pub fn copy(&self) -> CplString{
+		CplString::new(self.cpl_string.clone())
+	}
+
+	pub fn stringify(&mut self, scalar : f64) -> String{
+		scalar.to_string()
+	}
+
+	pub fn update_operator(&mut self, _new_value : &CplVar, _op : Opcode){
+		println!("    CplString.update_operator CplString.update_operator");
+	}
+
+	pub fn update(&mut self, num : &CplVar){
+		if let CplDataType::CplString(ref s) = num.var{
+			self.cpl_string = s.cpl_string.clone();
+		}else{
+			abend!(format!("from CplString.update: Update Value is not a string.  It is a {}", num.var));
+		}
+	}
+
+	pub fn len(&self) -> usize{
+		self.cpl_string.len()
+	}
+
+	pub fn append(&mut self, value_to_append : &CplVar){
+		match &value_to_append.var{
+			CplDataType::CplString(s) => {
+				self.cpl_string.push_str(&s.cpl_string);
+			}
+			CplDataType::CplNumber(n) => {
+				let s = self.stringify(n.cpl_number);
+				self.cpl_string.push_str(&s);
+			}
+			CplDataType::CplBool(b) => {
+				if b.cpl_bool {
+					self.cpl_string.push_str("true");
+				}else{
+					self.cpl_string.push_str("false");
+				}
+			}
+
+			_ => panic!("from CplString.append: can't append {}",value_to_append),
+		}
+	}
+
+	pub fn apply_binary_operator_to_string (&mut self, new_value : &CplVar, op : Opcode, ){
+		//	first, get the new value as just a number
+		let mut newv = String::new();
+		
+		if let CplDataType::CplNumber(n) = &new_value.var{
+			newv.push_str(&n.cpl_number.to_string());
+		} else if let CplDataType::CplString(s) = &new_value.var{
+			newv.push_str(&s.cpl_string);
+		} else if let CplDataType::CplBool(b) = &new_value.var{
+			newv.push_str(&b.cpl_bool.to_string())
+		} else{
+			abend!(format!("from CplString.apply_binary_operator_to_string: the operand is wrong: {}", new_value.var));
+		}
+
+		//	now perform the operation specified by op
+		match op{
+			Opcode::AddEq | Opcode::AppendEq => self.cpl_string.push_str(&newv),
+			_=> abend!(format!("from CplNumber.apply_operator_to_number: Unable to perform {} {} {}", self.cpl_string, op, newv)),
+		}
+	}
+
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct CplBool{
+	pub cpl_bool : bool,
+}
+
+impl CplBool{
+	pub fn new(b : bool) -> CplBool{
+		CplBool{
+			cpl_bool : b,
+		}
+	}
+
+	pub fn copy(&self) -> CplBool{
+		CplBool::new(self.cpl_bool)
+	}
+
+	pub fn as_int(&self) -> i32{
+		if self.cpl_bool{
+			return 1;
+		}else{
+			return 0;
+		}
+	}
+
+	pub fn update_operator(&mut self, _new_value : &CplVar, _op : Opcode){
+		println!("    CplBool.update_operator CplBool.update_operator");
+	}
+
+	pub fn apply_daminit(&mut self){
+		self.cpl_bool = !self.cpl_bool;
+	}
+}
+
+pub struct CplNumber {
+	pub rust_data_type : RustDataType,
+	pub cpl_number : f64,
+}
+
+impl CplNumber{
+	pub fn new(rust_data_type : RustDataType, data : f64) -> CplNumber{
+		CplNumber{
+			rust_data_type : rust_data_type,
+			cpl_number : data,
+		}
+	}
+
+	pub fn as_real(&self) -> f64{
+		self.cpl_number
+	}
+
+	pub fn as_int(&self) ->i64{
+		self.cpl_number as i64
+	}
+
+	pub fn as_char(&self) -> char{
+		if self.cpl_number > 255.0{
+			abend!(format!("Can't convert data to char because data > 255"));
+		}
+
+		self.cpl_number as u8 as char
+	}
+
+	pub fn as_bool(&self) -> bool{
+		if self.cpl_number != 0.0{
+			true
+		}else{
+			false
+		}
+	}
+
+	pub fn apply_unary_operator (&mut self, op : Opcode){
+		match op{
+			Opcode::Inc	   => self.cpl_number += 1.0,
+			Opcode::Dec    => self.cpl_number -= 1.0,
+			Opcode::Uminus => self.cpl_number *= -1.0,
+			_=> abend!(format!("from CplNumber.apply_unary_operator: Unable to apply {} to {}", op, self.cpl_number)),
+		}
+	}
+
+	pub fn apply_binary_operator_to_number (&mut self, new_value : &CplVar, op : Opcode, ){
+		//	first, get the new value as just a number
+		let newv : f64;
+		
+		if let CplDataType::CplNumber(n) = &new_value.var{
+			newv = n.cpl_number;
+		}else{
+			abend!(format!("from CplNumber.update_operator: the operand is not numeric: {}", new_value.var));
+		}
+		//	now perform the operation specified by op
+		match op{
+			Opcode::Update => self.cpl_number  = newv,
+			Opcode::AddEq  => self.cpl_number += newv,
+			Opcode::SubEq  => self.cpl_number -= newv,
+			Opcode::DivEq  => self.cpl_number /= newv,
+			Opcode::MulEq  => self.cpl_number *= newv,
+			Opcode::ModEq  => self.cpl_number = (self.cpl_number as i32 % newv as i32) as f64,
+			Opcode::OrEq   => self.cpl_number = (self.cpl_number as i32 | newv as i32) as f64,
+			Opcode::AndEq  => self.cpl_number = (self.cpl_number as i32 & newv as i32) as f64,
+			_=> abend!(format!("from CplNumber.apply_operator_to_number: Unable to operate to perform {} {} {}", self.cpl_number, op, newv)),
+		}
+	}
+	
+	pub fn add (&mut self, num : f64){
+		self.cpl_number += num;
+	}
+
+	pub fn mul (&mut self, num : f64){
+		self.cpl_number *= num;
+	}
+
+	pub fn div (&mut self, num : f64){
+		self.cpl_number /= num;
+	}
+
+	pub fn modulo (&mut self, num : f64){
+		self.cpl_number = self.cpl_number % num;
+	}
+
+	pub fn bw_and (&mut self, num : f64){
+		self.cpl_number = (self.cpl_number as i64 & num as i64) as f64;
+	}
+
+	pub fn bw_or (&mut self, num : f64){
+		self.cpl_number = (self.cpl_number as i64 | num as i64) as f64;
+	}
+
+	pub fn update(&mut self, num : &CplVar){
+		if let CplDataType::CplNumber(ref n) = num.var{
+			self.cpl_number = n.cpl_number;
+		}else{
+			abend!(format!("from CplNumber.update: Update Value is not a number.  It is a {}", num.var));
+		}
+	}
+
+	pub fn copy(&self) -> CplNumber{
+		CplNumber::new(self.rust_data_type, self.cpl_number)
+	}
+}
+impl PartialEq for CplNumber{
+	fn eq(&self, other : &Self) -> bool{
+		return self.cpl_number == other.cpl_number;
+	}
+}
+impl Eq for CplNumber{}
+
+impl PartialOrd for CplNumber {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		if self.cpl_number > other.cpl_number{
+			return Some(Ordering::Greater);
+		}else if self.cpl_number < other.cpl_number{
+			return Some(Ordering::Less);
+		}else{
+			return Some(Ordering::Equal);
+		}
+    }
+}
+impl Ord for CplNumber {
+    fn cmp(&self, other: &Self) -> Ordering {
+		if self.cpl_number > other.cpl_number{
+			return Ordering::Greater;
+		}else if self.cpl_number < other.cpl_number{
+			return Ordering::Less;
+		}else{
+			return Ordering::Equal;
+		}
+    }
+}
+
+impl fmt::Display for CplNumber{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}",self.cpl_number)
+	}
+}
+
+//#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct CplFileReader{
+	pub file_name : String,
+	pub eof_flag : bool,
+	pub last_error : String,
+	pub count : usize,
+	pub file_len : usize,
+	pub reader : BufReader<File>,
+	pub open_mode : String,
+}
+
+impl CplFileReader{
+	pub fn new(file_name : &str, open_mode : &str) -> CplFileReader{
+		let mut rdr = CplFileReader{
+			file_name : file_name.to_string(),
+			eof_flag : false,
+			last_error : String::new(),
+			reader : BufReader::new(File::open(file_name).expect(&format!("--Unable to open {}--\n",file_name))),
+			count : 0,
+			file_len : 0,
+			open_mode : open_mode.to_string(),
+		};
+
+
+		let meta = metadata(file_name).unwrap();
+		rdr.file_len = meta.len() as usize;
+
+		rdr
+	}
+
+	//	Read one line from the file and return how many
+	//	characters were read (0 = eof)
+	pub fn readln(&mut self, line : & mut String) -> usize{
+		self.count = self.reader.read_line(line).unwrap();
+		if self.count == 0{
+			self.eof_flag = true;
+		}
+		//self.eof_flag = self.count == 0;
+		self.count
+	}
+
+	//	Read entire file from the file and return how many
+	//	characters were read (0 = eof)
+	pub fn read(&mut self, line : & mut String) -> usize{
+		let mut bytes : Vec<u8> = vec!(0;self.file_len);
+		self.count = self.file_len;
+		self.reader.get_ref().read_exact(&mut bytes).unwrap();
+		self.eof_flag = true;
+		let rtn = str::from_utf8(&bytes).unwrap().to_string();
+		//line.clear();
+		line.push_str(&rtn);
+		self.count
+	}
+
+	pub fn read_csv(&mut self) -> CplArray{
+		let mut line = String::new();
+		self.count = self.reader.read_line(&mut line).unwrap();
+		if self.count == 0{
+			self.eof_flag = true;
+			return CplArray::new();
+		}
+
+		//-----------------------------------------------------------------------------
+		//	TODO:	Really big stupid change.  Tokenizer should be able to parse
+		//	CSV but it is to tightly integrated with the command line interpreter
+		//	module (CLI). We need to disentangle it from CLI so that it can be
+		//	used with either the CPL program or any other file we want to point
+		//	it at -- like this CSV file for example.  For now, we'll have to do
+		//	a simple CSV parser which will, replicate some of the functionality of
+		//	tokenizer.  Damn!!!
+		//-----------------------------------------------------------------------------
+
+		//	now we have a line of csv text.  Parse it and put each of the elements
+		//	into the return array
+		let mut rtn = CplArray::new();
+
+		let mut csv = CsvParser::new(&line, self.open_mode.as_bytes()[1] as char);
+		let mut element = String::new();
+		while csv.next_element(&mut element){
+			rtn.push(&CplVar::new(CplDataType::CplString(CplString::new(element.clone()))));
+		}
+		return rtn;
+	}
+	
+}
+impl PartialEq for CplFileReader{
+	fn eq(&self, _other : &Self) -> bool{
+		abend!(format!(".....CplFileReader"));
+	}
+}
+impl Eq for CplFileReader{}
+impl PartialOrd for CplFileReader {
+    fn partial_cmp(&self, _other: &Self) -> Option<Ordering> {
+        abend!(format!("......CplFileReader"));
+    }
+}
+impl Ord for CplFileReader {
+    fn cmp(&self, _other: &Self) -> Ordering {
+        abend!(format!("......CplFileReader"));
+    }
+}
+
+pub struct CplFileWriter{
+	pub file_name : String,
+	pub last_error : String,
+	pub writer : BufWriter<File>,
+}
+
+impl CplFileWriter{
+	pub fn new(file_name : &str) -> CplFileWriter{
+		CplFileWriter{
+			file_name : file_name.to_string(),
+			last_error : String::new(),
+			writer : BufWriter::new(File::create(file_name).expect(&format!("--Unable to open {}--\n",file_name))),
+		}
+	}
+	
+	pub fn write_array(&mut self, array : &CplVar, writeln : bool){
+		if let CplDataType::CplArray(ref a) = array.var{
+			let mut i = 0;
+			for item in &a.cpl_array{
+				if i > 0{
+					self.write(",",false);
+				}
+
+				match &item.var{
+					CplDataType::CplNumber (n) => self.write(&n.cpl_number.to_string(),false),
+					CplDataType::CplString (s) => {
+						match s.cpl_string.find(','){
+							None => self.write(&s.cpl_string,false),
+							Some(_) => {
+								self.write("\"", false);
+								self.write(&s.cpl_string,false);
+								self.write("\"", false);
+							},
+						}
+						
+					},
+					CplDataType::CplBool   (b) => self.write(&b.cpl_bool.to_string(),false),
+					_=> self.write(&format!("blat! {}",item.var),false),
+				}
+				i+=1;
+			}
+			
+			if writeln{
+				self.write("\n",false);
+			}
+		}
+	}
+
+	pub fn write(&mut self, line : &str, writeln : bool){
+		if writeln{
+			self.writer.write_all(format!("{}\n",line).as_bytes()).expect("Unable to write data");
+		}else{
+			self.writer.write_all(line.as_bytes()).expect("Unable to write data");
+		}
+	}
+}
+
+impl PartialEq for CplFileWriter{
+	fn eq(&self, _other : &Self) -> bool{
+		abend!(format!(".....CplFileWriter"));
+	}
+}
+impl Eq for CplFileWriter{}
+impl PartialOrd for CplFileWriter {
+    fn partial_cmp(&self, _other: &Self) -> Option<Ordering> {
+        abend!(format!("......CplFileWriter"));
+    }
+}
+impl Ord for CplFileWriter {
+    fn cmp(&self, _other: &Self) -> Ordering {
+        abend!(format!("......CplFileWriter"));
+    }
+}
+
+pub struct CplFileAppender{
+	pub file_name : String,
+	pub last_error : String,
+	pub writer : BufWriter<File>,
+}
+
+impl CplFileAppender{
+	pub fn new(file_name : &str) -> CplFileAppender{
+		CplFileAppender{
+			file_name : file_name.to_string(),
+			last_error : String::new(),
+			writer : BufWriter::new(OpenOptions::new()
+				.append(true)
+            	.create(true)
+            	.open(file_name)
+				.expect(&format!("--Unable to open {}--\n",file_name))),
+		}
+	}
+
+	pub fn write_array(&mut self, array : &CplVar, writeln : bool){
+		if let CplDataType::CplArray(ref a) = array.var{
+			let mut i = 0;
+			for item in &a.cpl_array{
+				if i > 0{
+					self.write(",",false);
+				}
+
+				match &item.var{
+					CplDataType::CplNumber (n) => self.write(&n.cpl_number.to_string(),false),
+					CplDataType::CplString (s) => {
+						match s.cpl_string.find(','){
+							None => self.write(&s.cpl_string,false),
+							Some(_) => {
+								self.write("\"", false);
+								self.write(&s.cpl_string,false);
+								self.write("\"", false);
+							},
+						}
+						
+					},
+					CplDataType::CplBool   (b) => self.write(&b.cpl_bool.to_string(),false),
+					_=> self.write(&format!("blat! {}",item.var),false),
+				}
+				i+=1;
+			}
+			
+			if writeln{
+				self.write("\n",false);
+			}
+		}
+	}
+	
+	pub fn write(&mut self, line : &str, writeln : bool){
+		if writeln{
+			self.writer.write_all(format!("{}\n",line).as_bytes()).expect("Unable to write data");
+		}else{
+			self.writer.write_all(line.as_bytes()).expect("Unable to write data");
+		}
+	}
+}
+impl PartialEq for CplFileAppender{
+	fn eq(&self, _other : &Self) -> bool{
+		abend!(format!(".....CplFileAppender"));
+	}
+}
+impl Eq for CplFileAppender{}
+impl PartialOrd for CplFileAppender {
+    fn partial_cmp(&self, _other: &Self) -> Option<Ordering> {
+        abend!(format!("......CplFileAppender"));
+    }
+}
+impl Ord for CplFileAppender {
+    fn cmp(&self, _other: &Self) -> Ordering {
+        abend!(format!("......CplFileAppender"));
+    }
+}
+
+#[derive(PartialEq,Clone, Eq, Hash, Debug, Ord, PartialOrd)]
+pub struct CplKey{
+	pub key : String,
+}
+
+impl CplKey{
+	pub fn new(key : String) -> CplKey{
+		CplKey {
+			key : key,
+		}
+	}
+
+	//	Build a key from supported Data Types
+	pub fn to_key(cpl_var : &CplDataType) -> CplKey{
+		match &cpl_var{
+			CplDataType::CplNumber(n) 				=> CplKey::new(n.cpl_number.to_string()),
+			CplDataType::CplString(s)				=> CplKey::new(s.cpl_string.clone()),
+			CplDataType::CplBool(b)					=> CplKey::new(b.cpl_bool.to_string()),
+			_										=> abend!(format!("Sorry, you can't use {} as a key to a dictionary", cpl_var)),
+		}
+	}
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct CplDict{
+	pub cpl_dict : HashMap<CplKey, CplVar>,
+}
+
+impl CplDict{
+	pub fn new() -> CplDict{
+		CplDict{
+			cpl_dict : HashMap::new(),
+		}
+	}
+
+	pub fn contains_key(&self, key : &CplKey) -> bool{
+		return self.cpl_dict.contains_key(key);
+	}
+
+	pub fn get(&self, key : &CplKey) -> CplVar{
+		if !self.contains_key(key){
+			return CplVar::new(CplDataType::CplUndefined(CplUndefined::new()));
+		}
+		return self.cpl_dict.get(key).unwrap().clone();
+	}
+
+	pub fn fetch_indexed(&self, index : &CplVar) -> CplVar{
+		let key = CplKey::to_key(&index.var);
+		if self.cpl_dict.contains_key(&key){
+			return self.get(&key);
+		}else{
+			return CplVar::new(CplDataType::CplUndefined(CplUndefined::new()));
+		}
+	}
+
+
+	pub fn keys(&mut self) -> CplVar{
+		let mut rtn = CplVar::new(CplDataType::CplArray(CplArray::new()));
+		if let CplDataType::CplArray(ref mut a) = rtn.var{
+			for cpl_key in self.cpl_dict.keys() {
+				a.push(&CplVar::new(CplDataType::CplString(CplString::new(cpl_key.key.clone()))));
+			}
+		}
+	
+		rtn.clone()
+	}
+
+	pub fn len(&self) -> usize{
+		self.cpl_dict.keys().len()
+	}
+
+	pub fn update_indexed(&mut self, key : &CplVar, value : &CplVar){
+		let cpl_key = CplKey::to_key(&key.var);
+		if self.cpl_dict.contains_key(&cpl_key){
+			self.cpl_dict.insert(cpl_key,value.clone());
+		}else{
+			abend!(format!("from CplDict.update_indexed: Key not found {}", key));
+		}
+	}
+
+
+	fn update_indexed_op_number(&mut self, key : &CplKey, raw_value : f64){
+		self.cpl_dict.insert(key.clone(),CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Real, raw_value))));
+	}
+
+	//	Perform an operation on an element
+	pub fn update_indexed_op(&mut self, index : &CplVar, new_value : &CplVar, op : Opcode){
+		let key : CplKey = CplKey::to_key(&index.var);
+
+		if let CplDataType::CplNumber(ref new_v) = new_value.var{
+			if let CplDataType::CplNumber(ref e) = self.cpl_dict[&key].var{
+				match op{
+					Opcode::AddEq => self.update_indexed_op_number(&key, e.cpl_number+new_v.cpl_number),
+					Opcode::SubEq => self.update_indexed_op_number(&key, e.cpl_number-new_v.cpl_number),
+					Opcode::DivEq => self.update_indexed_op_number(&key, e.cpl_number/new_v.cpl_number),
+					Opcode::MulEq => self.update_indexed_op_number(&key, e.cpl_number*new_v.cpl_number),
+					Opcode::ModEq => self.update_indexed_op_number(&key, (e.cpl_number as i64%new_v.cpl_number as i64) as f64),
+					Opcode::OrEq  => self.update_indexed_op_number(&key, (e.cpl_number as i64|new_v.cpl_number as i64) as f64),
+					Opcode::AndEq => self.update_indexed_op_number(&key, (e.cpl_number as i64&new_v.cpl_number as i64) as f64),
+					_=> abend!(format!("from CplArray:update_indexed_op: Expecting an assignment operator.  Got {}", op)),
+				}
+			}else{
+				abend!(format!("from CplArray:update_indexed_op: Op {} only works on numbers. Array element is {}", op, index));
+			}
+		}
+	}
+
+	//	This seems to be purpose built for the builtin insert function
+	pub fn insert_builtin(&mut self, key : &CplVar, value : &CplVar, update_flag : &CplVar) -> CplVar{
+		let update : bool;
+		if let CplDataType::CplBool(ref b) = update_flag.var{
+			update = b.cpl_bool;			
+		}else{
+			panic! ("Expecting argument 3 to be a boolean.  Found: {}", update_flag.var);
+		}
+
+		let cpl_key = CplKey::to_key(&key.var);
+
+		match self.cpl_dict.insert(cpl_key, value.clone()){
+			None => return CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Int, self.cpl_dict.len() as f64))),
+			Some(_) => if update {return CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Int, self.cpl_dict.len() as f64)))}
+		}
+		abend!(format!("Attempting to insert a value with an exsisting key and update_flag was false: key={}", key.var));
+	}
+
+	pub fn delete(&mut self, key : &CplVar) -> CplVar{
+		let cpl_key = CplKey::to_key(&key.var);
+		self.cpl_dict.remove(&cpl_key);
+		CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Int, self.cpl_dict.len() as f64)))	
+	}
+
+	pub fn contains(&mut self, key : &CplVar) -> CplVar{
+		let cpl_key = CplKey::to_key(&key.var);
+		CplVar::new(CplDataType::CplBool(CplBool::new(self.cpl_dict.contains_key(&cpl_key))))	
+	}
+
+	pub fn push(&mut self, _item : CplVar){
+		abend!(format!("Push is not a valid operation on dictionaries"));
+	}
+
+	pub fn pop(&mut self){
+		abend!(format!("Pop is not a valid operation on dictionaries"));
+	}
+
+	pub fn append(&mut self, appendee : &CplVar){
+		match appendee.var{
+			CplDataType::CplDict(_) => {},
+			_=> abend!(format!("Only dictionarys can be 'append'ed to dictionaries.  Found:{}", appendee.var)),
+		}
+
+		let mut source = appendee.clone();
+
+		if let CplDataType::CplDict(ref mut a) = source.var{
+			for key in a.cpl_dict.keys(){
+				self.cpl_dict.insert(key.clone(), a.get(key));
+			}
+		}
+	}
+}
+
+// impl PartialEq for CplDict{
+// 	fn eq(&self, other : &Self) -> bool{
+// 		abend!(format!(".....CplDict"));
+// 	}
+// }
+// impl Eq for CplDict{}
+impl PartialOrd for CplDict {
+    fn partial_cmp(&self, _other: &Self) -> Option<Ordering> {
+        abend!(format!("......CplDict"));
+    }
+}
+impl Ord for CplDict {
+    fn cmp(&self, _other: &Self) -> Ordering {
+        abend!(format!("......CplDict"));
+    }
+}
+
+impl fmt::Display for CplDict{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let mut dump_string = String::new();
+		let mut key_list : Vec<CplKey> = Vec::new();
+		for cpl_key in self.cpl_dict.keys() {
+			key_list.push (cpl_key.clone());
+		}
+		key_list.sort();
+		for key in &key_list{
+			dump_string.push_str(&format!("{}={}\n", key.key, self.cpl_dict.get(key).unwrap()));
+		}
+		write!(f,"{}",dump_string)
+	}
+}
+
+
+

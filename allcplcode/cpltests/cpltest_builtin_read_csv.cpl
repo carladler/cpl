@@ -1,0 +1,10 @@
+entry foobar{
+	in_file = Fopen("testdata/cpltest_builtin_read_csv.csv", "<,");
+	a = Freadln(in_file);
+	while !Feof(in_file){
+		foreach x a{
+			print x;
+		}
+		a = Freadln(in_file);
+	}
+}

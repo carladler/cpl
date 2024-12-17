@@ -1,0 +1,9 @@
+entry foo(){
+	array = [1,2,3,4];
+	print "array length: ".Length(array);
+	i=0;
+	while i<Length(array){
+		print i;
+		i+=1;
+	}
+}

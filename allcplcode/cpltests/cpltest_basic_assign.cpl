@@ -1,0 +1,9 @@
+entry foo(){
+	variable = 1;
+	print "variable=".variable;
+	variable += 2;
+	print "variable+=2 = ".variable;
+	string = "xxx";
+	string .="b";
+	print "string.=b = ".string;
+}

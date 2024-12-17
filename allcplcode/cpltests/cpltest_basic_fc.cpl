@@ -1,0 +1,9 @@
+entry foo(){
+	bar(10,20);
+}
+
+fn bar(a,b){
+	c = a*b;
+	print c;
+}
+

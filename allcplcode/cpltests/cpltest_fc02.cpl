@@ -1,0 +1,33 @@
+entry foo(){
+	a=2;
+	b=3;
+	c = bar(a,b);
+	s = rzot("one","two");
+	print c;
+	zot(11);
+	print s;
+	k=0;
+	while k<12{
+		zot(k);
+		k=k+1;
+	}
+}
+
+fn bar(x,y){
+	print x;
+	print y;
+	return x*y;
+}
+
+fn zot(s){
+	print ".... zot:".s;
+	i=0;
+	while i<s{
+		print i;
+		i+=1;
+	}
+}
+
+fn rzot(s,t){
+	return s.t;
+}

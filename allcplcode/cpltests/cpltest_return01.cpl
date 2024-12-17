@@ -1,0 +1,19 @@
+entry main(){
+	rslt = foo(10);
+	print rslt;
+}
+
+fn foo(arg){
+	print "foo.arg=".arg;
+	if arg==10{
+		return bar(arg+1);
+	}else{
+		return 200;
+	}
+}
+
+fn bar(arg){
+	print "bar.arg=".arg;
+	a = arg * 9;
+	return a;
+}

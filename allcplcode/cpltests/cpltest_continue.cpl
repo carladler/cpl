@@ -1,0 +1,19 @@
+entry foo{
+	i=0;
+	while i<10{
+		if i==5{
+			print "skipping 5";
+			i+=1;
+			continue;
+		}
+
+		if i==8{
+			print "skipping 8";
+			i+=1;
+			continue;
+		}
+
+		print i;
+		i+=1;
+	}
+}

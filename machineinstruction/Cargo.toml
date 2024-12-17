@@ -1,0 +1,13 @@
+[package]
+name = "machineinstruction"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokenizer = { path = "../tokenizer" }
+opcode = { path = "../opcode" }
+macrolib = { path = "../macrolib" }
+
+[lib]
+name="machineinstruction"
+path="../allsources/machine_instruction.rs"

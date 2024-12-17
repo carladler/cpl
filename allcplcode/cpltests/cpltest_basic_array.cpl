@@ -1,0 +1,11 @@
+entry foo(){
+	b = "variable b";
+	array=[b,"two",3];
+	print array[0];
+	element=array[1];
+	print element;
+	c = "No longer two but xxx";
+	index=1;
+	array[index] = c;
+	print array[index];
+}

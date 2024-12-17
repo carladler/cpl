@@ -1,0 +1,25 @@
+workspace = { members = ["cli", "tokenizer", "parser", "model", "symboltable", "builtin", "itop", "opcode", "machineinstruction", "codeframe", "structmodel", "macrolib", "csvparser"] }
+[package]
+name = "cpl"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+enum-ordinalize = "=3.1.13"
+
+cli = { path = "cli" }
+model = { path = "model" }
+parser = { path = "parser" }
+tokenizer = { path = "tokenizer" }
+codeframe = { path = "codeframe" }
+builtin = { path = "builtin" }
+cplvar = { path = "cplvar" }
+exec = { path = "exec" }
+macrolib = { path = "macrolib" }
+
+
+
+
+[[bin]]
+name = "main"
+path = "./allsources/main.rs"

@@ -1,0 +1,74 @@
+struct s_foo{
+	member_a;
+	member_b="foo.member b";
+	member_c="foo.member c";
+}
+
+struct s_bar{
+	a=1;
+	b=2;
+ 	c=3;
+}
+
+entry ENTRY(){
+	foo=new s_foo;
+	foo:member_a = "hello";
+	print foo:member_a;
+	print foo:member_b;
+
+	dummy = "this is a dummy";
+	print dummy;
+
+	bar=new s_bar;
+	a = foo:member_b;
+	b = bar:c;
+	print a;
+	print b;
+	a = bar:c+1000;
+	print a;
+	a = bar:c+bar:a;
+	print a;
+	c = bar:c + a;
+	print c;
+	d = bar:c * 1000;
+	print d;
+	print "bar:a=".bar:a;
+	print "bar:c=".bar:c;
+	bar:a += bar:c;
+	print "bar:a+=bar:c:".bar:a;
+	bar:a /= (bar:c + bar:a);
+	print bar:a;
+	fun1(foo);
+	fun2(bar);
+}
+
+
+fn fun1(s:s_foo){
+	print "at fun1";
+	print s:member_a;
+	print "function fun";
+	array=[1,2,3];
+	foreach a array{
+		print a;
+	}
+
+	if array[0] == 1{
+		print "tada!";
+	}
+
+	array[1] = 500;
+	print array[0];
+	print array[1];
+	
+	foreach b array{
+		print b;
+	}
+}
+
+fn fun2(b:s_bar){
+	print "at fun2";
+	print "b:a=".b:a;
+	print "b:c=".b:c;
+	b:a += b:c;
+	print "b:a+=b:c:".b:a;
+}
