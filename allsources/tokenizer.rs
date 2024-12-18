@@ -469,7 +469,8 @@ pub fn token_list_text(tokens : &Vec<Token>) -> String{
 
 pub struct Tokenizer<'a>{
     tokenizer_state : TokenizerStates,
-    reader : BufReader<File>,
+    reader : Vec<BufReader<File>>,
+	include_pending : bool,
 	line : String,
     line_index : usize,
 	line_number : i32,
@@ -488,13 +489,8 @@ impl<'a> Tokenizer<'_>{
 
       	let mut izer = Tokenizer{
             tokenizer_state : TokenizerStates::BASE,
-            reader : {
-				let file = File::open(pcli.source());
-				match file{
-					Err	(m) => {println!("       Can't open File : {}",pcli.source()); std::process::exit(1);},
-					Ok(f) => BufReader::new(f),
-				}
-			},
+			reader : Vec::new(),
+			include_pending : false,
 			line : String::new(),
             line_index : 0,
 			line_number : 0,
@@ -632,6 +628,13 @@ impl<'a> Tokenizer<'_>{
 			),
 		};
 
+		let file = File::open(pcli.source());
+		match file{
+			Err	(m) => {println!("       Can't open File : {}",pcli.source()); std::process::exit(1);},
+			Ok(f) => izer.reader.push(BufReader::new(f)),
+		}
+
+
 		//	Build the raw_tokens list (so that next token and push_back work)
 		izer.tokenize();
 		izer
@@ -711,7 +714,8 @@ impl<'a> Tokenizer<'_>{
 
         if self.line.len() == 0 || self.line_index >= self.line.len(){
             self.line.clear();
-            if self.reader.read_line(&mut self.line).unwrap() == 0{
+			let reader_number = self.reader.len() - 1;
+            if self.reader.get_mut(reader_number).unwrap().read_line(&mut self.line).unwrap() == 0{
                 return None
             }
             self.line_index = 0;
@@ -813,13 +817,29 @@ impl<'a> Tokenizer<'_>{
 					abend!(format!("{}", self.error_text));
 				},
 				TokenizerStates::EOT			=> {
-
 					self.tokenizer_state = TokenizerStates::BASE;
 					self.token.line_number = self.line_number;
 					self.token.line_text = self.line.trim().to_string();
 
+					if self.include_pending {
+						let file = File::open(&self.token.token_value);
+						match file{
+							Err	(m) => {println!("       Can't open INCLUDE File : {}",self.token.token_value); std::process::exit(1);},
+							Ok(f) => self.reader.push(BufReader::new(f)),
+						}
+
+						self.include_pending = false;
+						self.tokenizer_state = TokenizerStates::BASE;
+						continue;
+					}
+
 					if self.token.token_type == TokenType::KEYWORD_OR_ID{
 						self.token.token_type = self.determine_keyword();
+
+						if self.token.token_type == TokenType::INCLUDE{
+							self.include_pending = true;
+							continue;
+						}
 					}
 			
 					self.token.token_category = *self.categories.get(&self.token.token_type).unwrap();
@@ -827,18 +847,27 @@ impl<'a> Tokenizer<'_>{
 					if self.cli.is_debug_bit(TRACE_TOKENIZER) {println! ("Tokenizer.next_token/State::EOT '{}'",self.token.token_value);}
 					return self.token.clone();
 				},
+
 				_								=> {}	// carry on normally
 			}
 
 			//	get the next character from the file or None at EOF
 			let next = self.next_char();
 
-			//	at end of file return the EOF token.
+			//	at end of file if the reader vector length > 1 then pop it,
+			//	change the state to BASE and keep going.  If reader vector
+			//	length is == 1 then return the EOF token
 			if next == None{
-				self.token.token_type = TokenType::EOF;
-				self.token.line_number = self.line_number;
-				self.token.token_category = TokenCategory::Misc;
-				return self.token.clone();
+				if self.reader.len() > 1{
+					self.reader.pop();
+					self.tokenizer_state = TokenizerStates::BASE;
+					continue;
+				}else{
+					self.token.token_type = TokenType::EOF;
+					self.token.line_number = self.line_number;
+					self.token.token_category = TokenCategory::Misc;
+					return self.token.clone();
+				}
 			}
 
 			//  if not at end of file or ERR then get the character and process it according

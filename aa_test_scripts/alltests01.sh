@@ -46,6 +46,7 @@ cargo run allcplcode/cpltests/cpltest_fc08.cpl
 cargo run allcplcode/cpltests/cpltest_foreach00.cpl
 cargo run allcplcode/cpltests/cpltest_foreach01.cpl
 cargo run allcplcode/cpltests/cpltest_if00.cpl
+cargo run allcplcode/cpltests/cpltest_include.cpl
 cargo run allcplcode/cpltests/cpltest_pass_by_reference.cpl
 cargo run allcplcode/cpltests/cpltest_predicates.cpl
 cargo run allcplcode/cpltests/cpltest_return00.cpl
