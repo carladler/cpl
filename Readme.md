@@ -100,7 +100,7 @@ This readme uses the template from:
 
 * [[awesome-readme](https://github.com/matiassingers/awesome-readme)
 
-In the process of writing this I've used much of the materail from
+In the process of writing this I've used much of the material from
 the Rust home: https://www.rust-lang.org as well as stackoverflow:
 https://stackoverflow.com.  There are some very smart and pleasent
 people in the Rust community and I highly recommend interacting with
