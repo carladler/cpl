@@ -52,6 +52,7 @@ cargo run allcplcode/cpltests/cpltest_return00.cpl
 cargo run allcplcode/cpltests/cpltest_return01.cpl
 cargo run allcplcode/cpltests/cpltest_return02.cpl
 cargo run allcplcode/cpltests/cpltest_reuse_var.cpl
+cargo run allcplcode/cpltests/cpltest_struct01.cpl
 cargo run allcplcode/cpltests/cpltest_while00.cpl
 cargo run allcplcode/cpltests/cpltest_while01.cpl
 cargo run allcplcode/cpltests/cpltest_while02.cpl

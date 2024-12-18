@@ -434,16 +434,16 @@ impl<'a> Executor<'a>{
 	}
 
 	//	Push Array means:  create a new empty array at the top of the stack
-	fn push_array(&mut self, instruction : &MachineInstruction, _instruction_address : usize){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("     push_array: {}",instruction)}
-		self.operand_stack.push(&CplVar::new(CplDataType::CplArray(CplArray::new())));
-	}
+	// fn push_array(&mut self, instruction : &MachineInstruction, _instruction_address : usize){
+	// 	if self.cli.is_debug_bit(TRACE_EXEC){println!("     push_array: {}",instruction)}
+	// 	self.operand_stack.push(&CplVar::new(CplDataType::CplArray(CplArray::new())));
+	// }
 
-	//	Push Dict means:  create a new empty dictionary rray at the top of the stack
-	fn push_dict(&mut self, instruction : &MachineInstruction, instruction_address : usize){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : push_dict: {}", self.code_block_num, instruction_address, instruction)}
-		self.operand_stack.push(&CplVar::new(CplDataType::CplDict(CplDict::new())));
-	}
+	// //	Push Dict means:  create a new empty dictionary rray at the top of the stack
+	// fn push_dict(&mut self, instruction : &MachineInstruction, instruction_address : usize){
+	// 	if self.cli.is_debug_bit(TRACE_EXEC){println!("     push_dict: {}", self.code_block_num, instruction_address, instruction)}
+	// 	self.operand_stack.push(&CplVar::new(CplDataType::CplDict(CplDict::new())));
+	// }
 
 
 	//	Create a new collection on the opernand stack.  The mode says what kind of
@@ -452,8 +452,14 @@ impl<'a> Executor<'a>{
 	fn exec_push_new_collection(&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_push_new_collection: {} Mode: {}", self.code_block_num, self.instruction_counter,instruction, instruction.opcode_mode)}
 		match instruction.opcode_mode{
-			OpcodeMode::Array		=> self.push_array(instruction, self.instruction_counter),
-			OpcodeMode::Dict		=> self.push_dict(instruction, self.instruction_counter),
+			OpcodeMode::Array		=> {
+				self.operand_stack.push(&CplVar::new(CplDataType::CplArray(CplArray::new())));
+				//self.push_array(instruction, self.instruction_counter)
+			}
+			OpcodeMode::Dict		=> {
+				self.operand_stack.push(&CplVar::new(CplDataType::CplDict(CplDict::new())));
+				// self.push_dict(instruction, self.instruction_counter)
+			},
 
 			_=> abend!(format!("From exec_push: I don't know this address mode {}", instruction.opcode_mode)),
 		}

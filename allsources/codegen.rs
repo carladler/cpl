@@ -314,8 +314,9 @@ impl<'a> CodeGen<'a>{
 	//	stack.  This struct reference is a parameter to a function.  This
 	//	this is analagous to parameter_name = new struct_name.
 	fn add_struct_parameter_to_symbol_table(&mut self, parameter_name : &String, struct_name : &String){
-		self.symbol_table.add_struct_symbol(parameter_name);
-		//self.symbol_table.add_struct_symbol(struct_name);
+
+		//println!("=============== add_struct_parameter_to_symbol_table parameter_name={} struct_name={}",parameter_name,struct_name);
+		self.symbol_table.add_normal_symbol(parameter_name);
 
 		//  Get the index of this struct in the struct map
 		let struct_index_option = self.struct_map.get(struct_name);
@@ -334,12 +335,16 @@ impl<'a> CodeGen<'a>{
 		for m in &local_members{
 			//	Add this local reference to the symbol table.
 			let member_ref = format!("{}:{}", parameter_name, m.name);
+
+			//println!("====================== add_struct_parameter_to_symbol_table parameter_name={} member_name={}",parameter_name, m.name);
 			if self.cli.is_debug_bit(TRACE_CODE_GEN){
 				println!("    CodeGen:add_struct_parameter_to_symbol_table:adding {} ({},{}) to symbol table",member_ref, struct_index, member_index);
 			}
 			self.symbol_table.add_struct_member(member_ref, struct_index, member_index);
 			member_index += 1;
 		}
+
+		//self.symbol_table.symbol_table_dump_diag("end of add_struct_parameter_to_symbol_table");
 	}
 
 
@@ -422,7 +427,7 @@ impl<'a> CodeGen<'a>{
 			//	to the symbol table
 			if parts.len() > 1{
 				self.add_struct_parameter_to_symbol_table(&parts[0].to_string(), &parts[1].to_string());
-				let symbol_detail = self.symbol_table.add_struct_symbol(&parts[0].to_string());
+				let symbol_detail = self.symbol_table.add_normal_symbol(&parts[0].to_string());
 				//	Push the argument onto the operand stack
 				self.add_machine_instruction(
 					MachineInstruction::new(
@@ -600,11 +605,13 @@ impl<'a> CodeGen<'a>{
 		let struct_name = parts[0].to_string();
 
 		//	get the address of the instantiated struct (which is really an array)
-		let struct_detail = self.symbol_table.get_struct_address(&struct_name);
+		//	The payload in the symbol table is a normal entry
+		//println!("===============gen_expression_struct_member struct_name={}", struct_name);
+		let struct_detail = self.symbol_table.get_normal_address(&struct_name);
 
 		//	push the instantiated struct onto the operand stack (this
 		//	is the array that implements the instantiated struct)
-		self.gen_expression_struct(token, &struct_detail, function_num);
+		self.gen_expression_struct(token, struct_detail.block_num, struct_detail.index, function_num);
 
 		//	if this is a struct reference (i.e. <name>: without any member), as oppose to a struct member reference,
 		//	I think we just push push the struct (i.e. the array) onto the operand stack as opposed to
@@ -612,7 +619,7 @@ impl<'a> CodeGen<'a>{
 		if parts[1].len() == 0{
 			let mut ref_token = token.clone();
 			ref_token.token_type = TokenType::STRUCT;
-			self.gen_expression_struct(&ref_token, &struct_detail, function_num);
+			self.gen_expression_struct(&ref_token, struct_detail.block_num, struct_detail.index, function_num);
 			return;
 		}
 		
@@ -671,7 +678,7 @@ impl<'a> CodeGen<'a>{
 
 	//	If the ID was the name of an instantiated struct, we want to push a VarRef
 	//	pointing to it onto the stack.
-	fn gen_expression_struct(&mut self, token : &Token, symbol_detail : &StructEntry, function_num : usize){
+	fn gen_expression_struct(&mut self, token : &Token, symbol_block_num : usize, symbol_index : usize, function_num : usize){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_struct: {}", token);}
 
 		self.add_machine_instruction(
@@ -679,8 +686,8 @@ impl<'a> CodeGen<'a>{
 				Opcode::Push
 				, OpcodeMode::VarRef
 				, self.symbol_table.current_frame()
-				, symbol_detail.block_num			// block num
-				, symbol_detail.index 				// address in block
+				, symbol_block_num			// block num
+				, symbol_index 				// address in block
 				, Vec::new()
 				, token.clone()
 			),function_num
@@ -716,7 +723,7 @@ impl<'a> CodeGen<'a>{
 
 				SymbolTableEntryType::StructEntry(struct_detail) => {
 					// println!("==================== gen_expression_id entry={}",e);
-					self.gen_expression_struct(token, &struct_detail, function_num);
+					self.gen_expression_struct(token, struct_detail.block_num, struct_detail.index, function_num);
 				}
 			}
 
@@ -1190,12 +1197,18 @@ impl<'a> CodeGen<'a>{
 		//	now) for each member of the struct.
 		//
 		//		<target>:<member>
+		//
+		//  In the symbol table, an instatiated struct appears as a struct member without
+		//	any member (e.g. foo:).  This is so that when we look for an instsantiated
+		//	struct in the symbol table we can distinguish it from a normal local variable
+		let instantiated_struct_symbol = format!("{}",instantiated_struct.token_value);
+		let struct_detail = self.symbol_table.add_normal_symbol(&instantiated_struct_symbol);
 
-		//	Add the struct to the symbol table.  But we don't need it's detai here
-		self.symbol_table.add_struct_symbol(&instantiated_struct.token_value);
+		//	and allocate an undefined variable
+		self.gen_alloc(&instantiated_struct, struct_detail.block_num, struct_detail.index, function_num);
 
-		//	create the struct that holds all of the members at the top of the stack which
-		//	at this point is at the same address as what's in the symbol table
+		//	push an empty array onto the operand stack.  This array will end up containing
+		//	all of the members
 		self.add_machine_instruction(
 			MachineInstruction::new(
 				Opcode::PushNewCollection
@@ -1219,7 +1232,7 @@ impl<'a> CodeGen<'a>{
 		//	get the index of the struct in the struct 
 		let struct_index_option = self.struct_map.get(&struct_name.token_value);
 		if struct_index_option == None{
-			abend!(format!("from gen_struct_instantiate:  Struct {} has not been defined", struct_name.token_value));
+			panic!("from gen_struct_instantiate:  Struct {} has not been defined", struct_name.token_value);
 		}
 		let struct_index : usize = *struct_index_option.unwrap();
 
@@ -1236,6 +1249,7 @@ impl<'a> CodeGen<'a>{
 			if m.initializer.len() == 0{
 				self.gen_struct_instantiate_push_uninitialized(instantiated_struct, function_num);
 			}else{
+				//println!("=================== gen member {:?}",m.initializer);
 				self.gen_expression(&m.initializer, function_num)
 			}
 
@@ -1249,10 +1263,10 @@ impl<'a> CodeGen<'a>{
 			}
 			self.symbol_table.add_struct_member(member_ref, struct_index, member_index);
 
-			//	Push the member onto the allocated array
+			//	Push the member onto the array at tos
 			self.add_machine_instruction(
 				MachineInstruction::new(
-					Opcode::Push
+					Opcode::Update
 					, OpcodeMode::Array
 					, self.symbol_table.current_frame()
 					, 0
@@ -1264,6 +1278,20 @@ impl<'a> CodeGen<'a>{
 
 			member_index += 1;
 		}			
+
+		//	Turn the allocated variable into the array; update from
+		//	the operand stack
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Update
+				, OpcodeMode::Update
+				, self.symbol_table.current_frame()
+				, struct_detail.block_num
+				, struct_detail.index
+				, Vec::new()
+				, instantiated_struct.clone()
+			),function_num
+		);
 	}
 
 	//	Assignment to a struct member has to look like assignment to an
@@ -1279,7 +1307,7 @@ impl<'a> CodeGen<'a>{
 		//struct_name.push(':');
 
 		//	get the address of the instantiated struct which is really an array
-		let detail = self.symbol_table.get_struct_address(&struct_name);
+		let detail = self.symbol_table.get_normal_address(&struct_name);
 
 		//	get the index of the member from the symbol table
 		let member_entry = self.symbol_table.get_struct_member_entry(&target.token_value);

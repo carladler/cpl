@@ -378,13 +378,17 @@ impl SymbolTableFrame{
 
 	//  Fetch the address of a normal entry.  Panic if the symbol is a StructMemberEntry
 	pub fn get_normal_address_from_frame(&self, key : &String) -> Option<NormalSymbolEntry>{
+
+		//println!("====================== get_normal_address_from_frame key={}",key);
+		//self.dump_table();
+
 		match self.get_symbol_entry(key){
 			None => return None,
 			Some(entry) => {
 				if let SymbolTableEntryType::NormalSymbolEntry(normal) = entry{
 					return Some(normal);
 				}else{
-					abend!(format!("From SymbolTable.get_normal_address_from_frame: Expecting a NormalSymbolEntry symbol, {} is a StructMemberEntry", key));
+					panic!("From SymbolTable.get_normal_address_from_frame: Expecting a NormalSymbolEntry symbol, {} is a StructMemberEntry", key);
 				}
 			}
 		}
@@ -524,8 +528,8 @@ impl <'a> SymbolTable <'a>{
 		match self.tables.last_mut().unwrap().get_normal_address_from_frame(key){
 			None => {
 				self.symbol_table_dump_diag(&format!("From SymbolTable.get_normal_address - symbol \"{}\" not found.  You must create a symbol before using it (e.g. via assignment).\n--- Symbol Table Dump ---", key));
-				abend!(format!(""));
-			},
+				panic!("From SymbolTable.get_normal_address");
+			}
 			Some(entry) => return entry,
 		}
 	}
