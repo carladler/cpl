@@ -79,7 +79,7 @@ Carl Adler
 cpl@aequis.org
 
 I have a web site that doesn't have much to do with CPL but here it
-is anyway:  www.aequis.org
+is anyway:  https://aequis.org
 
 ## Version History
 
