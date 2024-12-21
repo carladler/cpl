@@ -1369,7 +1369,7 @@ impl CplNumber{
 		if let CplDataType::CplNumber(n) = &new_value.var{
 			newv = n.cpl_number;
 		}else{
-			abend!(format!("from CplNumber.update_operator: the operand is not numeric: {}", new_value.var));
+			panic!("from CplNumber.update_operator: the operand is not numeric: {}", new_value.var);
 		}
 		//	now perform the operation specified by op
 		match op{

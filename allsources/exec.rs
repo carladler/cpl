@@ -11,6 +11,29 @@ use codeframe::*;
 //use abend::*;
 use macrolib::*;
 
+//	These enums indicate the data types of two operands
+enum OperandAnalysis{
+	InvalidType,
+	StringString,
+	StringNumber,
+	StringBool,
+	NumberString,
+	NumberNumber,
+	NumberBool,
+	BoolString,
+	BoolNumber,
+	BoolBool,
+}
+
+//	These are the types that are possible (any other types discovered
+//	are illegal)
+#[derive(PartialOrd, Ord, PartialEq, Copy, Clone, Eq, Hash)]
+enum OperandType{
+	OtString,
+	OtNumber,
+	OtBool,
+}
+
 // fn undefined()->CplVar{
 // 	CplVar::new(CplDataType::CplUndefined(CplUndefined::new()))
 // }
@@ -168,11 +191,15 @@ impl<'a> Executor<'a>{
 				Opcode::Print 					=> self.exec_print(instruction.clone()),
 				Opcode::Pop 					=> self.exec_pop(instruction),
 
-				Opcode::Add 					=> self.exec_add(instruction),
-				Opcode::Sub 					=> self.exec_sub(instruction),
-				Opcode::Mul 					=> self.exec_mul(instruction),
-				Opcode::Div 					=> self.exec_div(instruction),
-				Opcode::Mod 					=> self.exec_mod(instruction),
+				Opcode::Add 					=> self.exec_binary_operator(instruction),
+				Opcode::Sub 					=> self.exec_binary_operator(instruction),
+				Opcode::Mul 					=> self.exec_binary_operator(instruction),
+				Opcode::Div 					=> self.exec_binary_operator(instruction),
+				Opcode::Mod 					=> self.exec_binary_operator(instruction),
+				Opcode::BwOr 					=> self.exec_binary_operator(instruction),
+				Opcode::BwAnd 					=> self.exec_binary_operator(instruction),
+				Opcode::Concat 					=> self.exec_binary_operator(instruction),
+
 
 				Opcode::AddEq 					=> self.exec_assignment_operator(instruction),
 				Opcode::SubEq 					=> self.exec_assignment_operator(instruction),
@@ -186,17 +213,13 @@ impl<'a> Executor<'a>{
 				Opcode::Update					=> self.exec_update(instruction),
 	
 
-				Opcode::Lor 					=> self.exec_lor(instruction),
-				Opcode::Land 					=> self.exec_land(instruction),
-				Opcode::BwOr 					=> self.exec_bw_or(instruction),
-				Opcode::BwAnd 					=> self.exec_bw_and(instruction),
+				Opcode::Lor 					=> self.exec_lor_land(instruction),
+				Opcode::Land 					=> self.exec_lor_land(instruction),
 
 				Opcode::Inc 					=> self.exec_unary_op(instruction),
 				Opcode::Dec 					=> self.exec_unary_op(instruction),
 				Opcode::Uminus 					=> self.exec_unary_op(instruction),	
 				Opcode::Damnit					=> self.exec_unary_op(instruction),
-
-				Opcode::Concat 					=> self.exec_concat(instruction),
 
 				Opcode::J						=> self.exec_j(instruction),
 				Opcode::Jt						=> self.exec_jt(instruction),
@@ -206,12 +229,12 @@ impl<'a> Executor<'a>{
 				Opcode::Break					=> self.exec_break(instruction),
 				Opcode::Continue				=> self.exec_continue(instruction),
 
-				Opcode::Lt						=> self.exec_lt(instruction),
-				Opcode::Gt						=> self.exec_gt(instruction),
-				Opcode::Le						=> self.exec_le(instruction),
-				Opcode::Ge						=> self.exec_ge(instruction),
-				Opcode::Ne						=> self.exec_ne(instruction),
-				Opcode::Eq						=> self.exec_eq(instruction),
+				Opcode::Lt						=> self.exec_binary_operator(instruction),
+				Opcode::Gt						=> self.exec_binary_operator(instruction),
+				Opcode::Le						=> self.exec_binary_operator(instruction),
+				Opcode::Ge						=> self.exec_binary_operator(instruction),
+				Opcode::Ne						=> self.exec_binary_operator(instruction),
+				Opcode::Eq						=> self.exec_binary_operator(instruction),
 	
 				Opcode::FunctionCall			=> self.exec_function_call(instruction),
 				Opcode::FetchIndexed			=> self.exec_fetch_indexed(instruction),
@@ -550,237 +573,6 @@ impl<'a> Executor<'a>{
 		//	When we're done printing, consume the top of stack
 		self.operand_stack.pop();
 	}
-
-	//	For all arithmatic, try to convert the operands to numbers, if they
-	//	are strings.  panic if this isn't possible.
-	fn pop_to_number (&mut self, instruction : &MachineInstruction) -> CplVar{
-		let tos= self.operand_stack.dereference_tos();		
-		match tos.var{
-			CplDataType::CplNumber(_) => CplVar::new(tos.var.clone()),
-			CplDataType::CplString(ref s) => {
-				match s.cpl_string.parse(){
-					Ok(n) => CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Real,n))),
-					Err(_) => {
-						abend!(format!("ERROR: operation \"{}\" can only be performed on numbers! Operand is \"{}\"", instruction.opcode, s.cpl_string));
-						//areturn undefined();
-					},
-				}
-			},
-			_ => {
-				abend! (&format!("Operation {} can't be performed on {}!", instruction.opcode,tos.var));
-				//return undefined();
-			},
-		}
-	}
-
-
-	//  add the top two items of the stack and leave the result on the stack
-	fn exec_add(&mut self, instruction : &MachineInstruction){
-		let tos2 = self.pop_to_number(instruction);
-		let tos1 = self.pop_to_number(instruction);
-
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_add: {} ({}+{})", self.code_block_num, self.instruction_counter, instruction, tos1, tos2)}
-
-		match tos1.var{
-			CplDataType::CplNumber(ref v1) =>{
-				match tos2.var{
-					CplDataType::CplNumber(v2) => {
-						let rslt = v1.cpl_number + v2.cpl_number;
-						self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(v1.rust_data_type,rslt))));
-						if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("at exec_add")}
-						return;
-					},
-					_=>{},
-				}
-			},
-			_=>{},
-		}
-		abend!(format!("From add:  can only add scalar values {}", tos1.var));
-	}
-
-	fn exec_sub(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_sub:  {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let rslt = self.sub_help(instruction);
-
-		self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(rslt.0,rslt.1))));
-
-		if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("at exec_sub");}
-	}
-
-	//	This is used by both sub and comparison operands
-	fn sub_help(&mut self, instruction : &MachineInstruction) -> (RustDataType, f64){
-
-		let tos2 = self.pop_to_number(instruction);
-		let tos1 = self.pop_to_number(instruction);
-
-		match tos1.var{
-			CplDataType::CplNumber(ref v1) => {
-				match tos2.var{
-					CplDataType::CplNumber(v2) => {
-						return (v1.rust_data_type, v1.cpl_number - v2.cpl_number);
-					},
-					_=>{},
-				}
-			},
-			_=>{}
-		}
-		abend!(format!("From sub_help:  can only operate on scalar values {}", tos1.var));
-	}	
-
-	fn exec_mul(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_mul: {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let tos2 = self.pop_to_number(instruction);
-		let tos1 = self.pop_to_number(instruction);
-
-		match tos1.var{
-			CplDataType::CplNumber(ref v1) => {
-				match tos2.var{
-					CplDataType::CplNumber(v2) => {
-						let rslt = v1.cpl_number * v2.cpl_number;
-						self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(v1.rust_data_type,rslt))));
-						if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("at exec_mul")}
-						return;
-					},
-					_=>{},
-				}
-			},
-			_=>{}
-		}
-		abend!(format!("From mul:  can only multiply scalar values {}", tos1.var));
-	}
-
-	fn exec_div(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_div:  {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let tos2 = self.pop_to_number(instruction);
-		let tos1 = self.pop_to_number(instruction);
-
-		match tos1.var{
-			CplDataType::CplNumber(ref v1) => {
-				match tos2.var{
-					CplDataType::CplNumber(v2) => {
-						let rslt = v1.cpl_number / v2.cpl_number;
-						self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(v1.rust_data_type,rslt))));
-						if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("at exec_div")}
-						return;
-					},
-					_=>{},
-				}
-			},
-			_=>{}
-		}
-		abend!(format!("From div:  can only divide scalar values {}", tos1.var));
-	}
-
-
-	fn exec_mod(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_mod:  {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let tos2 = self.pop_to_number(instruction);
-		let tos1 = self.pop_to_number(instruction);
-
-		match tos1.var{
-			CplDataType::CplNumber(ref v1) => {
-				match tos2.var{
-					CplDataType::CplNumber(v2) => {
-						let rslt = v1.cpl_number % v2.cpl_number;
-						self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(v1.rust_data_type,rslt))));
-						if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("at exec_mod")}
-						return;
-					},
-					_=>{},
-				}
-			},
-			_=>{}
-		}
-		abend!(format!("From mul:  can only mod scalar values {}", tos1.var));
-	}
-
-	fn exec_bw_or(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_bw_or:  {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let tos2 = self.pop_to_number(instruction);
-		let tos1 = self.pop_to_number(instruction);
-
-		match tos1.var{
-			CplDataType::CplNumber(ref v1) => {
-				match tos2.var{
-					CplDataType::CplNumber(v2) => {
-						let rslt = ((v1.cpl_number as i32) | (v2.cpl_number as i32)) as f64;
-						self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(v1.rust_data_type,rslt))));
-						return;
-					},
-					_=>{},
-				}
-			},
-			_=>{}
-		}
-		abend!(format!("From exec_bw_or:  can only Bitwise OR scalar values {}", tos1.var));
-	}
-
-
-
-	fn exec_bw_and(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_bw_and:  {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let tos2 = self.pop_to_number(instruction);
-		let tos1 = self.pop_to_number(instruction);
-
-		match tos1.var{
-			CplDataType::CplNumber(ref v1) => {
-				match tos2.var{
-					CplDataType::CplNumber(v2) => {
-						let rslt = ((v1.cpl_number as i32) & (v2.cpl_number as i32)) as f64;
-						self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(v1.rust_data_type,rslt))));
-						return;
-					},
-					_=>{},
-				}
-			},
-			_=>{}
-		}
-		abend!(format!("From mul:  can only Bitwise AND scalar values {}", tos1.var));
-	}
-
-	fn exec_concat(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_concat: {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let tos2 = self.operand_stack.dereference_tos();
-		let tos1 = self.operand_stack.dereference_tos();
-
-		let tos2_string : String;
-
-		//	Test the concatinate.  If it's a String then leave it alone.  If it's
-		//	a scalar, then stringify it.
-		match tos2.var{
-			CplDataType::CplNumber(v) => tos2_string = v.cpl_number.to_string(),
-			CplDataType::CplString(v) => tos2_string = v.cpl_string,
-			CplDataType::CplBool(v) => tos2_string = v.cpl_bool.to_string(),
-			_ => abend!(format!("from concat:  data to append must be either a scalar or a string. it is {}", tos2.var)),
-		}				
-
-		//  If tos - 1 is a scalar (number) then stringify it
-		//	If tos - 1 is already a string, then do nothing to it
-		match tos1.var{
-			CplDataType::CplString(ref v1) => self.do_concat_and_push(&v1.cpl_string, &tos2_string),
-			CplDataType::CplNumber(ref v1) => self.do_concat_and_push(&v1.cpl_number.to_string(), &tos2_string),
-			CplDataType::CplBool(ref v1) => self.do_concat_and_push(&v1.cpl_bool.to_string(), &tos2_string),
-			_=> abend!(format!("From concat:  I don't understand this {}", tos1.var)),
-		}
-
-		if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("at exec_concat");}
-	}
-
-	//	for hackableness
-	fn do_concat_and_push(&mut self, var : &str, append : &str){
-		let mut rslt : String = var.to_string();
-		rslt.push_str(append);
-
-		//	get the current operand_frame
-		self.operand_stack.push(&CplVar::new(CplDataType::CplString(CplString::new(rslt))));
-	}	
 
 
 	//	This updates a local operand in situ via the address in the instruction
@@ -1226,223 +1018,426 @@ impl<'a> Executor<'a>{
 	}
 
 	/******************************************************************
-	*** Comparison Operators
+	*** Binary operators and support functions
 	******************************************************************/
-	//	These compare the top two itme on the stack by logically
-	//	subtracting TOS-1 from TOS.  The result is analyzed:
-	//
-	//		< 0, lt and ne are true
-	//		0, eq, ge and le are all true
-	//		> 0, gt and ne are true
-	//
-	//	And either "true" or "false" is pushed on to the stack.
-	//  For example if the infix expression was 10 > 20, the postfix expression would be 10 20 >
-	//	and subtracing tos-1 from tos is 10 - 20 which is a negative number so, lt and ne are true
-	//	and specifically, gt is false.
-	//
-	//	In other words, what is left on the operand stack is the boolean resuslt of
-	//	the comparison
 
-	fn exec_lt(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_lt: {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let rslt = self.sub_help(instruction);
-
-		if rslt.1 < 0.0 {
-			self.push_lit_bool_help(true, self.instruction_counter, instruction);
-		}else{
-			self.push_lit_bool_help(false, self.instruction_counter, instruction);
-		}
+	fn perform_arithmetic_op(&mut self, v1 : f64, v2 : f64, op : Opcode) -> f64{
+		match op{
+			Opcode::Add=>{v1 + v2}
+			Opcode::Sub=>{v1 - v2}
+			Opcode::Mul=>{v1 * v2}
+			Opcode::Div=>{v1 / v2}
+			Opcode::Mod=>{(v1 as i32 % v2 as i32) as f64}
+			Opcode::BwAnd=>{(v1 as i32 & v2 as i32) as f64}
+			Opcode::BwOr=>{(v1 as i32 | v2 as i32) as f64}
+			_=> panic!("From perform_arithmetic_op: expecting a binary arithmetic operator.  Got {}",op),
+		}		
 	}
-	fn exec_gt(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_gt: {}", self.code_block_num, self.instruction_counter, instruction)}
 
-		let rslt = self.sub_help(instruction);
-
-		if rslt.1 > 0.0 {
-			self.push_lit_bool_help(true, self.instruction_counter, instruction);
-		}else{
-			self.push_lit_bool_help(false, self.instruction_counter, instruction);
-		}
-	}
-	fn exec_le(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_le:  {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let rslt = self.sub_help(instruction);
-
-		if rslt.1 <= 0.0 {
-			self.push_lit_bool_help(true, self.instruction_counter, instruction);
-		}else{
-			self.push_lit_bool_help(false, self.instruction_counter, instruction);
-		}
-
-	}
-	fn exec_ge(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_ge: {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let rslt = self.sub_help(instruction);
-
-		if rslt.1 >= 0.0 {
-			self.push_lit_bool_help(true, self.instruction_counter, instruction);
-		}else{
-			self.push_lit_bool_help(false, self.instruction_counter, instruction);
+	fn perform_numeric_comparison_op(&mut self, v1 : f64, v2 : f64, op : Opcode) -> bool{
+		match op{
+			Opcode::Lt =>{v1 < v2}
+			Opcode::Gt =>{v1 > v2}
+			Opcode::Le =>{v1 <= v2}
+			Opcode::Ge =>{v1 >= v2}
+			Opcode::Eq =>{v1 == v2}
+			Opcode::Ne =>{v1 != v2}
+			_=> panic!("From perform_numeric_comparison_op: expecting a numeric comparison operator.  Got {}",op),	
 		}
 	}
 
-	//	Compare a number to a string that might also be a number.  If the string
-	//	can't be converted to a number then return false else return the
-	//	result of the comparison.  If the warnings switch was set, print a warning
-	//	if the string could not be converted to a number
-	fn eq_ne_help1(&self, vnumber : f64, vstring : &str, eq : bool) -> bool{
-		match vstring.parse(){
-			Ok(n) => if eq { return vnumber == n} else {return vnumber != n}
-			Err(_) => {
-				if self.cli.is_runtime_warnings() {
-					if eq{
-						//	if this is helping an eq print this one as a warning
-						println!("Warning: unable to compare {} == {} returning false", vnumber, vstring);
-					}else{
-						//	if this is helping a ne then print this warning message
-						println!("Warning: unable to compare {} != {} returning false", vnumber, vstring);
+
+	fn perform_string_comparison_op(&mut self, v1 : &str, v2 : &str, op : Opcode) -> bool{
+		match op{
+			Opcode::Lt =>{v1.len() < v2.len() || (v1.len() == v2.len() && v1 < v2)}
+			Opcode::Gt =>{v1.len() > v2.len() || (v1.len() == v2.len() && v1 > v2)}
+			Opcode::Le =>{v1.len() <= v2.len() || (v1.len() == v2.len() && v1 <= v2)}
+			Opcode::Ge =>{v1.len() >= v2.len() || (v1.len() == v2.len() && v1 >= v2)}
+			Opcode::Eq =>{v1.len() == v2.len() && v1 == v2}
+			Opcode::Ne =>{v1.len() != v2.len() || v1 != v2}
+			_=> panic!("From perform_string_comparison_op: expecting a string comparison operator.  Got {}",op),	
+		}
+	}
+
+
+	fn compare_string_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		if let CplDataType::CplString(ref v1) = tos1.var{
+			if let CplDataType::CplString(ref v2) = tos2.var{
+				let rslt : bool = self.perform_string_comparison_op(&v1.cpl_string, &v2.cpl_string, opcode);
+				self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(rslt))));
+			}
+		}
+	}
+	fn compare_string_number(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	To compare strings and numbers, we try to convert the string to a number
+		//	then compare.  If the string isn't a number then we know the comparison
+		//	must be false
+		if let CplDataType::CplString(ref v1) = tos1.var{
+			match v1.cpl_string.parse::<f64>() {
+				Err(_) => self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false)))),
+				Ok(parsed) => if let CplDataType::CplNumber(ref v2) = tos2.var {
+					let rslt = self.perform_numeric_comparison_op(parsed, v2.cpl_number, opcode);
+					self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(rslt))));
+				}
+			}
+		}
+	}
+
+	fn compare_string_bool(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	the string must be either "true" or "false".  If not then the result
+		//	must be false.  Only equality is valid
+		if opcode != Opcode::Eq {
+			panic!("from compare_string_bool: Invalid operation {}{}{}", tos1, opcode, tos2);
+		}
+		let mut rslt : bool = false;
+		if let CplDataType::CplString(ref v1) = tos1.var{
+			if let CplDataType::CplBool(ref v2) = tos2.var{
+				match &v1.cpl_string as &str{
+					"false" => if v2.cpl_bool { rslt = false } else { rslt = true },
+					"true"  => if v2.cpl_bool { rslt = true } else { rslt = false },
+					_=> {rslt = false},
+				}
+			}
+		}
+		self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(rslt))));
+	}
+
+	fn compare_number_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	To compare a number with a string, we try to conver the string to a
+		//	number then compare.  if it doesn't convert we return false
+		if let CplDataType::CplString(ref v2) = tos2.var{
+			match v2.cpl_string.parse::<f64>(){
+				Err(_) => self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false)))),
+				Ok(parsed) => if let CplDataType::CplNumber(ref v1) = tos1.var {
+					let rslt = self.perform_numeric_comparison_op(v1.cpl_number, parsed, opcode);
+					self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(rslt))));
+					return;
+				}
+			}
+		}
+		self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false))));
+	}
+
+	fn compare_number_number(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		if let CplDataType::CplNumber(ref v1) = tos1.var{
+			if let CplDataType::CplNumber(ref v2) = tos2.var{
+				let rslt = self.perform_numeric_comparison_op(v1.cpl_number, v2.cpl_number, opcode);
+				self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(rslt))));
+				return;
+			}
+		}
+		self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false))));
+	}
+
+	fn compare_number_bool(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	if the number is either 1 or 0 then we can compare it to true and false
+		//	respectively otherwise the result is false.  Only equality is valid
+		if opcode != Opcode::Eq{
+			panic!("from compare_number_bool:  Invalid expression: {} {} {}",tos1, opcode, tos2);
+		}
+		let mut rslt : bool = false;
+		if let CplDataType::CplNumber(ref v1) = tos1.var{
+			if let CplDataType::CplBool(ref v2) = tos2.var{
+				if v1.cpl_number == 0.0 && v2.cpl_bool == true{rslt = false}
+				if v1.cpl_number == 0.0 && v2.cpl_bool == false{rslt = true}
+				if v1.cpl_number == 1.0  && v2.cpl_bool == true {rslt = true}
+				if v1.cpl_number == 1.0 && v2.cpl_bool == false {rslt = false}
+			}
+		}
+		self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(rslt))));
+	}
+
+
+	fn compare_bool_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	To compare a bool with a string, the string must be either "true" or "false"
+		//	if it isn't then the result will be false.  Only equality is valid.
+		if opcode != Opcode::Eq{
+			panic!("from compare_bool_string:  Invalid expression: {} {} {}",tos1, opcode, tos2);
+		}
+		let mut rslt : bool = false;
+		if let CplDataType::CplString(ref v2) = tos2.var{
+			if let CplDataType::CplBool(ref v1) = tos1.var{
+				match &v2.cpl_string as &str{
+					"false" => if v1.cpl_bool { rslt = false } else { rslt = true },
+					"true"  => if v1.cpl_bool { rslt = true } else { rslt = false },
+					_=> {rslt = false},
+				}
+			}
+		}
+		self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(rslt))));
+		return;
+	}
+	
+	fn compare_bool_number(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	To compare bool against a number, the number must be either 0 or 1 and
+		//	if it isn't the result will be false.  Only equality is valid
+		if opcode != Opcode::Eq{
+			panic!("from compare_bool_number:  Invalid expression: {} {} {}",tos1, opcode, tos2);
+		}
+
+		let mut rslt : bool = false;
+		if let CplDataType::CplNumber(ref v2) = tos2.var{
+			if let CplDataType::CplBool(ref v1) = tos1.var{
+				if v2.cpl_number == 0.0 && v1.cpl_bool == true{rslt = false}
+				if v2.cpl_number == 0.0 && v1.cpl_bool == false{rslt = true}
+				if v2.cpl_number == 1.0 && v1.cpl_bool == true {rslt = true}
+				if v2.cpl_number == 1.0 && v1.cpl_bool == false {rslt = false}
+			}
+		}
+		self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(rslt))));
+	}
+	fn compare_bool_bool(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		// Only equality is valid
+		if opcode != Opcode::Eq{
+			panic!("from compare_bool_number:  Invalid expression: {} {} {}",tos1, opcode, tos2);
+		}
+				
+		if let CplDataType::CplBool(ref v1) = tos1.var{
+			if let CplDataType::CplBool(ref v2) = tos2.var{
+				if v1.cpl_bool == v2.cpl_bool{
+					self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(true))));
+				}else{
+					self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false))));
+				}
+				return;
+			}
+		}
+		self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false))));
+	}
+
+
+	fn do_op_string_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	If both strings can be converted to numbers, then do_op_number_number, otherwise
+		//	it's only "." works  But if the opcode is "." then this only works with strings
+		if let CplDataType::CplString(ref v1) = tos1.var{
+			if let CplDataType::CplString(ref v2) = tos2.var{
+				if opcode != Opcode::Concat{
+					match v1.cpl_string.parse::<f64>() {
+						Err(_) => {},
+						Ok (parsed1) => {
+							match v2.cpl_string.parse::<f64>() {
+								Err(_) => {},
+								Ok (parsed2) => {
+									let rslt = self.perform_arithmetic_op(parsed1, parsed2, opcode);
+									self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Real, rslt))));
+									return;
+								}
+							}
+						}
 					}
 				}
-				return false;
-			}
-		}
-	}
 
-	//	compare the types of two variables:  return true if they are the
-	//	the same else false
-	fn compare_types(&self, var1 : CplVar, var2 : CplVar) -> bool{
-		var1.is_type_equal(&var2)
-	}
-
-	//	performs either eq or ne on two vars.  "eq" true means compare equal
-	//	"eq" false means compare not equal
-	fn eq_ne_help(&self, var1:CplVar, var2:CplVar, eq : bool) -> bool{
-		//  first compare the types.  If the two types cannot be compared (e.g.
-		//	one of them is an array) then return false.	
-		if self.compare_types(var1.clone(), var2.clone()){
-			if eq {
-				return var1.is_equal(&var2,self.cli.is_runtime_warnings());
-			}else{
-				return var1.is_not_equal(&var2,self.cli.is_runtime_warnings());
+				if opcode == Opcode::Concat{
+					let mut rslt = String::new();
+					rslt.push_str(&v1.cpl_string);
+					rslt.push_str(&v2.cpl_string);
+					self.operand_stack.push(&CplVar::new(CplDataType::CplString(CplString::new(rslt))));
+					return;
+				}
 			}
 		}
 
-		//	Now try comparing the actual values (i.e. the two operands are scalar value)
-		if let CplDataType::CplNumber(ref n1) = var1.var{
-			if let CplDataType::CplNumber(ref n2) = var2.var{
-				if eq {
-					return n1.cpl_number == n2.cpl_number;
-				}else{
-					return n1.cpl_number != n2.cpl_number;
-				}
-			}else if let CplDataType::CplString(ref s2) = var2.var{
-				return self.eq_ne_help1(n1.cpl_number, &s2.cpl_string, eq);
-			}else{
-				if self.cli.is_runtime_warnings(){
-					println!("Warning: Unable to compare {} with {} returning false", n1.cpl_number, var2.var);
-				}
-				return false;
-			}
-		} else if let CplDataType::CplString(ref s1) = var1.var{
-			if let CplDataType::CplString(ref s2) = var2.var{
-				if eq {
-					return s1.cpl_string == s2.cpl_string;
-				}else{
-					return s1.cpl_string != s2.cpl_string;
-				}
-			}else if let CplDataType::CplNumber(ref n2) = var2.var{
-				return self.eq_ne_help1(n2.cpl_number, &s1.cpl_string, eq);
-			}else{
-				if self.cli.is_runtime_warnings(){
-					println!("Warning: Unable to compare {} with {} returning false", s1.cpl_string, var2.var);
-				}
-				return false;
-			}
-		} else {
-			if self.cli.is_runtime_warnings(){
-				println!("Warning: Unable to compare {} with {} returning false", var1.var, var2.var);
-			}
-			return false;
-		}
+		panic!("from do_op_string_string: Invalid expression {} {} {}",tos1,opcode,tos2);
 	}
 
-	fn exec_ne(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_ne: {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let tos2 = self.operand_stack.dereference_tos();
-		let tos1 = self.operand_stack.dereference_tos();
-
-		let rslt = self.eq_ne_help(tos1, tos2, false);
-
-		if rslt {
-			self.push_lit_bool_help(true, self.instruction_counter, instruction);
-		}else{
-			self.push_lit_bool_help(false, self.instruction_counter, instruction);
-		}
-	}
-
-	//	compare equal top two elements 
-	fn exec_eq(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_eq: {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let tos2 = self.operand_stack.dereference_tos();
-		let tos1 = self.operand_stack.dereference_tos();
+	fn do_op_string_number(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	To do this, we try to convert the string to a number and, if it conversts,
+		//	we can do the arithmetic operation.  If it doesn't we convert the number
+		//	to a string and then do string_string.
 		
-		let rslt = self.eq_ne_help(tos1, tos2, true);
-		if rslt {
-			self.push_lit_bool_help(true, self.instruction_counter, instruction);
-		}else{
-			self.push_lit_bool_help(false, self.instruction_counter, instruction);
+		if let CplDataType::CplString(ref v1) = tos1.var{
+			if let CplDataType::CplNumber(ref v2) = tos2.var{
+				match v1.cpl_string.parse::<f64>(){
+					Err(_) => if opcode == Opcode::Concat || opcode == Opcode::Add{
+						let mut rslt = String::new();
+						rslt.push_str(&v1.cpl_string);
+						rslt.push_str(&v2.cpl_number.to_string());
+						self.operand_stack.push(&CplVar::new(CplDataType::CplString(CplString::new(rslt))));
+					},
+				
+					Ok(parsed) => {
+						let rslt = self.perform_arithmetic_op(parsed, v2.cpl_number, opcode);
+						self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Real, rslt))));
+					}
+				}
+				return;
+			}
+		}
+		panic!("from do_op_string_number: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
+
+	fn do_op_string_bool(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	there are not operations that work on a string and boolean
+		panic!("from do_op_string_number: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
+
+	fn do_op_number_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	same as string_number
+		if let CplDataType::CplString(ref v2) = tos2.var{
+			if let CplDataType::CplNumber(ref v1) = tos1.var{
+				match v2.cpl_string.parse::<f64>(){
+					Err(_) => if opcode == Opcode::Concat || opcode == Opcode::Add{
+						let mut rslt = String::new();
+						rslt.push_str(&v1.cpl_number.to_string());
+						rslt.push_str(&v2.cpl_string);
+						self.operand_stack.push(&CplVar::new(CplDataType::CplString(CplString::new(rslt))));
+					},
+				
+					Ok(parsed) => {
+						let rslt = self.perform_arithmetic_op(parsed, v1.cpl_number, opcode);
+						self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Real, rslt))));
+					}
+				}
+				return;
+			}
+		}
+		panic!("from do_op_number_string: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
+
+	fn do_op_number_number(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		if let CplDataType::CplNumber(ref v2) = tos2.var{
+			if let CplDataType::CplNumber(ref v1) = tos1.var{
+				let rslt = self.perform_arithmetic_op(v1.cpl_number, v2.cpl_number, opcode);
+				self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Real, rslt))));
+				return;
+			}
+		}
+		panic!("from do_op_number_number: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
+	fn do_op_number_bool(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	there are not operations that work on a number and boolean
+		panic!("from do_op_number_bool: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
+
+	fn do_op_bool_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	there are not operations that work on a bool and string
+		panic!("from do_op_bool_string: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
+
+	fn do_op_bool_number(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		panic!("from do_op_bool_number: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
+
+	fn do_op_bool_bool(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		panic!("from do_op_bool_bool: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
+
+
+	fn operand_eval(&self, operand1 : &CplVar, operand2 : &CplVar) -> OperandAnalysis{
+
+		let t1 = match operand1.var{
+			CplDataType::CplString(_) => OperandType::OtString,
+			CplDataType::CplNumber(_) => OperandType::OtNumber,
+			CplDataType::CplBool(_) => OperandType::OtBool,
+			_ => return OperandAnalysis::InvalidType,
+		};
+
+		let t2 = match operand2.var{
+			CplDataType::CplString(_) => OperandType::OtString,
+			CplDataType::CplNumber(_) => OperandType::OtNumber,
+			CplDataType::CplBool(_) => OperandType::OtBool,
+			_ => return OperandAnalysis::InvalidType,
+		};
+
+		if t1==OperandType::OtString && t2==OperandType::OtString{
+			return OperandAnalysis::StringString;
+		}
+
+		if t1==OperandType::OtString && t2==OperandType::OtNumber{
+			return OperandAnalysis::StringNumber
+		}
+		if t1==OperandType::OtString && t2==OperandType::OtBool{
+			return OperandAnalysis::StringBool;
+		}
+
+		if t1==OperandType::OtNumber && t2==OperandType::OtString{
+			return OperandAnalysis::NumberString;
+		}
+		if t1==OperandType::OtNumber && t2==OperandType::OtNumber{
+			return OperandAnalysis::NumberNumber;
+		}
+		if t1==OperandType::OtNumber && t2==OperandType::OtBool{
+			return OperandAnalysis::NumberBool;
+		}
+
+		if t1==OperandType::OtBool && t2==OperandType::OtString{
+			return OperandAnalysis::BoolString
+		}
+		if t1==OperandType::OtBool && t2==OperandType::OtNumber{
+			return OperandAnalysis::BoolNumber;
+		}
+		if t1==OperandType::OtBool && t2==OperandType::OtBool{
+			return OperandAnalysis::BoolBool;
+		}
+
+		panic!("Huston, we have a problem.  From operand_eval: combinations accounted for");
+	}
+
+	fn exec_binary_operator(&mut self, instruction : &MachineInstruction){
+		//	get the two values to compare from the operand stack
+		let tos2 = self.operand_stack.dereference_tos();
+		let tos1 = self.operand_stack.dereference_tos();
+
+		let eval = self.operand_eval(&tos1, &tos2);
+		match instruction.opcode{
+			Opcode::Lt | Opcode::Gt | Opcode::Le | Opcode::Ge | Opcode::Eq | Opcode::Ne => {
+				match eval{
+					OperandAnalysis::StringString 		=>	self.compare_string_string(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::StringNumber		=>	self.compare_string_number(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::StringBool			=>	self.compare_string_bool(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::NumberString		=>	self.compare_number_string(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::NumberNumber		=>	self.compare_number_number(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::NumberBool			=>	self.compare_number_bool(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::BoolString			=>	self.compare_bool_string(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::BoolNumber			=>	self.compare_bool_number(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::BoolBool			=>	self.compare_bool_bool(&tos1,&tos2,instruction.opcode),
+					_=> {
+						if self.cli.is_runtime_warnings(){
+							println!("from exec_binary_operator: {}{}{} is invalid", tos1, instruction.opcode, tos2);
+						}
+						self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false))));						
+					}
+				}		
+			}
+			Opcode::Add | Opcode::Sub | Opcode::Mul | Opcode::Div | Opcode::Mod | Opcode::Concat | Opcode::BwAnd | Opcode::BwOr =>{
+				match eval{
+					OperandAnalysis::StringString 		=>	self.do_op_string_string(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::StringNumber		=>	self.do_op_string_number(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::StringBool			=>	self.do_op_string_bool(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::NumberString		=>	self.do_op_number_string(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::NumberNumber		=>	self.do_op_number_number(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::NumberBool			=>	self.do_op_number_bool(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::BoolString			=>	self.do_op_bool_string(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::BoolNumber			=>	self.do_op_bool_number(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::BoolBool			=>	self.do_op_bool_bool(&tos1,&tos2,instruction.opcode),
+					_=> {
+						if self.cli.is_runtime_warnings(){
+							println!("from exec_binary_operator: {}{}{} is invalid", tos1, instruction.opcode, tos2);
+						}
+						self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false))));						
+					}
+				}		
+			}
+			_ => panic!("from exec_binary_operator:  I can't do anything with this opcode: {}",instruction.opcode),
+
 		}
 	}
 
-	//	Perform OR or AND on two variables, return true if result is true.
-	//	if lor is true then do OR, else do AND
-	fn lor_land_help(&self, var1:CplVar, var2:CplVar, lor : bool) -> bool{
-		if let CplDataType::CplBool(ref b1) = var1.var{
-			if let CplDataType::CplBool(ref b2) = var2.var{
-				if lor {
-					return b1.cpl_bool || b2.cpl_bool;
+
+	fn exec_lor_land(&mut self, instruction : &MachineInstruction){
+		let tos2 = self.operand_stack.dereference_tos();
+		let tos1 = self.operand_stack.dereference_tos();
+
+		if let CplDataType::CplBool(ref b1) = tos1.var{
+			if let CplDataType::CplBool(ref b2) = tos2.var{
+				if instruction.opcode == Opcode::Lor {
+					self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(b1.cpl_bool || b2.cpl_bool))));
+				} else if instruction.opcode == Opcode::Land {
+					self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(b1.cpl_bool && b2.cpl_bool))));
 				}else{
-					return b1.cpl_bool && b2.cpl_bool;
+					panic!("from exec_loc_land: Expending '||' or '&&' got: {}",instruction.opcode)
 				}
 			}
 		}
-
-		panic!("from lor_land_help: expected two boolean values.  Got {} and {}", var1, var2);
 	}
-
-	fn exec_lor(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_lor:  {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let tos2 = self.operand_stack.dereference_tos();
-		let tos1 = self.operand_stack.dereference_tos();
-		
-		let rslt = self.lor_land_help(tos1, tos2, true);
-		if rslt {
-			self.push_lit_bool_help(true, self.instruction_counter, instruction);
-		}else{
-			self.push_lit_bool_help(false, self.instruction_counter, instruction);
-		}
-	}
-
-
-	fn exec_land(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_land:  {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		let tos2 = self.operand_stack.dereference_tos();
-		let tos1 = self.operand_stack.dereference_tos();
-		
-		let rslt = self.lor_land_help(tos1, tos2, false);
-		if rslt {
-			self.push_lit_bool_help(true, self.instruction_counter, instruction);
-		}else{
-			self.push_lit_bool_help(false, self.instruction_counter, instruction);
-		}
-	}
-
-
 }

@@ -1,5 +1,6 @@
 cargo run allcplcode/cpltests/cpltest_assign_update.cpl
 cargo run allcplcode/cpltests/cpltest_basic_array.cpl
+cargo run allcplcode/cpltests/cpltest_basic_arithmetic.cpl
 cargo run allcplcode/cpltests/cpltest_basic_assign.cpl
 cargo run allcplcode/cpltests/cpltest_basic_dict.cpl
 cargo run allcplcode/cpltests/cpltest_basic_eq_ne.cpl -w
@@ -12,6 +13,7 @@ cargo run allcplcode/cpltests/cpltest_basic_loop.cpl
 cargo run allcplcode/cpltests/cpltest_basic_lvalue.cpl
 cargo run allcplcode/cpltests/cpltest_basic_multi_level_struct.cpl
 cargo run allcplcode/cpltests/cpltest_basic_return.cpl
+cargo run allcplcode/cpltests/cpltest_basic_string.cpl
 cargo run allcplcode/cpltests/cpltest_basic_struct.cpl
 cargo run allcplcode/cpltests/cpltest_basic_unary.cpl
 cargo run allcplcode/cpltests/cpltest_basic_while00.cpl

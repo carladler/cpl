@@ -1,28 +1,27 @@
 
 entry main(){
-	args = [1, 2, 3, 4, 5, "foo", 7,  8,  9, 10, 11];
+	args = [2, 4, 5, "foo", 7,  8,  9, 11, 13];
 	avg = compute_average(args);
-	print avg;
+	print "Average=".avg;
 }
 
 fn compute_average(args){
 	total = 0;
 	count = 0;
-	foreach arg args {
-		print "....".arg;
+	foreach foreach_target args {
 		eval true {
-			when arg == "foo" {
-				print arg." is an illegal element";
+			when foreach_target == "foo" {
+				print foreach_target." is an illegal element";
 			}
-			when arg == 11{
-				print arg." is the last element";
+			when foreach_target == 11{
+				//print foreach_target." is the last element";
 				count+= 1;
-				total += arg;
+				total += foreach_target;
 			}
 			otherwise{
-				print "....otherwise";
+				//print "===otherwise: ".foreach_target;
 				count+= 1;
-				total += arg;
+				total += foreach_target;
 			}
 		}
 	}
