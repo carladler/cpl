@@ -1535,8 +1535,13 @@ impl CplFileReader{
 
 		let mut csv = CsvParser::new(&line, self.open_mode.as_bytes()[1] as char);
 		let mut element = String::new();
-		while csv.next_element(&mut element){
-			rtn.push(&CplVar::new(CplDataType::CplString(CplString::new(element.clone()))));
+		loop{
+			let ex = csv.next_element(&mut element);
+			match element.parse::<f64>() {
+				Err(_) => rtn.push(&CplVar::new(CplDataType::CplString(CplString::new(element.trim_end_matches('\n').to_string())))),
+				Ok(parsed) => rtn.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Real, parsed)))),
+			}
+			if !ex{break}
 		}
 		return rtn;
 	}

@@ -1,10 +1,28 @@
+struct my_struct{
+	Date;
+	Store;
+	Who;
+	Generic;
+	Cost;
+	Item;
+	Monthly_Generic_Sort;
+	Annual_Generic_Sort;
+	Year;
+	Month;
+	Y_M;
+}
+
 entry foobar{
 	in_file = Fopen("testdata/cpltest_builtin_read_csv.csv", "<,");
-	a = Freadln(in_file);
+	inst=new my_struct;
+
+	inst = Freadln(in_file);
 	while !Feof(in_file){
-		foreach x a{
-			print x;
+		if Type(inst:Cost) == "CplNumber"{
+			print inst:Date." \t".inst:Generic."\t".(inst:Cost);			
+		}else{
+			print inst;
 		}
-		a = Freadln(in_file);
+		inst = Freadln(in_file);
 	}
 }

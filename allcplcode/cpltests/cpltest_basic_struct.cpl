@@ -12,6 +12,15 @@ entry ENTRY(){
 	fun1(foo);
 	print "Back at ENTRY -- foo:member_b=".foo:member_b;
 
+
+	newdata = ["field1", "field2", "field3"];
+	foo = newdata;
+
+	print foo:member_a;
+	print foo:member_b;
+	print foo:member_c;
+	print foo;
+
 }
 
 fn fun1(s:s_foo){

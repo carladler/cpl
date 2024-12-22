@@ -30,7 +30,12 @@ impl CsvParser{
 		//	has been found
 		loop{
 			match self.next_char(){
-				None => return false,
+				None => {
+					//	This is the end of the string but the element
+					//	still has what's been collected up to this point
+					return false;
+				},
+	
 				Some(c) => if self.process(c, element) {
 					return true;
 				},
@@ -46,7 +51,6 @@ impl CsvParser{
 		}
 
 		let c = self.csv.as_bytes()[self.char_pointer] as char;
-		//print!("{}",c);
 		self.char_pointer += 1;
 		Some(c)
 	}
@@ -58,7 +62,6 @@ impl CsvParser{
 	fn process(&mut self, c : char, element : &mut String) -> bool {
 		if self.escaped{
 			self.escaped = false;
-			element.push(c);
 			return false;
 		}
 
