@@ -36,7 +36,7 @@ fn parse(cli : &CLI){
 	match parse_result.1{
 		Some(mut f) => {
 			let mut arguments : Vec<CplVar> = Vec::new();
-			let mut operand_stack = OperandStack::new();
+			let mut operand_stack = OperandStack::new(cli.is_runtime_warnings());
 			let mut e = Executor::new(cli, &mut f, &mut arguments, &mut operand_stack, 0);
 			let rtn = e.exec();
 			match rtn.var{

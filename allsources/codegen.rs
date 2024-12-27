@@ -117,6 +117,8 @@ pub struct CodeGen<'a>{
 
 	block_begin_counter : usize,
 
+	index_expression_comma_counter : usize,
+
 	//	Each element of the holding tank contains the machine instruction for the
 	//	function call
 	//function_call_hold : Vec<MachineInstruction>,
@@ -142,6 +144,7 @@ impl<'a> CodeGen<'a>{
 			delimiter_counter : 0,
 			collection_context : Vec::new(),
 			block_begin_counter : 0,
+			index_expression_comma_counter : 0,
 			break_address : Vec::new(),
 			continue_address : Vec::new(),
 			//function_call_hold : Vec::new(),
@@ -517,8 +520,8 @@ impl<'a> CodeGen<'a>{
 			//	opposed to via a VarRef)
 			self.add_machine_instruction(
 				MachineInstruction::new(
-					Opcode::Update
-					, OpcodeMode::Array		//push tos onto array at tos
+					Opcode::Append
+					, OpcodeMode::NONE		//push tos onto array at tos
 					, self.symbol_table.current_frame()
 					, 0
 					, 0
@@ -597,16 +600,12 @@ impl<'a> CodeGen<'a>{
 	fn gen_expression_struct_member(&mut self, token : &Token, function_num : usize){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_struct_member: {}", token);}
 
-		//self.symbol_table.symbol_table_dump_diag("at gen_expression_struct_member");
-
-
 		//	first we need to split this into the struct part and the member part
 		let parts: Vec<&str> = token.token_value.split(':').collect();
 		let struct_name = parts[0].to_string();
 
 		//	get the address of the instantiated struct (which is really an array)
 		//	The payload in the symbol table is a normal entry
-		//println!("===============gen_expression_struct_member struct_name={}", struct_name);
 		let struct_detail = self.symbol_table.get_normal_address(&struct_name);
 
 		//	push the instantiated struct onto the operand stack (this
@@ -656,6 +655,8 @@ impl<'a> CodeGen<'a>{
 	//	operand stack.  For example a = b will generate this as will foo(&x).  The mode
 	//	for the former is "Var" and "VarRef" for the latter.
 	fn gen_expression_id_detail(&mut self, token : &Token, symbol_detail : &NormalSymbolEntry, function_num : usize){
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_id_detail: {} {}", token, symbol_detail);}
+
 		let mode : OpcodeMode;
 		if token.token_type == TokenType::IDADDR{
 			mode = OpcodeMode::VarRef;
@@ -703,10 +704,6 @@ impl<'a> CodeGen<'a>{
 		//self.symbol_table.print_entry_type(&token.token_value);
 
 		let entry = self.symbol_table.get_symbol_entry(&token.token_value);
-		// match entry{
-		// 	None => {}
-		// 	Some(ref e) => {}
-		// }
 	
 		match entry {
 			None => abend!(&format!("From gen_expression_id: {} Not in symbol table",token.token_value)),
@@ -746,27 +743,9 @@ impl<'a> CodeGen<'a>{
 		);		
 	}
 
-	// fn gen_expression_bool (&mut self, token : &Token, function_num : usize){
-	// 	self.add_machine_instruction(
-	// 		MachineInstruction::new(
-	// 			Opcode::Push
-	// 			, OpcodeMode::Lit
-	// 			, self.symbol_table.current_frame()
-	// 			, 0
-	// 			, 0
-	// 			, Vec::new()
-	// 			, token.clone()
-	// 		),function_num
-	// 	);		
-	// }
-
-
-	// fn gen_xxx_function_call_release(&mut self){
-	// 	let mi = self.function_call_hold.pop().unwrap();
-	// 	self.add_machine_instruction(mi);
-	// }
-
 	fn gen_expression_function_call(&mut self, token : &Token, function_num : usize){
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_function_call: {}", token);}
+
 		//  For function calls in an expression, we build machine instructions
 		//	in the order they appear in the postfix express.
 		
@@ -815,14 +794,15 @@ impl<'a> CodeGen<'a>{
 	//	And will never be "popped".
 	fn gen_expression_comma(&mut self, function_num : usize){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_comma");}
+
 		if self.collection_context.len() > 0{
 			//	only update if context is array.  Dictionary updates are triggered by RDict tokens
 			if let CollectionContext::Array = self.collection_context.last().unwrap(){
 				//	update the array variable at the top of the stack
 				self.add_machine_instruction(
 					MachineInstruction::new(
-						Opcode::Update
-						, OpcodeMode::Array
+						Opcode::Append
+						, OpcodeMode::NONE
 						, self.symbol_table.current_frame()
 						, 0
 						, 0
@@ -835,6 +815,8 @@ impl<'a> CodeGen<'a>{
 	}
 
 	fn gen_expression_lbracket(&mut self, function_num : usize){
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_lbracket");}
+		
 		//	if this is the first time we've seen this, set the context to
 		//	array.
 		if self.delimiter_counter == 0{
@@ -876,8 +858,8 @@ impl<'a> CodeGen<'a>{
 		//	whatever is at TOS.  This is a direct update.
 		self.add_machine_instruction(
 			MachineInstruction::new(
-				Opcode::Update
-				, OpcodeMode::Array
+				Opcode::Append
+				, OpcodeMode::NONE
 				, self.symbol_table.current_frame()
 				, 0
 				, 0
@@ -891,6 +873,7 @@ impl<'a> CodeGen<'a>{
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_rindex: {}", token);}
 		//  At this point TOS is an index and TOS-1 is an array.  The rindex (i.e. "]"
 		//	triggers the fetch_indexed exec function).
+
 		self.add_machine_instruction(
 			MachineInstruction::new(
 				Opcode::FetchIndexed
@@ -898,7 +881,7 @@ impl<'a> CodeGen<'a>{
 				, self.symbol_table.current_frame()
 				, 0			
 				, 0
-				, Vec::new()
+				, vec!(self.index_expression_comma_counter)
 				, token.clone()
 			),function_num
 		);
@@ -928,10 +911,11 @@ impl<'a> CodeGen<'a>{
 	//	via a literal dictionary expression
 	fn gen_expression_rdict_kv(&mut self, function_num : usize){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_rdict_kv");}
+
 		self.add_machine_instruction(
 			MachineInstruction::new(
-				Opcode::Update
-				, OpcodeMode::Dict
+				Opcode::Insert
+				, OpcodeMode::NONE
 				, self.symbol_table.current_frame()
 				, 0
 				, 0
@@ -944,16 +928,26 @@ impl<'a> CodeGen<'a>{
 	
 	//	This is the end of a dictionary literal
 	fn gen_expression_rdict(&mut self, _frame_num : usize){
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_rdict");}
+
 		self.collection_context.pop();
 	}
 
 	fn gen_expression(&mut self, expression_list : &Vec<Token>, function_num : usize){
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CODEGEN.gen_expression {}",token_list_text(expression_list));}
 
 		for t in expression_list{
 			if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression: driver {}", t);}
 
 			match t.token_category{
-				TokenCategory::Factor | TokenCategory::IndexedId => self.gen_expression_factor(&t, function_num),
+				TokenCategory::Factor => self.gen_expression_factor(&t, function_num),
+				TokenCategory::IndexedId => {
+					self.index_expression_comma_counter = 0;
+					self.gen_expression_factor(&t, function_num);
+				}
+
+				TokenCategory::Comma => self.index_expression_comma_counter += 1,
+				
 				TokenCategory::FunctionCall => self.gen_expression_function_call(&t, function_num),
 				TokenCategory::ListSeparator => self.gen_expression_comma(function_num),
 				TokenCategory::LBracket => self.gen_expression_lbracket(function_num),
@@ -1152,7 +1146,7 @@ impl<'a> CodeGen<'a>{
 			TokenType::ASG_APPEND_EQ  	=> Opcode::AppendEq,
 			TokenType::ASG_OR_EQ 		=> Opcode::OrEq,
 			TokenType::ASG_AND_EQ  		=> Opcode::AndEq,
-			TokenType::ASG_EQ 			=> Opcode::Update,
+			TokenType::ASG_EQ 			=> Opcode::Update,		// always means update scalar
 
 			_=> abend!(format!("From op_to_opcde:  {} is an unknown assignment operator", op.token_type)),
 		}		
@@ -1266,8 +1260,8 @@ impl<'a> CodeGen<'a>{
 			//	Push the member onto the array at tos
 			self.add_machine_instruction(
 				MachineInstruction::new(
-					Opcode::Update
-					, OpcodeMode::Array
+					Opcode::Append
+					, OpcodeMode::NONE
 					, self.symbol_table.current_frame()
 					, 0
 					, 0
@@ -1396,7 +1390,7 @@ impl<'a> CodeGen<'a>{
 			),function_num
 		);
 
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen:GEN_ASSIGNMENT_TO_SCALAR target={}", target.token_value);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_assignment_to_scalar: target={} detail={}", target.token_value, detail);}
 	}
 
 	//	Since this is the "lvalue" we need to update in situ.
@@ -1429,7 +1423,7 @@ impl<'a> CodeGen<'a>{
 			),function_num
 		);
 
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen:GEN_ASSIGNMENT_TO_ARRAY target={}", target.token_value);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_assignment_to_collection target={} detail={}", target.token_value, detail);}
 	}
 
 	pub fn gen_assignment(&mut self, target : &Token, op : &Token, target_index_expression : &Vec<Token>,expression_list : &Vec<Token>, function_num : usize){		

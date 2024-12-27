@@ -1,0 +1,16 @@
+entry foo{
+	array = [1,2,3];
+	array[0] = [10,20,30];
+	array[1] = [100,200,300];
+	array[2] = ["one","two","three"];
+
+	i=0;
+	while i<Length(array){
+		j=0;
+		while j< Length(array[i]){
+			print array[j,i];
+			j+=1;
+		}
+		i+=1;
+	}
+}

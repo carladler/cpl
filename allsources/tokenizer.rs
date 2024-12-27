@@ -33,6 +33,7 @@ pub enum TokenCategory{
 	Factor,					// Id, Number, Boolean, String
 	FunctionCall,
 	IndexedId,
+	IndexedQualifiedId,		// may not need this
 	Comment,
 	AssignmentOp,
 	BinaryOp,
@@ -82,6 +83,7 @@ impl fmt::Display for TokenCategory {
 			TokenCategory::Factor				=> write!(f, "Factor"),
 			TokenCategory::FunctionCall			=> write!(f, "FunctionCall"),
 			TokenCategory::IndexedId			=> write!(f, "IndexedId"),
+			TokenCategory::IndexedQualifiedId	=> write!(f, "IndexedQualifiedId"),
 			TokenCategory::Comment				=> write!(f, "Comment"),
 			TokenCategory::AssignmentOp			=> write!(f, "AssignmentOp"),
 			TokenCategory::BinaryOp				=> write!(f, "BinaryOp"),
@@ -234,6 +236,7 @@ pub enum TokenType{
 	LPAREN_ARG,
 	RPAREN_ARG,
 	INDEXED_ID,
+	INDEXED_QUALIFIED_ID,
 	LIST_SEPARATOR,		// A comma within the context of a list
 	ARG_SEPARATOR,		// A comma within the context of function call
 	IDADDR,				// When '&' is recognized as unary operator, ID -> IDADDR
@@ -350,6 +353,7 @@ impl fmt::Display for TokenType {
 			TokenType::RDICT_KV  => write!(f, "RDICT_KV"),
 
 			TokenType::INDEXED_ID  => write!(f, "INDEXED_ID"),
+			TokenType::INDEXED_QUALIFIED_ID  => write!(f, "INDEXED_QUALIFIED_ID"),
 			TokenType::LIST_SEPARATOR  => write!(f, "LIST_SEPARATOR"),
 			TokenType::ARG_SEPARATOR  => write!(f, "ARG_SEPARATOR"),	
 			TokenType::IDADDR  => write!(f, "&ID"),
@@ -538,6 +542,7 @@ impl<'a> Tokenizer<'_>{
 
 					(TokenType::FUNCTION_CALL(0),TokenCategory::FunctionCall),
 					(TokenType::INDEXED_ID,TokenCategory::IndexedId),
+					(TokenType::INDEXED_QUALIFIED_ID,TokenCategory::IndexedId),
 				
 					(TokenType::ASSIGNMENT,TokenCategory::Keyword),
 					

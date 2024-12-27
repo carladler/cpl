@@ -945,8 +945,9 @@ impl <'a> Parser<'a>{
 		match self.statement_factor.token_type{
 			TokenType::ID					|
 			TokenType::QUALIFIED_ID			|			// struct member reference
-			TokenType::INDEXED_ID			=>{},
-			_ => return Some(ParserState::Error(format!("Syntax Error: Target of an assignment must be an ID or ID:QUAL or ID[<index>]. We found: {} context={:?}", self.statement_factor.token_type, self.parser_context))),
+			TokenType::INDEXED_ID			|
+			TokenType::INDEXED_QUALIFIED_ID	=>{},
+			_ => return Some(ParserState::Error(format!("Syntax Error: Target of an assignment must be an ID or ID:QUAL or ID[<index>] or ID:QUAL[<index>]. We found: {} context={:?}", self.statement_factor.token_type, self.parser_context))),
 		}
 
 		//  Set the context
@@ -1044,8 +1045,13 @@ impl <'a> Parser<'a>{
 				return Some(ParserState::FunctionCallArg);
 			}else if self.look_ahead_test_token(TokenType::LBRACKET){
 				let mut indexed_id = self.token.clone();
-				indexed_id.token_type = TokenType::INDEXED_ID;
-				indexed_id.token_category = TokenCategory::IndexedId;
+				if indexed_id.token_type == TokenType::ID{
+					indexed_id.token_type = TokenType::INDEXED_ID;
+					indexed_id.token_category = TokenCategory::IndexedId;	
+				}else if indexed_id.token_type == TokenType::QUALIFIED_ID{
+					indexed_id.token_type = TokenType::INDEXED_QUALIFIED_ID;
+					indexed_id.token_category = TokenCategory::IndexedId;	
+				}
 				self.infix_expression.push(indexed_id.clone());
 			}else if self.token.token_value.find(':') != None{
 				let mut struct_ref = self.token.clone();
@@ -1176,11 +1182,16 @@ impl <'a> Parser<'a>{
 			//  Comma to an ARG_SEPARATOR
 			token.token_type = TokenType::ARG_SEPARATOR;
 			token.token_category = TokenCategory::ArgSeparator;
+		}else if *context == ParserContext::CollectionSource{
+			//  just accept this contet
 		}else{
 			abend!(format!("from expression_list_item:  unknown parser context: {}", context));
 		}
 
 		self.infix_expression.push(token.clone());	
+
+		//println!("================== parser.expression_list_item: {} list={}",token, token_list_text(&self.infix_expression));
+
 		None
 	}
 
@@ -1320,7 +1331,11 @@ impl <'a> Parser<'a>{
 	
 		self.parser_context.push(ParserContext::IndexedTarget);
 
-		self.statement_factor.token_type = TokenType::INDEXED_ID;
+		if self.statement_factor.token_type == TokenType::ID{
+			self.statement_factor.token_type = TokenType::INDEXED_ID;	
+		}else if self.statement_factor.token_type == TokenType::QUALIFIED_ID{
+			self.statement_factor.token_type = TokenType::INDEXED_QUALIFIED_ID
+		}
 
 		self.assignment_target_index_expression.clear();
 

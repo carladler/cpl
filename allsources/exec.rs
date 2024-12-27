@@ -17,12 +17,19 @@ enum OperandAnalysis{
 	StringString,
 	StringNumber,
 	StringBool,
+	StringArray,
 	NumberString,
 	NumberNumber,
 	NumberBool,
+	NumberArray,
 	BoolString,
 	BoolNumber,
 	BoolBool,
+	BoolArray,
+	ArrayString,
+	ArrayNumber,
+	ArrayBool,
+	ArrayArray,
 }
 
 //	These are the types that are possible (any other types discovered
@@ -32,6 +39,7 @@ enum OperandType{
 	OtString,
 	OtNumber,
 	OtBool,
+	OtArray,
 }
 
 // fn undefined()->CplVar{
@@ -211,7 +219,8 @@ impl<'a> Executor<'a>{
 				Opcode::AppendEq 				=> self.exec_assignment_operator(instruction),
 
 				Opcode::Update					=> self.exec_update(instruction),
-	
+				Opcode::Append					=> self.exec_append(instruction),
+				Opcode::Insert					=> self.exec_insert(instruction),
 
 				Opcode::Lor 					=> self.exec_lor_land(instruction),
 				Opcode::Land 					=> self.exec_lor_land(instruction),
@@ -330,20 +339,32 @@ impl<'a> Executor<'a>{
 		self.operand_stack.pop_block();
 	}
 
-	//	Fetch a value from an array or dictionary which is either at the
-	//	top of the stack or at a location pointed to by a VarRef at the
-	//	top of the stack.  Note that in some cases, there may be two
-	//	levels of indirection.  This will occur when
-
-
-	//	Fetch a value from an array or dictionary at the top of the operand stack using an
-	//	index which is also on the operand stack.  Push the retreived value onto the operand
-	//	stack. The retrieved value may be a refernce to a variable.
+	//	Fetch a value from an array or dictionary using indices.  The stack is expected
+	//	to look like this:
+	//
+	//		array (var_ref)
+	//		index 0
+	//		index 1
+	//			:
+	//		index n
+	//
+	//	where the CPL expression is:  array[index0, index1, ... indexn];
+	//
 	fn exec_fetch_indexed(&mut self, instruction: &MachineInstruction){
-		let fetched = self.operand_stack.fetch_indexed_from_operand_stack();
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_fetch_indexed: {} got: {}", self.code_block_num, self.instruction_counter, instruction, fetched)}
-		self.operand_stack.push(&fetched);
+		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_fetch_indexed: {}", self.code_block_num,self.instruction_counter, instruction)}
+		// self.dump_operands("at exec_fetch_indexed");
 
+		//	if the number of indices is not mentioned or, if mentioned is 1 then just do a normal
+		//	fetch_indexed
+		let index_count : usize;
+		if instruction.qualifier.len() == 0 || instruction.qualifier[0] == 0{
+			index_count = 1;
+		}else{
+			index_count = instruction.qualifier[0]+1;
+		}
+
+		let fetched = self.operand_stack.fetch_indexed_from_operand_stack(index_count);		
+		self.operand_stack.push(&fetched);
 	}
 
 	//	Push instructions always operate on the current top of the operand stack (i.e.
@@ -415,7 +436,9 @@ impl<'a> Executor<'a>{
 	//	and push that onto the stack.
 	fn push_copy(&mut self, operand : &CplVar, instruction : &MachineInstruction){
 		// if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_copy: operand={}, instruction={}",operand, instruction)}
-		//println!("=========== from push_copy {} {}", operand, instruction);
+		//println!("=========== from push_copy operand={} instrunction={}", operand, instruction);
+		// self.dump_operands("======== at push_copy");
+
 		match operand.var{
 			CplDataType::CplNumber(_)			|
 			CplDataType::CplString(_)			|
@@ -424,7 +447,7 @@ impl<'a> Executor<'a>{
 			CplDataType::CplUninitialized(_)	|
 			CplDataType::CplUndefined(_) 		=> {
 				if instruction.opcode_mode == OpcodeMode::VarRef{
-					if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_copy(mode={}) {},{},{}", instruction.opcode_mode, self.operand_stack.current_frame(), instruction.block_num, instruction.address)};
+					if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_copy(VarRef) {},{},{}",  self.operand_stack.current_frame(), instruction.block_num, instruction.address)};
 					self.operand_stack.push(&CplVar::new(CplDataType::CplVarRef(CplVarRef::new(self.operand_stack.current_frame(), instruction.block_num, instruction.address))));
 				}else{
 					if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_copy(mode={}) {}", instruction.opcode_mode, instruction)};
@@ -433,12 +456,14 @@ impl<'a> Executor<'a>{
 			}
 			
 			CplDataType::CplArray(_) | CplDataType::CplDict(_) =>{
-				if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_copy(Collection) {}", instruction)};
+				if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_copy(Collection) {} {}", operand, instruction)};
 				self.operand_stack.push(&CplVar::new(CplDataType::CplVarRef(CplVarRef::new(self.operand_stack.current_frame(), instruction.block_num, instruction.address))));
 			},
 
 			_ => abend!(format!("From push_copy: I don't know what {} means", operand.var)),
 		}
+
+		//self.dump_operands("======== at end of push_copy");
 	}
 
 	//	Arguments are passed to a function via the arguments array in the exec object.
@@ -508,6 +533,7 @@ impl<'a> Executor<'a>{
 				self.push_copy(&operand, instruction);	
 			}
 			OpcodeMode::VarRef=>{
+				//	we need to create a VarRef on the operand stack pointing to an operand
 				let operand = self.operand_stack.fetch_local_var(instruction.block_num, instruction.address);
 				if let CplDataType::CplVarRef(_) = operand.var{
 					self.operand_stack.push(&operand);
@@ -564,7 +590,7 @@ impl<'a> Executor<'a>{
 				}
 
 				CplDataType::CplArray(ref a) => {
-					println!("{}",a);
+					println!("[{}]",a);
 				}
 
 				_ => println!("Can't print: {}", tos_ref.var),
@@ -654,15 +680,15 @@ impl<'a> Executor<'a>{
 		let frame_num = self.operand_stack.operand_frames.len()-1;
 
 		match self.operand_stack.operand_frames[frame_num].operand_blocks[instruction.block_num].operand_block[instruction.address].var{
-			CplDataType::CplVarRef(_) => self.update_indexed_indirect(&instruction, frame_num),
-			_ => self.update_indexed_direct(&instruction),
+			CplDataType::CplVarRef(_) 	=> self.update_indexed_indirect(&instruction, frame_num),
+			_ 							=> self.update_indexed_direct(&instruction),
 		}
 	}
 
 	//	Adds a Var to an array that is at the top of the stack.  Tos is the value to update.
 	//	Tos-1 is the array to update.
-	fn update_collection_array(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("      update_collection_array: {} {} {}", self.code_block_num, self.instruction_counter, instruction)}
+	fn update_collection_array(&mut self){
+		if self.cli.is_debug_bit(TRACE_EXEC){println!("      update_collection_array: {} {}", self.code_block_num, self.instruction_counter)}
 		self.operand_stack.push_array_element();
 	}
 
@@ -672,10 +698,8 @@ impl<'a> Executor<'a>{
 		self.operand_stack.insert_dict();
 	}
 
-	//	If the mode is Update, then update the value at the address specified in the instruction
-	//	if the mode is Array then update the the array at tos-1 with the new value at tos.
-	//	if the mode is Dict then update the dictionary at tos-2  with the key/value pair at
-	//	tos and tos -1.
+	//	Update an Lvalue
+	//	If the mode is Update, then update the scalar value at the address specified in the instruction
 	//  If the mode is UpdateIndexed, see comments at "update_indexed"
 	fn exec_update(&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_update: {}", self.code_block_num, self.instruction_counter, instruction)}
@@ -684,15 +708,24 @@ impl<'a> Executor<'a>{
 
 		match instruction.opcode_mode{
 			OpcodeMode::Update => self.update_scalar(instruction),
-			OpcodeMode::Array => self.update_collection_array(instruction),
-			OpcodeMode::Dict => self.update_collection_dict(),
 			OpcodeMode::UpdateIndexed => self.update_indexed(instruction),
 			_=> abend!(format!("From exec_update:  I don't know what this means: {}", instruction.opcode_mode)),
 		}
 
-		//self.dump_operands("end exec_update");
-
 		if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("at exec_update")}
+	}
+
+	//	Appends the array at tos with the value at tos-1
+	fn exec_append(&mut self, instruction : &MachineInstruction){
+		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_append: {}", self.code_block_num, self.instruction_counter, instruction)}
+		self.update_collection_array();
+	}
+
+	//	Inserts a key/value pair into a dictionary at tos from the key at tos-1 and the value at tos-2
+	//	Appends the array at tos with the value at tos-1
+	fn exec_insert(&mut self, instruction : &MachineInstruction){
+		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_append: {}", self.code_block_num, self.instruction_counter, instruction)}
+		self.update_collection_dict();
 	}
 
 	/**********************************************************************
@@ -708,45 +741,63 @@ impl<'a> Executor<'a>{
 		if instruction.opcode_mode == OpcodeMode::UpdateIndexed{
 			//	if the mode is indexed then update an element of an array
 			self.apply_binary_operator_indexed(instruction);
-		}else{
-			//	Otherwise we just updating a scalar.  E.G.  a += foo;
+			return;
+		}
 
-			match self.operand_stack.fetch_local_var(instruction.block_num, instruction.address).var{
+		//	Otherwise we just updating a scalar.  E.G.  a += foo;
 
-				CplDataType::CplNumber(_) | CplDataType::CplString(_) => {
-					//	If the collection is direct (i.e. an array or dictionay) do this
-					// n.apply_binary_operator_to_number(&new_value_var, instruction.opcode);
-					self.operand_stack.apply_binary_operator_scalar(instruction.block_num, instruction.address, instruction.opcode);
-				}	
-	
-				//	otherwise, get a mutable reference to the collection and then, depending on the type
-				//	of collection update the element at the index
-				CplDataType::CplVarRef(vr) =>{
-					let new_value_var = self.operand_stack.dereference_tos();
-					let varref : &mut CplVar = self.operand_stack.fetch_mutable_ref(vr.frame_num, vr.block_num, vr.address);
-					match varref.var{
-						CplDataType::CplNumber (ref mut n) => {
-							n.apply_binary_operator_to_number(&new_value_var, instruction.opcode);
-						}
+		match self.operand_stack.fetch_local_var(instruction.block_num, instruction.address).var{
 
-						CplDataType::CplString (ref mut s) =>{
-							s.apply_binary_operator_to_string(&new_value_var, instruction.opcode);
-						}
-						_=> panic!("from exec.apply_binary_operator_scalar:  expected a VarRef to array or dictionary.  Got {}",varref.var),
+			CplDataType::CplNumber(_) | CplDataType::CplString(_) => {
+				//	If the collection is direct (i.e. an array or dictionay) do this
+				// n.apply_binary_operator_to_number(&new_value_var, instruction.opcode);
+				self.operand_stack.apply_binary_operator_scalar(instruction.block_num, instruction.address, instruction.opcode);
+			}	
+
+			//	otherwise, get a mutable reference to the collection and then, depending on the type
+			//	of collection update the element at the index
+			CplDataType::CplVarRef(vr) =>{
+				let new_value_var = self.operand_stack.dereference_tos();
+				let varref : &mut CplVar = self.operand_stack.fetch_mutable_ref(vr.frame_num, vr.block_num, vr.address);
+				match varref.var{
+					CplDataType::CplNumber (ref mut n) => {
+						n.apply_binary_operator_to_number(&new_value_var, instruction.opcode);
 					}
+
+					CplDataType::CplString (ref mut s) =>{
+						s.apply_binary_operator_to_string(&new_value_var, instruction.opcode);
+					}
+
+					CplDataType::CplArray (ref mut a) => {
+						println!("================= exec_assignment_operator {}",a);
+						a.apply_binary_operator_to_array(&new_value_var, instruction.opcode);
+					}
+					_=> panic!("from exec.apply_binary_operator_scalar:  expected a VarRef to array or dictionary.  Got {}",varref),
 				}
-	
-				_=> panic!("from exec.apply_binary_operator_scalar:  unknown type: {}", self.operand_stack.fetch_local_var(instruction.block_num, instruction.address).var),
 			}
+
+			// CplDataType::CplArray(ref mut a) => {
+			// 	if instruction.opcode != Opcode::Concat{
+			// 		panic!("from exec.apply_binary_operator_scalar: only concat is supported for {}",self.operand_stack.fetch_local_var(instruction.block_num, instruction.address).var),
+			// 	}
+			// 	a.append(&new_value_var, instruction.opcode);
+			// }
+
+			_=> panic!("from exec.apply_binary_operator_scalar:  unknown type: {}", self.operand_stack.fetch_local_var(instruction.block_num, instruction.address).var),
 		}
 	}
 
 	
 	//	Apply and operator to an element of a collection
 	fn apply_binary_operator_indexed(&mut self, instruction : &MachineInstruction){
+		if self.cli.is_debug_bit(TRACE_EXEC){println!("     apply_binary_operator_indexed {}", instruction)}
+
 		let var = self.operand_stack.fetch_local_var(instruction.block_num, instruction.address);
 	
-		let new_value = self.operand_stack.dereference_tos();
+		//	Don't dereference the new value as it might be a reference to an array
+		let new_value = self.operand_stack.pop();
+
+		//	However, the index always is a scalar
 		let index = self.operand_stack.dereference_tos();
 	
 		match var.var{
@@ -1059,7 +1110,6 @@ impl<'a> Executor<'a>{
 		}
 	}
 
-
 	fn compare_string_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
 		if let CplDataType::CplString(ref v1) = tos1.var{
 			if let CplDataType::CplString(ref v2) = tos2.var{
@@ -1205,7 +1255,6 @@ impl<'a> Executor<'a>{
 		self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false))));
 	}
 
-
 	fn do_op_string_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
 		//	If both strings can be converted to numbers, then do_op_number_number, otherwise
 		//	it's only "." works  But if the opcode is "." then this only works with strings
@@ -1271,6 +1320,16 @@ impl<'a> Executor<'a>{
 		panic!("from do_op_string_number: Invalid expression {} {} {}",tos1,opcode,tos2);
 	}
 
+	fn do_op_string_array(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	opcode:concat creates a string version of the array content in tos2 and appends
+		//	that string to tos1.  no other opcodes are supported at this time
+		if opcode != Opcode::Concat {
+			panic!("from do_op_string_array: Invalid expression {} {} {}",tos1,opcode,tos2);
+		}
+		let rslt = format!("{}[{}]",tos1,tos2);
+		self.operand_stack.push(&CplVar::new(CplDataType::CplString(CplString::new(rslt))));
+	}
+
 	fn do_op_number_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
 		//	same as string_number
 		if let CplDataType::CplString(ref v2) = tos2.var{
@@ -1309,6 +1368,12 @@ impl<'a> Executor<'a>{
 		panic!("from do_op_number_bool: Invalid expression {} {} {}",tos1,opcode,tos2);
 	}
 
+	fn do_op_number_array(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	there are not operations that work on a number and boolean
+		panic!("from do_op_number_array: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
+
+
 	fn do_op_bool_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
 		//	there are not operations that work on a bool and string
 		panic!("from do_op_bool_string: Invalid expression {} {} {}",tos1,opcode,tos2);
@@ -1322,13 +1387,49 @@ impl<'a> Executor<'a>{
 		panic!("from do_op_bool_bool: Invalid expression {} {} {}",tos1,opcode,tos2);
 	}
 
+	fn do_op_bool_array(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		panic!("from do_op_bool_array: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
 
-	fn operand_eval(&self, operand1 : &CplVar, operand2 : &CplVar) -> OperandAnalysis{
+//	The folllowing array operations only support Push and Append.  Things like
+	//	updating values in an array with some assignment operator or creating the
+	//	product to two vectors we'll leave for another day.
+	fn do_op_array_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		panic!("from do_op_array_string: Invalid expression {} {} {}",tos1,opcode,tos2);
+		//	opcode::concat is replaces Push built-in
+		// if let CplDataType::CplVarRef(var_ref) = &tos1.var{
+		// 	let operand_frames = self.operand_stack.operand_frames.last_mut().unwrap();
+		// 	if let CplDataType::CplArray(array) = &mut operand_frames.operand_blocks[var_ref.block_num].operand_block[var_ref.address].var{
+		// 		array.push(&new_value);
+		// 		return CplVar::new(CplDataType::CplUninitialized(CplUninitialized::new()));
+		// 	}else{
+		// 		panic!("From builtin_push - Push:  Expecting parameter 1 to be a reference to an array (e.g. Push(&array,item_to_push))")	
+		// 	}
+		// }else{
+		// 	panic!("From builtin_push - Push:  Expecting parameter 1 to be a reference to an array (e.g. Push(&array,item_to_push))")
+		// }
+	}
+	fn do_op_array_number(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	opcode::concat pushes tos2 onto tos1, rest are invalid
+		panic!("from do_op_array_number: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
+	fn do_op_array_bool(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	opcode::concat pushs tos2 onto tos1, rest are invalid
+		panic!("from do_op_array_bool: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
+	fn do_op_array_array(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
+		//	opcode::concat replaces the Append built-in creating a new
+		//	array consisting of the two arrays, rest are invalid
+		panic!("from do_op_array_array: Invalid expression {} {} {}",tos1,opcode,tos2);
+	}
 
+
+	fn operand_eval(&self, operand1 : &CplVar, operand2 : &CplVar) -> OperandAnalysis{		
 		let t1 = match operand1.var{
 			CplDataType::CplString(_) => OperandType::OtString,
 			CplDataType::CplNumber(_) => OperandType::OtNumber,
 			CplDataType::CplBool(_) => OperandType::OtBool,
+			CplDataType::CplArray(_) => OperandType::OtArray,
 			_ => return OperandAnalysis::InvalidType,
 		};
 
@@ -1336,6 +1437,7 @@ impl<'a> Executor<'a>{
 			CplDataType::CplString(_) => OperandType::OtString,
 			CplDataType::CplNumber(_) => OperandType::OtNumber,
 			CplDataType::CplBool(_) => OperandType::OtBool,
+			CplDataType::CplArray(_) => OperandType::OtArray,
 			_ => return OperandAnalysis::InvalidType,
 		};
 
@@ -1346,8 +1448,13 @@ impl<'a> Executor<'a>{
 		if t1==OperandType::OtString && t2==OperandType::OtNumber{
 			return OperandAnalysis::StringNumber
 		}
+		
 		if t1==OperandType::OtString && t2==OperandType::OtBool{
 			return OperandAnalysis::StringBool;
+		}
+
+		if t1==OperandType::OtString && t2==OperandType::OtArray{
+			return OperandAnalysis::StringArray;
 		}
 
 		if t1==OperandType::OtNumber && t2==OperandType::OtString{
@@ -1360,6 +1467,10 @@ impl<'a> Executor<'a>{
 			return OperandAnalysis::NumberBool;
 		}
 
+		if t1==OperandType::OtNumber && t2==OperandType::OtArray{
+			return OperandAnalysis::NumberArray;
+		}
+
 		if t1==OperandType::OtBool && t2==OperandType::OtString{
 			return OperandAnalysis::BoolString
 		}
@@ -1370,6 +1481,22 @@ impl<'a> Executor<'a>{
 			return OperandAnalysis::BoolBool;
 		}
 
+		if t1==OperandType::OtBool && t2==OperandType::OtArray{
+			return OperandAnalysis::BoolArray;
+		}
+		
+		if t1==OperandType::OtArray && t2==OperandType::OtString{
+			return OperandAnalysis::ArrayString
+		}
+		if t1==OperandType::OtArray && t2==OperandType::OtNumber{
+			return OperandAnalysis::ArrayNumber;
+		}
+		if t1==OperandType::OtArray && t2==OperandType::OtBool{
+			return OperandAnalysis::ArrayBool;
+		}
+		if t1==OperandType::OtArray && t2==OperandType::OtArray{
+			return OperandAnalysis::ArrayArray;
+		}
 		panic!("Huston, we have a problem.  From operand_eval: combinations accounted for");
 	}
 
@@ -1377,6 +1504,8 @@ impl<'a> Executor<'a>{
 		//	get the two values to compare from the operand stack
 		let tos2 = self.operand_stack.dereference_tos();
 		let tos1 = self.operand_stack.dereference_tos();
+
+		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_binary_operator: ({} {} {})", self.code_block_num, self.instruction_counter, tos1, instruction.opcode, tos2)}
 
 		let eval = self.operand_eval(&tos1, &tos2);
 		match instruction.opcode{
@@ -1391,12 +1520,8 @@ impl<'a> Executor<'a>{
 					OperandAnalysis::BoolString			=>	self.compare_bool_string(&tos1,&tos2,instruction.opcode),
 					OperandAnalysis::BoolNumber			=>	self.compare_bool_number(&tos1,&tos2,instruction.opcode),
 					OperandAnalysis::BoolBool			=>	self.compare_bool_bool(&tos1,&tos2,instruction.opcode),
-					_=> {
-						if self.cli.is_runtime_warnings(){
-							println!("from exec_binary_operator: {}{}{} is invalid", tos1, instruction.opcode, tos2);
-						}
-						self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false))));						
-					}
+					//OperandAnalysis::ArrayArray			=>  self.compare_array_array(&tos1,&tos2,instruction.opcode),
+					_=> panic!("from exec_binary_operator: {}{}{} is invalid", tos1, instruction.opcode, tos2),
 				}		
 			}
 			Opcode::Add | Opcode::Sub | Opcode::Mul | Opcode::Div | Opcode::Mod | Opcode::Concat | Opcode::BwAnd | Opcode::BwOr =>{
@@ -1404,18 +1529,23 @@ impl<'a> Executor<'a>{
 					OperandAnalysis::StringString 		=>	self.do_op_string_string(&tos1,&tos2,instruction.opcode),
 					OperandAnalysis::StringNumber		=>	self.do_op_string_number(&tos1,&tos2,instruction.opcode),
 					OperandAnalysis::StringBool			=>	self.do_op_string_bool(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::StringArray		=>	self.do_op_string_array(&tos1,&tos2,instruction.opcode),
+
 					OperandAnalysis::NumberString		=>	self.do_op_number_string(&tos1,&tos2,instruction.opcode),
 					OperandAnalysis::NumberNumber		=>	self.do_op_number_number(&tos1,&tos2,instruction.opcode),
 					OperandAnalysis::NumberBool			=>	self.do_op_number_bool(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::NumberArray		=>	self.do_op_number_array(&tos1,&tos2,instruction.opcode),
+
 					OperandAnalysis::BoolString			=>	self.do_op_bool_string(&tos1,&tos2,instruction.opcode),
 					OperandAnalysis::BoolNumber			=>	self.do_op_bool_number(&tos1,&tos2,instruction.opcode),
 					OperandAnalysis::BoolBool			=>	self.do_op_bool_bool(&tos1,&tos2,instruction.opcode),
-					_=> {
-						if self.cli.is_runtime_warnings(){
-							println!("from exec_binary_operator: {}{}{} is invalid", tos1, instruction.opcode, tos2);
-						}
-						self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false))));						
-					}
+					OperandAnalysis::BoolArray			=>	self.do_op_bool_array(&tos1,&tos2,instruction.opcode),
+
+					OperandAnalysis::ArrayString		=>	self.do_op_array_string(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::ArrayNumber		=>	self.do_op_array_number(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::ArrayBool			=>	self.do_op_array_bool(&tos1,&tos2,instruction.opcode),
+					OperandAnalysis::ArrayArray			=>	self.do_op_array_array(&tos1,&tos2,instruction.opcode),
+					_=> panic!("from exec_binary_operator: {}{}{} is invalid", tos1, instruction.opcode, tos2),
 				}		
 			}
 			_ => panic!("from exec_binary_operator:  I can't do anything with this opcode: {}",instruction.opcode),

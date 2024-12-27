@@ -257,11 +257,11 @@ impl SymbolTableFrame{
 	//	This will return only a normal symbol if there is one.  If not, crash.
 	pub fn get_normal_symbol_entry(&self, symbol : &String) -> NormalSymbolEntry{
 		match self.get_symbol_entry(symbol){
-			None => abend!(format!("from get_normal_symbol_entry:  {} not found in symbol table", symbol)),
+			None => panic!("from get_normal_symbol_entry:  {} not found in symbol table at all", symbol),
 			Some(entry) => {
 				match entry {
 					SymbolTableEntryType::NormalSymbolEntry(normal) => normal,
-					_ => abend!(format!("from get_normal_symbol_entry:  {} not found in symbol table", symbol)),
+					_ => panic!("from get_normal_symbol_entry:  {} is present but normal -- expecting struct:member", symbol),
 				}
 			}
 		}

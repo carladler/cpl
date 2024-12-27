@@ -36,6 +36,8 @@ pub enum Opcode{
 	Break,
 	Continue,
 	Update,
+	Append,		// add a value to an array
+	Insert,		// add a value to a dictionary
 	Alloc,
 
 	// Assignment operators
@@ -99,6 +101,8 @@ impl fmt::Display for Opcode{
 			Opcode::Continue				=> write!(f,"Continue"),
 		
 			Opcode::Update					=> write!(f,"Update"),
+			Opcode::Append					=> write!(f,"Append"),
+			Opcode::Insert					=> write!(f,"Insert"),
 			Opcode::Alloc					=> write!(f,"Alloc"),
 
 			Opcode::AddEq					=> write!(f,"AddEq"),
@@ -136,11 +140,12 @@ pub enum OpcodeMode{
 	Function,
 	Extern,						// for now, this is just builtin functions
 	Jump,						// Absolute Jump target address
-	JumpRel,					// Relative Jump target address (i.e. jump location +/- address)
+	//JumpRel,					// Relative Jump target address (i.e. jump location +/- address)
 	Bl,							// Branch and Link (light weight function call)
 	Update,						// Signals the update of a value (without regard to its type)
 	UpdateIndexed,				// signals updates an element of a collection in situ
 	UpdateStructElement,		// Signals update of struct element which is really update array element
+	UpdateIndexedStructElement,	// Signals update of an array element owned by a struct member
 	
 	Array,						// Modifies push_collection, and update
 	Dict,						// ditto
@@ -161,13 +166,14 @@ impl fmt::Display for OpcodeMode{
 			OpcodeMode::Function					=> write!(f,"Function"),
 			OpcodeMode::Extern						=> write!(f,"Extern"),
 			OpcodeMode::Jump						=> write!(f,"Jump"),
-			OpcodeMode::JumpRel						=> write!(f,"JumpRel"),
+			// OpcodeMode::JumpRel						=> write!(f,"JumpRel"),
 			OpcodeMode::Bl							=> write!(f,"Branch And Link"),
 		
 			//	These modes indicate to update a variable in situ
 			OpcodeMode::Update						=> write!(f,"Update"),
 			OpcodeMode::UpdateIndexed				=> write!(f,"UpdateIndexed"),
 			OpcodeMode::UpdateStructElement			=> write!(f,"UpdateStructElement"),
+			OpcodeMode::UpdateIndexedStructElement	=> write!(f,"UpdateIndexedStructElement"),
 
 			OpcodeMode::Array						=> write!(f,"Array"),
 			OpcodeMode::Dict						=> write!(f,"Dict"),

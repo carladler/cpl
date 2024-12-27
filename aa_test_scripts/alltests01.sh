@@ -11,6 +11,7 @@ cargo run allcplcode/cpltests/cpltest_basic_foreach.cpl
 cargo run allcplcode/cpltests/cpltest_basic_if.cpl
 cargo run allcplcode/cpltests/cpltest_basic_loop.cpl
 cargo run allcplcode/cpltests/cpltest_basic_lvalue.cpl
+cargo run allcplcode/cpltests/cpltest_basic_matrix.cpl
 cargo run allcplcode/cpltests/cpltest_basic_multi_level_struct.cpl
 cargo run allcplcode/cpltests/cpltest_basic_return.cpl
 cargo run allcplcode/cpltests/cpltest_basic_string.cpl
@@ -56,6 +57,7 @@ cargo run allcplcode/cpltests/cpltest_return01.cpl
 cargo run allcplcode/cpltests/cpltest_return02.cpl
 cargo run allcplcode/cpltests/cpltest_reuse_var.cpl
 cargo run allcplcode/cpltests/cpltest_struct01.cpl
+cargo run allcplcode/cpltests/cpltest_struct02.cpl
 cargo run allcplcode/cpltests/cpltest_while00.cpl
 cargo run allcplcode/cpltests/cpltest_while01.cpl
 cargo run allcplcode/cpltests/cpltest_while02.cpl

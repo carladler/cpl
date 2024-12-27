@@ -100,6 +100,37 @@ impl Clone for CplDataType{
 	}
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub enum CplDataTypeInspected{
+	CplNumber,
+	CplString,
+	CplBool,
+	CplArray,
+	CplStruct,
+	CplDict,
+	CplVarRef,
+	CplUninitialized,
+	CplUndefined,
+	DontCare,
+}
+impl fmt::Display for CplDataTypeInspected{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    	match self {
+			CplDataTypeInspected::CplUninitialized => write!(f,"CplUninitialized"),
+			CplDataTypeInspected::CplUndefined => write!(f, "CplUndefined"),
+			CplDataTypeInspected::CplNumber => write!(f,"CplNumber"),
+			CplDataTypeInspected::CplBool => write!(f,"CplBool"),
+			CplDataTypeInspected::CplVarRef => write!(f,"CplVarRef"),
+			CplDataTypeInspected::CplArray => write!(f,"CplArray"),
+			CplDataTypeInspected::CplDict => write!(f,"CplDict"),
+			CplDataTypeInspected::CplString => write!(f,"CplString"),
+			CplDataTypeInspected::CplStruct => write!(f,"CplStruct"),
+			CplDataTypeInspected::DontCare => write!(f,"DontCare"),
+	   }
+	}
+}
+
+
 /****************************************
 ****	Operand Stack
 *****************************************/
@@ -125,13 +156,15 @@ impl Clone for CplDataType{
 //	to all subsequent executors.  In other words, the operand stack is global to
 //	an executing program.
 pub struct OperandStack{
-	pub operand_frames : Vec<OperandFrame>,	
+	pub operand_frames : Vec<OperandFrame>,
+	cli_warnings : bool,
 }
 impl OperandStack{
-	pub fn new() -> OperandStack{
+	pub fn new(cli_warnings : bool) -> OperandStack{
 		OperandStack{
 			//  create the first frame when the operand stack is instantiated
 			operand_frames : Vec::new(),
+			cli_warnings : cli_warnings,
 		}
 	}
 
@@ -292,50 +325,125 @@ impl OperandStack{
 		}
 	}
 
-	fn fetch_indexed(&mut self, collection : &mut CplVar, index : &CplVar) -> CplVar{
-		if let CplDataType::CplArray(ref mut array) = collection.var{
-			return array.fetch_indexed(index);
-		}else if let CplDataType::CplDict(ref mut dict) = collection.var{
-			return dict.fetch_indexed(index);
-		}else{
-			abend!(format!("From OperandStack.fetch_indexed:  Expecing either an array or a dictionary. Got:{}",collection.var));
+	pub fn get_type(&self, data : &CplVar) -> CplDataTypeInspected{
+		match data.var{
+			CplDataType::CplUninitialized(_) => CplDataTypeInspected::CplUninitialized,
+			CplDataType::CplUndefined(_) => CplDataTypeInspected::CplUndefined,
+			CplDataType::CplNumber(_) => CplDataTypeInspected::CplNumber,
+			CplDataType::CplBool(_) => CplDataTypeInspected::CplBool,
+			CplDataType::CplVarRef(_) => CplDataTypeInspected::CplVarRef,
+			CplDataType::CplArray(_) => CplDataTypeInspected::CplArray,
+			CplDataType::CplDict(_) => CplDataTypeInspected::CplDict,
+			CplDataType::CplString(_) => CplDataTypeInspected::CplString,
+			_ => CplDataTypeInspected::DontCare,
 		}
 	}
 
-	fn fetch_indexed_indirect(&mut self, index : &CplVar, frame_num : usize, block_num : usize, address : usize) -> CplVar{
-		if let CplDataType::CplArray(ref mut array) = &mut self.operand_frames[frame_num].operand_blocks[block_num].operand_block[address].var{
-			return array.fetch_indexed(index);
-		}else if let CplDataType::CplDict(ref mut dict) = &mut self.operand_frames[frame_num].operand_blocks[block_num].operand_block[address].var{
-			return dict.fetch_indexed(index);
-		}else{
-			abend!(format!("From OperandStack.fetch_indexed_indirect:  Expecing either an array or a dictionary. Got: {}", self.operand_frames[frame_num].operand_blocks[block_num].operand_block[address].var));
+
+	fn fetch_indexed_from_operand_stack_helper(&mut self, indices : &mut Vec<usize>) -> CplVar{
+		//	a reference to the array we are wanting to index
+		let mut array_ref : &CplArray;
+
+		//	look at the top of the stack.  It needs to be a VarRef pointer
+		//	to an array.  If it doesn't meet this criteria, then we're done.
+		match self.operand_frames.last().unwrap().operand_blocks.last().unwrap().operand_block.last().unwrap().var{
+			CplDataType::CplVarRef(ref vr) => {
+				match  self.operand_frames[vr.frame_num].operand_blocks[vr.block_num].operand_block[vr.address].var{
+					CplDataType::CplArray(ref a) => {
+						array_ref = a;
+					}
+					_ =>{
+						panic!("Expected to see a CplVarRef pointing at an array but didn't.  Got {}", self.operand_frames[vr.frame_num].operand_blocks[vr.block_num].operand_block[vr.address].var);
+					}	
+				} 
+			}
+			_ =>{
+				panic!("Expected to see a CplVarRef but didn't. got {}. You can only index arrays.", self.operand_frames.last().unwrap().operand_blocks.last().unwrap().operand_block.last().unwrap().var);
+			}	
 		}
+
+		//	Now loop through the indices until we find a scalar or we run out
+		//	of indices.  If the latter and warnings have been enabled, print a warning
+		//	that we are returning an array which we wouldn't normally expect to do.
+		while !indices.is_empty(){
+			let index = indices.pop().unwrap();
+
+			//	If the index is out of bounds, return undefined
+			let element = match array_ref.cpl_array.get(index){
+				None => return CplVar::new(CplDataType::CplUndefined(CplUndefined::new())),
+				Some(e) => e,
+			};
+			let element_type = self.get_type(element);
+			match element_type{
+				CplDataTypeInspected::CplArray => {}
+				_ => return element.clone(),
+			}
+
+			if indices.is_empty(){
+				if self.cli_warnings{
+					println!("Warning:  The index {} for the array {} is pointing at another array",index,array_ref);
+				}
+				return element.clone();
+			}
+
+			if let CplDataType::CplArray(ref a) = element.var{
+				array_ref = a;
+			}
+		}
+
+		CplVar::new(CplDataType::CplUndefined(CplUndefined::new()))
 	}
 
-	//	fetch an element from a collection at the top of the stack:
-	//	tos=index, tos-1=collection and return it to the caller
-	//	If the index or collection is a VarRef, a dereference is performed
-	//	the value returned may be either a reference or an actual value
-	//	depending on what was stored in the array.
-	pub fn fetch_indexed_from_operand_stack(&mut self) -> CplVar{
-		//	The index is at tos.  We know that if it's a reference that
-		//	it's just a scalar (and presumably and integer) so we an just
-		//	dereference here without a huge performance issue.
-		let index = self.dereference_tos();
 
-		//	The collection is at tos-1.  On the other hand, this cold be a million items
-		//	so we don't dererence it.  We want to act directly on it the collection
-		let mut collection = self.pop();
+	//	Get the value from an array determined by the index (or indices).  The
+	//	index count is the number of "dimensions".
+	//
+	//	The stack at this point is:
+	//
+	//		tos-index_count:  	array to index
+	//		tos-n:				dimension 0
+	//		  :
+	//		tos-2:				dimension n-2
+	//		tos-1:				dimension n-1
+	//		tos:				dimension n
+	//
+	//	First pull the indices(dimensions) off the stack and into
+	//	a local array (it's just less complicated than trying to access
+	//	them directly on the stack).
+	//
+	//	Then call the helper to do the actual indexing.  The helper
+	//	returns the final result which we assume will be a scalar
+	//	because we have to clone it to return it (if it were an array that
+	//	would be bad because we don't want to copy a bunch of elements in any
+	//	putative loops).
+	//
+	//	If an index is out of bounds we return CplUndefined
+	//
+	pub fn fetch_indexed_from_operand_stack(&mut self, index_count : usize) -> CplVar{
 
-		//	If the collection is actually a reference to a collection, get a pointer to it
-		//	and do the index on the referenced item.  Just in case we dererenced this elsewhere...
-		if let CplDataType::CplVarRef(varref) = collection.var{
-			//	get a pointer to the actual collection
-			return self.fetch_indexed_indirect(&index, varref.frame_num, varref.block_num, varref.address);
-		}else{
-			return self.fetch_indexed(&mut collection, &index);
-		}		
+		//	first, build an array of indices.  The last index is first and the first
+		//	index is last (this is in the reverse order in which they appeared in the
+		//	original CPL expression)
+		let mut indices : Vec<usize> = Vec::new();
+		let mut ix_num = 0;
+
+		while ix_num < index_count{
+			let ix_var = self.pop();
+			if let CplDataType::CplNumber(n) = ix_var.var{
+				indices.push(n.cpl_number as usize);
+			}
+			ix_num += 1;
+		}
+
+		let fetched = self.fetch_indexed_from_operand_stack_helper(&mut indices);
+		
+		//	The original array we are indexing is still on the stack, so we need to
+		//	get rid of it
+		self.pop();
+
+		fetched.clone()
 	}
+
 
 	//	Returns a reference to the top of the stack
 	pub fn fetch_tos_ref(&self) -> &CplVar{
@@ -922,7 +1030,7 @@ impl fmt::Display for CplVar{
 			CplDataType::CplString(s)			=> write!(f,"{}",s.cpl_string),
 			CplDataType::CplBool(b)				=> write!(f,"{}",b.cpl_bool),
 			CplDataType::CplVarRef(v)			=> write!(f,"VarRef: {},{},{}", v.frame_num, v.block_num, v.address),
-			CplDataType::CplArray(a)			=> write!(f,"Array: {}",a),
+			CplDataType::CplArray(a)			=> write!(f,"[{}]",a),
 			CplDataType::CplUninitialized(_) 	=> write!(f,"Uninitialized"),
 			CplDataType::CplUndefined(_) 		=> write!(f,"Undefined"),
 			CplDataType::CplDict(_) 			=> write!(f,"Dictionary"),
@@ -1056,17 +1164,18 @@ impl CplArray{
 
 	//	We'll treat append as kind of special case since it only works with strings
 	fn update_indexed_append(&mut self, index : usize, new_value : &CplVar){
-		let mut updated_value : String = String::new();
+		println!("============== {}",self.cpl_array[index].var);
 		if let CplDataType::CplString(ref s) = self.cpl_array[index].var{
-			updated_value = s.cpl_string.clone();
+			let mut updated_value = s.cpl_string.clone();
 			if let CplDataType::CplString(ref new_s) = new_value.var{
 				updated_value.push_str(&new_s.cpl_string);
 			}else if let CplDataType::CplNumber(ref new_n) = new_value.var{
 				updated_value.push_str(&new_n.cpl_number.to_string());
 			}
+			self.cpl_array[index] = CplVar::new(CplDataType::CplString(CplString::new(updated_value)));
+		}else{
+			panic!("from CplArray.update_indexed_append:  Can only append a string to a string.  Element is: {}",self.cpl_array[index].var);
 		}
-
-		self.cpl_array[index] = CplVar::new(CplDataType::CplString(CplString::new(updated_value)));
 	}
 
 	fn update_indexed_op_number(&mut self, index : usize, raw_value : f64){
@@ -1088,12 +1197,6 @@ impl CplArray{
 			abend!(format!("From CplArray.update_indexed_op:  index expected to be a number.  It is a {}", index.var));
 		}
 
-		//	Treat .= as a special case since it only works with strings
-		if op == Opcode::AppendEq{
-			self.update_indexed_append(local_index, new_value);
-			return;
-		}
-
 		if let CplDataType::CplNumber(ref new_v) = new_value.var{
 			if let CplDataType::CplNumber(ref e) = self.cpl_array[local_index].var{
 				match op{
@@ -1104,10 +1207,22 @@ impl CplArray{
 					Opcode::ModEq => self.update_indexed_op_number(local_index, (e.cpl_number as i64%new_v.cpl_number as i64) as f64),
 					Opcode::OrEq  => self.update_indexed_op_number(local_index, (e.cpl_number as i64|new_v.cpl_number as i64) as f64),
 					Opcode::AndEq => self.update_indexed_op_number(local_index, (e.cpl_number as i64&new_v.cpl_number as i64) as f64),
-					_=> abend!(format!("from CplArray:update_indexed_op: Expecting an assignment operator.  Got {}", op)),
+					_=> abend!(format!("from CplArray:update_indexed_op: Expecting an arithmetic assignment operator (e.g. '+=').  Got {}", op)),
 				}
+			}else if let CplDataType::CplString(_) = self.cpl_array[local_index].var{
+				//	Can only apply "." or "+" to a string
+				if op != Opcode::AppendEq && op != Opcode::AddEq {
+					panic!("from CplArray:update_indexed_op: Op {} only works on numbers. Array element is {}", op, self.cpl_array[local_index].var);
+				}
+				self.update_indexed_append(local_index, new_value);
 			}else{
-				abend!(format!("from CplArray:update_indexed_op: Op {} only works on numbers. Array element is {}", op, index));
+				abend!(format!("from CplArray:update_indexed_op: Op {} only works on numbers. Array element is {}", op, self.cpl_array[local_index].var));
+			}
+		}else if let CplDataType::CplString(ref new_v) = new_value.var{
+			if let CplDataType::CplString(ref mut s) = self.cpl_array[local_index].var{
+				s.cpl_string.push_str(&new_v.cpl_string);
+			}else{
+				abend!(format!("from CplArray:update_indexed_op: Op {} only works on strings. Array element is {}", op, self.cpl_array[local_index].var));
 			}
 		}
 	}
@@ -1130,6 +1245,36 @@ impl CplArray{
 			_ => abend!(format!("Unable to append {} to an array", appendee.var)),
 		}
 	}
+
+	pub fn apply_binary_operator_to_array (&mut self, new_value : &CplVar, op : Opcode, ){
+		//	Only concat or add are valid at this point in the history of the universe.
+		//	Maybe we will consider "matrix" operations.
+		if op != Opcode::AppendEq && op != Opcode::AddEq{
+			panic! ("from CplArray.apply_binary_operator_to_array:  Only '+' or '.' is allowed (for now).  Got {}",op);
+		}
+
+		//	if the new value is an array then it's just append (see above)
+		if let CplDataType::CplArray(_) = new_value.var{
+			self.append(new_value);
+		}else{
+			self.cpl_array.push(new_value.clone());
+		}
+	}
+
+	pub fn get_type_at_index(&self, index : usize) -> CplDataTypeInspected{
+		match self.cpl_array[index].var{
+			CplDataType::CplUninitialized(_) => CplDataTypeInspected::CplUninitialized,
+			CplDataType::CplUndefined(_) => CplDataTypeInspected::CplUndefined,
+			CplDataType::CplNumber(_) => CplDataTypeInspected::CplNumber,
+			CplDataType::CplBool(_) => CplDataTypeInspected::CplBool,
+			CplDataType::CplVarRef(_) => CplDataTypeInspected::CplVarRef,
+			CplDataType::CplArray(_) => CplDataTypeInspected::CplArray,
+			CplDataType::CplDict(_) => CplDataTypeInspected::CplDict,
+			CplDataType::CplString(_) => CplDataTypeInspected::CplString,
+			_ => CplDataTypeInspected::DontCare,
+		}
+	}
+
 
 	pub fn sort(&mut self){
 		self.cpl_array.sort();

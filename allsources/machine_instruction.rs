@@ -46,6 +46,13 @@ impl fmt::Display for MachineInstruction{
 			Opcode::Continue => write!(f,"{} frame: {} block:{} address:{}", self.opcode, self.function_num, self.block_num, self.address),
 			Opcode::FunctionCall =>  write!(f,"{} ({}) arg count={} is_statement={}", self.opcode, self.literal.token_value, self.qualifier[0], self.qualifier[1]),
 			Opcode::Diag => write!(f,"{} {}",self.opcode, self.literal.token_value),
+			Opcode::FetchIndexed => {
+				if self.qualifier.len() > 0{
+					write!(f,"{} @{},{},{} indices={} ({})",self.opcode, self.function_num, self.block_num, self.address, self.qualifier[0]+1, self.display_literal())
+				}else{
+					write!(f,"{} @{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal())
+				}
+			}
 			_=>{
 				match self.opcode_mode{
 					OpcodeMode::NONE 		=> write!(f,"{}",self.opcode),
@@ -53,17 +60,18 @@ impl fmt::Display for MachineInstruction{
 					OpcodeMode::VarRef		=> write!(f,"{} &{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
 					OpcodeMode::Arg			=> write!(f,"{} ^{},{},{}",self.opcode, self.function_num, self.block_num, self.address),
 					OpcodeMode::Function	=> write!(f,"{} target {} frame number {} parameter count {}",self.opcode, self.display_literal(), self.function_num, self.qualifier[0]),
-					OpcodeMode::Lit 		=> write!(f,"{} ${},{},{},{}({})",self.opcode, self.function_num, self.block_num, self.address, self.qualifier.len(), self.display_literal()),
+					OpcodeMode::Lit 		=> write!(f,"{}(lit) \"{}\"",self.opcode, self.display_literal()),
 					OpcodeMode::Extern		=> write!(f,"{} '{}'",self.opcode, self.display_literal()),
-					OpcodeMode::Jump		=> write!(f,"{} *{},{}",self.opcode, self.block_num, self.address),
-					OpcodeMode::JumpRel		=> write!(f,"{} **{}",self.opcode, self.address),
+					OpcodeMode::Jump		=> write!(f,"{} *{}",self.opcode, self.address),
+					//OpcodeMode::JumpRel		=> write!(f,"{} **{}",self.opcode, self.address),
 					OpcodeMode::Bl			=> write!(f,"{} rtn={}:{} targ={}", self.opcode, self.block_num, self.address, self.qualifier[0]),
-					OpcodeMode::Update		=> write!(f,"{} #{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
-					OpcodeMode::UpdateIndexed => write!(f,"{} ##{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
-					OpcodeMode::UpdateStructElement => write!(f,"{} #!{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
-					OpcodeMode::Alloc		=> write!(f,"{} %{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
-					OpcodeMode::Array		=> write!(f,"{} [{},{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.qualifier.len(), self.display_literal()),
-					OpcodeMode::Dict		=> write!(f,"{} {}{},{},{},{} ({})",self.opcode, '{', self.function_num, self.block_num, self.address, self.qualifier.len(), self.display_literal()),
+					OpcodeMode::Update		=> write!(f,"{}(update) {},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
+					OpcodeMode::UpdateIndexed => write!(f,"{}(update indexed) {},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
+					OpcodeMode::UpdateStructElement => write!(f,"{} #:{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
+					OpcodeMode::UpdateIndexedStructElement => write!(f,"{} #:#{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
+					OpcodeMode::Alloc		=> write!(f,"{} {},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
+					OpcodeMode::Array		=> write!(f,"{}(array) {},{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.qualifier.len(), self.display_literal()),
+					OpcodeMode::Dict		=> write!(f,"{}(dict) {},{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.qualifier.len(), self.display_literal()),
 					OpcodeMode::Internal	=> write!(f,"{}", self.opcode),
 				}
 			},
