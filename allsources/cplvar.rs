@@ -340,7 +340,7 @@ impl OperandStack{
 	}
 
 
-	fn fetch_indexed_from_operand_stack_helper(&mut self, indices : &mut Vec<usize>) -> CplVar{
+	fn fetch_array_indexed_from_operand_stack_helper(&mut self, indices : &mut Vec<usize>) -> CplVar{
 		//	a reference to the array we are wanting to index
 		let mut array_ref : &CplArray;
 
@@ -419,7 +419,7 @@ impl OperandStack{
 	//
 	//	If an index is out of bounds we return CplUndefined
 	//
-	pub fn fetch_indexed_from_operand_stack(&mut self, index_count : usize) -> CplVar{
+	pub fn fetch_array_indexed_from_operand_stack(&mut self, index_count : usize) -> CplVar{
 
 		//	first, build an array of indices.  The last index is first and the first
 		//	index is last (this is in the reverse order in which they appeared in the
@@ -435,7 +435,7 @@ impl OperandStack{
 			ix_num += 1;
 		}
 
-		let fetched = self.fetch_indexed_from_operand_stack_helper(&mut indices);
+		let fetched = self.fetch_array_indexed_from_operand_stack_helper(&mut indices);
 		
 		//	The original array we are indexing is still on the stack, so we need to
 		//	get rid of it
@@ -444,6 +444,93 @@ impl OperandStack{
 		fetched.clone()
 	}
 
+
+	fn fetch_dict_indexed_from_operand_stack_helper(&mut self, indices : &mut Vec<String>) -> CplVar{
+		//	a reference to the array we are wanting to index
+		let mut dict_ref : &CplDict;
+
+		//	look at the top of the stack.  It needs to be a VarRef pointer
+		//	to an array.  If it doesn't meet this criteria, then we're done.
+		match self.operand_frames.last().unwrap().operand_blocks.last().unwrap().operand_block.last().unwrap().var{
+			CplDataType::CplVarRef(ref vr) => {
+				match  self.operand_frames[vr.frame_num].operand_blocks[vr.block_num].operand_block[vr.address].var{
+					CplDataType::CplDict(ref a) => {
+						dict_ref = a;
+					}
+					_ =>{
+						panic!("Expected to see a CplVarRef pointing at a dictionary but didn't.  Got {}", self.operand_frames[vr.frame_num].operand_blocks[vr.block_num].operand_block[vr.address].var);
+					}	
+				} 
+			}
+			_ =>{
+				panic!("Expected to see a CplVarRef but didn't. got {}. You can only index arrays.", self.operand_frames.last().unwrap().operand_blocks.last().unwrap().operand_block.last().unwrap().var);
+			}	
+		}
+
+		//	Now loop through the indices until we find a scalar or we run out
+		//	of indices.  If the latter and warnings have been enabled, print a warning
+		//	that we are returning an array which we wouldn't normally expect to do.
+		while !indices.is_empty(){
+			let index = &indices.pop().unwrap();
+			//	If the index is out of bounds, return undefined
+			let element = match dict_ref.cpl_dict.get(&CplKey::new(index)){
+				None => {
+					return CplVar::new(CplDataType::CplUndefined(CplUndefined::new()));
+				}
+				Some(e) => e,
+			};
+
+
+			let element_type = self.get_type(element);
+			match element_type{
+				CplDataTypeInspected::CplDict => {}
+				_ => {
+					return element.clone();
+				}
+			}
+
+			if indices.is_empty(){
+				if self.cli_warnings{
+					println!("Warning:  The index {} for the dictionary {} is pointing at another dictionary",index,dict_ref);
+				}
+				return element.clone();
+			}
+
+			if let CplDataType::CplDict(ref a) = element.var{
+				dict_ref = a;
+			}
+		}
+
+		CplVar::new(CplDataType::CplUndefined(CplUndefined::new()))
+	}
+
+	pub fn fetch_dict_indexed_from_operand_stack(&mut self, index_count : usize) -> CplVar{
+		//	first, build an array of indices.  The last index is first and the first
+		//	index is last (this is in the reverse order in which they appeared in the
+		//	original CPL expression)
+		let mut indices : Vec<String> = Vec::new();
+		let mut ix_num = 0;
+
+		while ix_num < index_count{
+			let ix_var = self.pop();
+			match ix_var.var{
+				CplDataType::CplString(s) => indices.push(s.cpl_string),
+				CplDataType::CplNumber(n) => indices.push(n.cpl_number.to_string()),
+				CplDataType::CplBool(n) => indices.push(n.cpl_bool.to_string()),
+				_=> panic!("from fetch_dict_indexed_from_operand_stack: {} is not a valid key",ix_var),
+			}
+			ix_num += 1;
+		}
+
+		let fetched = self.fetch_dict_indexed_from_operand_stack_helper(&mut indices);
+		
+		//	The original array we are indexing is still on the stack, so we need to
+		//	get rid of it
+		self.pop();
+
+		fetched.clone()
+	}
+	
 
 	//	Returns a reference to the top of the stack
 	pub fn fetch_tos_ref(&self) -> &CplVar{
@@ -1866,18 +1953,18 @@ pub struct CplKey{
 }
 
 impl CplKey{
-	pub fn new(key : String) -> CplKey{
+	pub fn new(key : &str) -> CplKey{
 		CplKey {
-			key : key,
+			key : key.to_string(),
 		}
 	}
 
 	//	Build a key from supported Data Types
 	pub fn to_key(cpl_var : &CplDataType) -> CplKey{
 		match &cpl_var{
-			CplDataType::CplNumber(n) 				=> CplKey::new(n.cpl_number.to_string()),
-			CplDataType::CplString(s)				=> CplKey::new(s.cpl_string.clone()),
-			CplDataType::CplBool(b)					=> CplKey::new(b.cpl_bool.to_string()),
+			CplDataType::CplNumber(n) 				=> CplKey::new(&n.cpl_number.to_string()),
+			CplDataType::CplString(ref s)			=> CplKey::new(&s.cpl_string),
+			CplDataType::CplBool(b)					=> CplKey::new(&b.cpl_bool.to_string()),
 			_										=> abend!(format!("Sorry, you can't use {} as a key to a dictionary", cpl_var)),
 		}
 	}

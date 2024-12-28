@@ -8,9 +8,13 @@ entry foo{
 	while i<Length(array){
 		j=0;
 		while j< Length(array[i]){
-			print array[j,i];
+			fun (array, i, j);
 			j+=1;
 		}
 		i+=1;
 	}
+}
+
+fn fun(a, i, j){
+	print a[j,i];
 }

@@ -363,8 +363,22 @@ impl<'a> Executor<'a>{
 			index_count = instruction.qualifier[0]+1;
 		}
 
-		let fetched = self.operand_stack.fetch_indexed_from_operand_stack(index_count);		
-		self.operand_stack.push(&fetched);
+		let tos_ix = self.operand_stack.operand_frames.last().unwrap().operand_blocks.last().unwrap().operand_block.len() - 1;
+
+		if let CplDataType::CplVarRef(ref varref) = self.operand_stack.operand_frames.last().unwrap().operand_blocks.last().unwrap().operand_block.get(tos_ix-index_count).unwrap().var{
+			if let CplDataType::CplArray(_) = self.operand_stack.operand_frames.get(varref.frame_num).unwrap().operand_blocks.get(varref.block_num).unwrap().operand_block.get(varref.address).unwrap().var{
+				let fetched = self.operand_stack.fetch_array_indexed_from_operand_stack(index_count);		
+				self.operand_stack.push(&fetched);
+			}else if let CplDataType::CplDict(_) = self.operand_stack.operand_frames.get(varref.frame_num).unwrap().operand_blocks.get(varref.block_num).unwrap().operand_block.get(varref.address).unwrap().var{
+				let fetched = self.operand_stack.fetch_dict_indexed_from_operand_stack(index_count);		
+				self.operand_stack.push(&fetched);
+			}else{
+				panic!("from exec_fetch_indexed: Can only index an array or dictionary.  Got {}", self.operand_stack.operand_frames.get(varref.frame_num).unwrap().operand_blocks.get(varref.block_num).unwrap().operand_block.get(varref.address).unwrap().var);
+			}
+		}else{
+			panic!("from exec_fetch_indexed: Can only index via a VarRef.  Got {}", self.operand_stack.operand_frames.last().unwrap().operand_blocks.last().unwrap().operand_block.get(tos_ix-index_count).unwrap());
+		}
+
 	}
 
 	//	Push instructions always operate on the current top of the operand stack (i.e.
@@ -724,7 +738,7 @@ impl<'a> Executor<'a>{
 	//	Inserts a key/value pair into a dictionary at tos from the key at tos-1 and the value at tos-2
 	//	Appends the array at tos with the value at tos-1
 	fn exec_insert(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_append: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_insert: {}", self.code_block_num, self.instruction_counter, instruction)}
 		self.update_collection_dict();
 	}
 
