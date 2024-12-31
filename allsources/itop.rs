@@ -135,13 +135,13 @@ impl <'a> InfixToPostfix<'a>{
 		let mut postfix : Vec<Token> = Vec::new();
 		let mut operators : Vec<Token> = Vec::new();
 		if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX_DRIVER){
-			println!("infix_to_postfix {}",self.infix_expression_text(&infix));
+			eprintln!("infix_to_postfix {}",self.infix_expression_text(&infix));
 		}
 
 		for t in infix{
 			self.i_to_p(t, &mut postfix, &mut operators);
 			if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX_DRIVER){
-				println!("i_to_p:  --LAST Token: {} (\"{}\")\tpostfix={}\toperators={}",t.token_type, t.token_value, self.token_list_text(&mut postfix), self.token_list_text(&mut operators));
+				eprintln!("i_to_p:  --LAST Token: {} (\"{}\")\tpostfix={}\toperators={}",t.token_type, t.token_value, self.token_list_text(&mut postfix), self.token_list_text(&mut operators));
 			}
 		}
 
@@ -151,8 +151,8 @@ impl <'a> InfixToPostfix<'a>{
 		self.postfix_expression.append(&mut postfix);
 
 		if self.cli.is_debug_bit(DUMP_POSTFIX_EXPRESSION){
-			println!("Infix = {} ", self.infix_expression_text(&infix));
-			println!("Postfix: {}", self.postfix_expression_text());
+			eprintln!("Infix = {} ", self.infix_expression_text(&infix));
+			eprintln!("Postfix: {}", self.postfix_expression_text());
 		}
 
 		&mut self.postfix_expression
@@ -174,7 +174,7 @@ impl <'a> InfixToPostfix<'a>{
 			//	Special cases
 			TokenCategory::LParen  | TokenCategory::LParen_Arg  =>{
 				if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-					println!("i_to_p:  Stacking unconditionally: {}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
+					eprintln!("i_to_p:  Stacking unconditionally: {}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
 				}
 			    operators.push(token.clone());
 			    return;	
@@ -182,7 +182,7 @@ impl <'a> InfixToPostfix<'a>{
 
 			TokenCategory::RIndex =>  {
 				if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-					println!("i_to_p:  RIndex move: {}\tpostfix={}\toperators={}",token, self.token_list_text(postfix), self.token_list_text(operators));
+					eprintln!("i_to_p:  RIndex move: {}\tpostfix={}\toperators={}",token, self.token_list_text(postfix), self.token_list_text(operators));
 				}
 
 				self.move_special_rindex(&token, postfix, operators);
@@ -191,7 +191,7 @@ impl <'a> InfixToPostfix<'a>{
 
 			TokenCategory::IndexedId => {
 				if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-					println!("i_to_p:  IndexedId move: {}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
+					eprintln!("i_to_p:  IndexedId move: {}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
 				}
 				self.op_up(operators);
 				self.move_operator(&token, postfix);
@@ -200,7 +200,7 @@ impl <'a> InfixToPostfix<'a>{
 
 			TokenCategory::RParen_Arg       => {
 				if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-					println!("i_to_p:  RParen_Arg move: {}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
+					eprintln!("i_to_p:  RParen_Arg move: {}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
 				}
 				self.special_case_c(postfix, operators);
 				return;
@@ -208,7 +208,7 @@ impl <'a> InfixToPostfix<'a>{
 
 			TokenCategory::RParen			=> {
 				if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-					println!("i_to_p:  RParen move: {}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
+					eprintln!("i_to_p:  RParen move: {}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
 				}
 				self.clear_operator_stack(postfix, operators);
 				return;
@@ -222,7 +222,7 @@ impl <'a> InfixToPostfix<'a>{
 
 			TokenCategory::ArgSeparator		=> {
 				//	fn clear_operator_stack_with_stop(&mut self, stop : TokenCategory, postfix : &mut Vec<Token>, operators : &mut Vec<Token>){
-				//println!(".... token={} operators: @arg_separator operators = {}\t{}", token.token_value, self.token_list_text(operators),token.line_text);
+				//eprintln!(".... token={} operators: @arg_separator operators = {}\t{}", token.token_value, self.token_list_text(operators),token.line_text);
 				self.special_case_a(&token, postfix, operators);
 				// postfix.push(token.clone());
 				return;
@@ -234,12 +234,12 @@ impl <'a> InfixToPostfix<'a>{
 			},
 
 			//	Ignore this one
-			TokenCategory::LIndex 			=> return,
+			TokenCategory::LIndex => return,
 
 			
 			_ => {
 					postfix.push(token.clone());
-					//println!(".... adding token={}", token.token_value);
+					//eprintln!(".... adding token={}", token);
 					return;
 				 },
 		}
@@ -251,7 +251,7 @@ impl <'a> InfixToPostfix<'a>{
 		//	if the operator stack is empty we can just push what we found onto it
 		if 	operators.is_empty() {
 			if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-				println!("i_to_p:  Operators empty stacking: {}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
+				eprintln!("i_to_p:  Operators empty stacking: {}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
 			}
 			operators.push(token.clone());
 			return;
@@ -261,7 +261,7 @@ impl <'a> InfixToPostfix<'a>{
 		//	unconditionaly to the operator stack (in effect, <op>^ has infinately small precedence)
 		if self.is_op_up(operators.last().unwrap()){
 			if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-				println!("i_to_p:  <op>^ at TOS, stacking:{}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
+				eprintln!("i_to_p:  <op>^ at TOS, stacking:{}\tpostfix={}\toperators={}",token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
 			}
 			operators.push(token.clone());
 			return;
@@ -286,7 +286,7 @@ impl <'a> InfixToPostfix<'a>{
 		if self.token_prec(token) <= self.token_prec(operators.last().unwrap()){
 			//let last = operators.len() - 1;
 			if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-				println!("i_to_p: token='{}'({}) <= operator stack tos: {}", token.token_value, self.token_prec(&token), self.token_list_text(operators));
+				eprintln!("i_to_p: token='{}'({}) <= operator stack tos: {}", token.token_value, self.token_prec(&token), self.token_list_text(operators));
 			}
 				
 			while !operators.is_empty() && self.token_prec(&token) <= self.token_prec(operators.last().unwrap()){
@@ -301,7 +301,7 @@ impl <'a> InfixToPostfix<'a>{
 			//	save the input token and we're done
 			operators.push(token.clone());
 			if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-				println!("i_to_p: {} stacked, stack={}", token.token_value,self.token_list_text(operators));
+				eprintln!("i_to_p: {} stacked, stack={}", token.token_value,self.token_list_text(operators));
 			}
 			return;	
 		}else{			
@@ -314,7 +314,7 @@ impl <'a> InfixToPostfix<'a>{
 			if token.token_type != TokenType::RPAREN && token.token_type != TokenType::LPAREN {
 				operators.push(token.clone());
 				if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-					println!("i_to_p: {} stacked, stack={}", token.token_value, self.token_list_text(operators));
+					eprintln!("i_to_p: {} stacked, stack={}", token.token_value, self.token_list_text(operators));
 				}
 			}
 		}
@@ -339,7 +339,7 @@ impl <'a> InfixToPostfix<'a>{
 		operators[last].token_value.push('^');
 
 		if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-			println!("i_to_p.op_up Changing <op> to <op>^\toperators={}",self.token_list_text(operators));
+			eprintln!("i_to_p.op_up Changing <op> to <op>^\toperators={}",self.token_list_text(operators));
 		}
 	}
 
@@ -386,7 +386,7 @@ impl <'a> InfixToPostfix<'a>{
 	}
 
 	fn token_prec (&self, token : &Token) -> i32{
-		// println!(".... token_prec {}", token.token_type);
+		// eprintln!(".... token_prec {}", token.token_type);
 		if let TokenType::FUNCTION_CALL(_) = token.token_type{
 			*self.token_precedence.get(&TokenType::FUNCTION_CALL(0)).unwrap()
 		}else{
@@ -400,7 +400,7 @@ impl <'a> InfixToPostfix<'a>{
 
 	//	this is a clearing helper
 	fn move_operator(& mut self, token : &Token, postfix : &mut Vec<Token>){
-		//println!("............i_to_p: move_operator {}", token);
+		//eprintln!("............i_to_p: move_operator {}", token);
 
 		//  Don't move these tokens to postfix
 		match token.token_type{
@@ -443,7 +443,7 @@ impl <'a> InfixToPostfix<'a>{
 		//	operator stack.  if the token_to_move has a higher precedence
 		//	than the tos move it else move the tos
 		if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-			println!("i_to_p:  move_operator_prec: {}\tpostfix={}\toperators={}", token_to_move.token_value, self.token_list_text(postfix), self.token_list_text(operators));
+			eprintln!("i_to_p:  move_operator_prec: {}\tpostfix={}\toperators={}", token_to_move.token_value, self.token_list_text(postfix), self.token_list_text(operators));
 		}
 
 		if operators.is_empty(){
@@ -501,7 +501,7 @@ impl <'a> InfixToPostfix<'a>{
 	//  <op>^, convert <op>^ to <op>
 	fn special_case_c(&mut self, postfix : &mut Vec<Token>, operators : &mut Vec<Token>){
 		if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-			println!("i_to_p:  special_case_c:\tpostfix={}\toperators={}", self.token_list_text(postfix), self.token_list_text(operators));
+			eprintln!("i_to_p:  special_case_c:\tpostfix={}\toperators={}", self.token_list_text(postfix), self.token_list_text(operators));
 		}
 		while !operators.is_empty(){
 			//	If the operator at the top of stack is <op>^ then "down" it
@@ -570,7 +570,7 @@ impl <'a> InfixToPostfix<'a>{
 
 		//	move operators in precedence order until we see a <op>^
 		if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-			println!("i_to_p: Moving operators until <op>^ input:{}\tpostfix={}\tstack={}", special.token_value, self.token_list_text(postfix), self.token_list_text(operators));
+			eprintln!("i_to_p: Moving operators until <op>^ input:{}\tpostfix={}\tstack={}", special.token_value, self.token_list_text(postfix), self.token_list_text(operators));
 		}
 		while !operators.is_empty(){
 			//	if we're looking at a <op>^, down it and add the special
@@ -633,7 +633,7 @@ impl <'a> InfixToPostfix<'a>{
 
 	// 	//	move operators in precedence order until we see a Function Call
 	// 	if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-	// 		println!("i_to_p: Moving operators until FC or empty\tpostfix={}\tstack={}", self.token_list_text(postfix), self.token_list_text(operators));
+	// 		eprintln!("i_to_p: Moving operators until FC or empty\tpostfix={}\tstack={}", self.token_list_text(postfix), self.token_list_text(operators));
 	// 	}
 
 
@@ -643,7 +643,7 @@ impl <'a> InfixToPostfix<'a>{
 	// 		//	down the second one
 	// 		let token = operators.pop().unwrap();
 
-	// 		//println!("i_to_p: Moving operators until FC or empty ..{}..\tpostfix={}\tstack={}", token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
+	// 		//eprintln!("i_to_p: Moving operators until FC or empty ..{}..\tpostfix={}\tstack={}", token.token_value, self.token_list_text(postfix), self.token_list_text(operators));
 			
 	// 		//	When we see the FC we're don
 	// 		match token.token_type{
@@ -688,31 +688,31 @@ impl <'a> InfixToPostfix<'a>{
 
 	// 	//	move operators in precedence order until we see a Function Call
 	// 	if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-	// 		println!("i_to_p: Moving FC and other operators until empty\tpostfix={}\tstack={}", self.token_list_text(postfix), self.token_list_text(operators));
+	// 		eprintln!("i_to_p: Moving FC and other operators until empty\tpostfix={}\tstack={}", self.token_list_text(postfix), self.token_list_text(operators));
 	// 	}
 
 	// 	while !operators.is_empty(){
 	// 		//	if we're looking at an LParen then we're done
 	// 		if operators.last().unwrap().token_type == TokenType::LPAREN{
-	// 			//println!(".......lparen top");
+	// 			//eprintln!(".......lparen top");
 	// 			return;
 	// 		}
 
 	// 		//	otherwise, get the tos
 	// 		let token = operators.pop().unwrap();
-	// 		//println!(".......current tos {}", token.token_value);
+	// 		//eprintln!(".......current tos {}", token.token_value);
 
 			
 	// 		//	and if this was the last operator just move it return
 	// 		if operators.is_empty(){
-	// 			//println!(".......no more after {}",token);
+	// 			//eprintln!(".......no more after {}",token);
 	// 			self.move_operator(&token,postfix);
 	// 			return;
 	// 		}
 
 	// 		//	if the token > token at tos move it and loop
 	// 		if self.token_prec(&token) > self.token_prec(operators.last().unwrap()){
-	// 			//println!(".......{} > {}",token.token_value, operators.last().unwrap().token_value);
+	// 			//eprintln!(".......{} > {}",token.token_value, operators.last().unwrap().token_value);
 	// 			self.move_operator(&token, postfix);
 	// 			continue;
 	// 		}
@@ -730,7 +730,7 @@ impl <'a> InfixToPostfix<'a>{
 	// 		//	the one we move.
 
 	// 		if operators.last().unwrap().token_type == TokenType::LPAREN{
-	// 			//println!(".......lparen bottom");
+	// 			//eprintln!(".......lparen bottom");
 	// 			self.move_operator(&token, postfix);
 	// 			return;
 	// 		}
@@ -738,7 +738,7 @@ impl <'a> InfixToPostfix<'a>{
 	// 		//	get the token at tos and move it
 	// 		let moveable_token = operators.pop().unwrap();
 
-	// 		//println!(".......moving {} saving {}", moveable_token.token_type, token.token_type);
+	// 		//eprintln!(".......moving {} saving {}", moveable_token.token_type, token.token_type);
 
 	// 		self.move_operator(&moveable_token, postfix);
 
@@ -747,7 +747,7 @@ impl <'a> InfixToPostfix<'a>{
 
 	// 		//	if we must moved a function call, then done
 	// 		if moveable_token.token_category == TokenCategory::FunctionCall{
-	// 			//println!(".......moveable is function call so done");
+	// 			//eprintln!(".......moveable is function call so done");
 	// 			return;
 	// 		}
 	// 	}
@@ -756,43 +756,43 @@ impl <'a> InfixToPostfix<'a>{
 
 	// fn trace_infix_to_postfix(&mut self, token : &Token, text : &str, bit : u32, line : u32){
 	// 	if self.cli.is_debug_bit(bit){
-	// 		println!("i_to_p: {} '{}' type={} prec={} line={}",text, token.token_value, token.token_type, self.token_prec(&token), line);
+	// 		eprintln!("i_to_p: {} '{}' type={} prec={} line={}",text, token.token_value, token.token_type, self.token_prec(&token), line);
 	// 	}
 	// }
 
 	fn trace_infix_to_postfix_moving(&mut self,  token : &Token, text : &str, bit : u32, postfix : &mut Vec<Token>, line : u32){
 		if self.cli.is_debug_bit(bit){
-			println!("i_to_p: {} '{}' type={} prec={} line={} postfix={}",text, token.token_value, token.token_type, self.token_prec(&token), line, self.token_list_text(postfix));
+			eprintln!("i_to_p: {} '{}' type={} prec={} line={} postfix={}",text, token.token_value, token.token_type, self.token_prec(&token), line, self.token_list_text(postfix));
 		}
 	}
 
 	fn trace_infix_to_postfix_msg(&mut self, text : &str, line : u32){
 		if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX){
-			println!("i_to_p: {} line={}",text, line);
+			eprintln!("i_to_p: {} line={}",text, line);
 		}
 	}
 
 	fn trace_postfix_expression_content (&self, postfix : &mut Vec<Token>){
 		if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX) {
-			println!("i_to_p    postfix = {}", self.token_list_text(postfix));
+			eprintln!("i_to_p    postfix = {}", self.token_list_text(postfix));
 		}
 	}
 
 	fn trace_operator_stack_content (&self, operators : &mut Vec<Token>){
 		if self.cli.is_debug_bit(TRACE_INFIX_TO_POSTFIX) {
-			println!("i_to_p    operators = {}", self.token_list_text(operators));
+			eprintln!("i_to_p    operators = {}", self.token_list_text(operators));
 		}
 	}
 
 	fn infix_expression_text(&self, infix : &Vec<Token>) -> String{
 		let mut rtn = String::new();
 		for t in infix{
-			//	if the token is a string print it in quotes
+			//	if the token is a string println it in quotes
 			if t.token_type == TokenType::STRING{
 				rtn.push_str(&format!("\"{}\"",t.token_value));
 			}else{
-				// if the token is a function call, print it with the argument count
-				// otherwise just print it
+				// if the token is a function call, println it with the argument count
+				// otherwise just println it
 				match t.token_type{
 					TokenType::FUNCTION_CALL(_) => rtn.push_str(&format!("{}", t.token_value)),
 					TokenType::LPAREN_ARG | TokenType::RPAREN_ARG => rtn.push_str(&format!(" {} ", t.token_value)),
@@ -804,20 +804,21 @@ impl <'a> InfixToPostfix<'a>{
 		rtn
 	}
 
-	//	print the content of a list of tokens
+	//	println the content of a list of tokens
 	fn token_list_text (&self, list : &mut Vec<Token>) -> String{
 		let mut rtn = String::new();
 		for t in list{
-			//	if the token is a string print it in quotes
+			//	if the token is a string println it in quotes
 			if t.token_type == TokenType::STRING{
 				rtn.push_str(&format!("\"{}\" ",t.token_value));
 			}else{
-				// if the token is a function call, print it with the argument count
-				// if the token is a reference, print it with "&"
-				// otherwise just print it
+				// if the token is a function call, println it with the argument count
+				// if the token is a reference, println it with "&"
+				// otherwise just println it
 				match t.token_type{
 					TokenType::FUNCTION_CALL(_) => rtn.push_str(&format!("{} ", t.token_value)),
 					TokenType::IDADDR => rtn.push_str(&format!("&{} ", t.token_value)),
+					TokenType::NEW_COLLECTION => rtn.push_str("NEW_COLLECTION "),
 					_ => rtn.push_str(&format!("{} ",t.token_value)),
 				}
 			}
@@ -828,15 +829,16 @@ impl <'a> InfixToPostfix<'a>{
 	fn postfix_expression_text(&self) -> String{
 		let mut rtn = String::new();
 		for t in &self.postfix_expression{
-			//	if the token is a string print it in quotes
+			//	if the token is a string println it in quotes
 			if t.token_type == TokenType::STRING{
 				rtn.push_str(&format!("\"{}\" ",t.token_value));
 			}else{
-				// if the token is a function call, print it with the argument count
-				// otherwise just print it
+				// if the token is a function call, println it with the argument count
+				// otherwise just println it
 				match t.token_type{
 					TokenType::FUNCTION_CALL(_) => rtn.push_str(&format!("{} ", t.token_value)),
 					TokenType::IDADDR => rtn.push_str(&format!("&{} ", t.token_value)),
+					TokenType::NEW_COLLECTION => rtn.push_str("NEW_COLLECTION "),
 					_ => rtn.push_str(&format!("{} ",t.token_value)),
 				}
 			}

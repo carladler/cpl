@@ -112,6 +112,10 @@ pub fn token_type_to_opcode(t : TokenType) -> Opcode{
 
 		//	These are Simple Statements
 		TokenType::PRINT 			=> Opcode::Print,
+		TokenType::EPRINT			=> Opcode::Eprint,
+		TokenType::PRINTLN			=> Opcode::Println,
+		TokenType::EPRINTLN			=> Opcode::Eprintln,
+
 		TokenType::BREAK			=> Opcode::Break,
 		TokenType::CONTINUE			=> Opcode::Continue,
 		TokenType::RETURN			=> Opcode::Return,
@@ -128,6 +132,8 @@ pub fn token_type_to_opcode(t : TokenType) -> Opcode{
 		TokenType::LIST_SEPARATOR	=> Opcode::IncArgCount,
 
 		TokenType::DAMNIT			=> Opcode::Damnit,
+
+		TokenType::NEW_COLLECTION	=> Opcode::PushNewCollection,
 
 	_ => abend!(format!("Error in token_type_to_opcode: token type {} not implemented", t)),
 	}

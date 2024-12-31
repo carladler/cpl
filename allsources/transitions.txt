@@ -112,7 +112,8 @@
 	//	<expression> :: "(" <expression> ")" or function_call(...)
 	Expression			LParen					Expression 			lparen;
 
-	//	collection literals
+	//	collection literals. Note that if a RBracket immediatly follows this
+	//	we assume that an "empty" array literal is being requested
 	Expression			LBracket				Expression 			array_literal;
 
 	//	When we see "ID (" come here which will check for an immediate ")", meaning

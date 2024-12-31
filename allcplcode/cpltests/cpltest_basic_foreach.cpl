@@ -1,6 +1,6 @@
 entry foo(){
 	array = ["one","two","three"];
 	foreach target array{
-		print target;
+		println target;
 	}
 }

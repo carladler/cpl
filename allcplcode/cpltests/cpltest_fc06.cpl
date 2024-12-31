@@ -12,9 +12,9 @@ entry Entry(){
 }
 
 fn print_foo(x:s_fop){
-	print x:a;
-	print x:b;
-	print x:c;
+	println x:a;
+	println x:b;
+	println x:c;
 }
 
 fn update_foo(x:s_fop){

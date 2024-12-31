@@ -3,7 +3,7 @@ entry foo(){
 	b = Split(a,":");
 	i=0;
 	while i<Length(b){
-		print b[i];
+		println b[i];
 		i+=1;
 	}
 }

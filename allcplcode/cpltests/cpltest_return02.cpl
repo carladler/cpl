@@ -2,7 +2,7 @@
 entry main(){
 	args = [2, 4, 5, "foo", 7,  8,  9, 11, 13];
 	avg = compute_average(args);
-	print "Average=".avg;
+	println "Average=".avg;
 }
 
 fn compute_average(args){
@@ -11,15 +11,15 @@ fn compute_average(args){
 	foreach foreach_target args {
 		eval true {
 			when foreach_target == "foo" {
-				print foreach_target." is an illegal element";
+				println foreach_target." is an illegal element";
 			}
 			when foreach_target == 11{
-				//print foreach_target." is the last element";
+				//println foreach_target." is the last element";
 				count+= 1;
 				total += foreach_target;
 			}
 			otherwise{
-				//print "===otherwise: ".foreach_target;
+				//println "===otherwise: ".foreach_target;
 				count+= 1;
 				total += foreach_target;
 			}

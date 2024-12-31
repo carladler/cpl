@@ -49,11 +49,11 @@ entry transitions(args){
 		}
 
 		if Length(trans) > 0{
-			print "(ParserStateTransitionKey::new(ParserState::".trans[0].",TokenCategory::".trans[1]."),";
-			print "\tParserStateTransitionContent::new(ParserState::".trans[2].",".do_nothing.",".'"'.trans[3].'"'.",Parser::".trans[3].")),";
+			println "(ParserStateTransitionKey::new(ParserState::".trans[0].",TokenCategory::".trans[1]."),";
+			println "\tParserStateTransitionContent::new(ParserState::".trans[2].",".do_nothing.",".'"'.trans[3].'"'.",Parser::".trans[3].")),";
 		}
-		//print Length(trans);
-		//print a;
+		//println Length(trans);
+		//println a;
 		a = Freadln(in_file);
 	}
 	

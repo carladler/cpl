@@ -5,6 +5,6 @@ entry foo(){
 
 fn bar(a){
 	foreach x a{
-		print x;
+		println x;
 	}
 }

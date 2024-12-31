@@ -1,7 +1,7 @@
 entry foo(){
 	a = [1,2,3];
 	bar(&a);
-	print a;
+	println a;
 }
 
 fn bar(a){

@@ -16,5 +16,5 @@ entry foo{
 }
 
 fn fun(a, i, j){
-	print a[j,i];
+	println a[j,i];
 }

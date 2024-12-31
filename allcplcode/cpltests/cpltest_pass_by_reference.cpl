@@ -2,10 +2,10 @@ entry foo{
 	array = [1,2,3];
 	b = 5;
 	b *= 2;
-	print b; 
+	println b; 
 	bar(array,&b);
-	print b;
-	print array;
+	println b;
+	println array;
 }
 
 fn bar(a,b){
@@ -17,5 +17,5 @@ fn bar(a,b){
 	b+=20;
 	c=10;
 	c+=100;
-	print c;
+	println c;
 }

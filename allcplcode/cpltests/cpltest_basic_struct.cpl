@@ -7,7 +7,7 @@ struct s_foo{
 entry ENTRY(){
 	foo=new s_foo;
 	foo:member_a = "hello";
-	print "foo:member_a=".foo:member_a;
-	print foo:member_b;
-	print foo;
+	println "foo:member_a=".foo:member_a;
+	println foo:member_b;
+	println foo;
 }

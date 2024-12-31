@@ -13,14 +13,14 @@ struct s_bar{
 
 entry ENTRY{
 	foo = 1001;
-	print foo;
+	println foo;
 
 	foo=new s_foo;
-	print foo:member_b;
+	println foo:member_b;
 
 	foo = new s_bar;
-	print foo:a;
+	println foo:a;
 
 	foo = 5000;
-	print foo;
+	println foo;
 }

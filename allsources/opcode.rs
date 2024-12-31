@@ -22,7 +22,12 @@ pub enum Opcode{
 	Land,
 	Uminus,
 	Concat,
+
 	Print,
+	Eprint,
+	Println,
+	Eprintln,
+	
 	BwAnd,
 	BwOr,
 	BlockBegin,
@@ -85,7 +90,12 @@ impl fmt::Display for Opcode{
 			Opcode::Land					=> write!(f,"Land"),
 			Opcode::Uminus					=> write!(f,"Uminus"),
 			Opcode::Concat					=> write!(f,"Concat"),
+
 			Opcode::Print					=> write!(f,"Print"),
+			Opcode::Eprint					=> write!(f,"Eprint"),
+			Opcode::Println					=> write!(f,"Println"),
+			Opcode::Eprintln				=> write!(f,"Eprintln"),
+			
 			Opcode::BwAnd					=> write!(f,"Bitwise And"),
 			Opcode::BwOr					=> write!(f,"Bitwise Or"),
 			Opcode::IncArgCount				=> write!(f,"IncArgCount"),

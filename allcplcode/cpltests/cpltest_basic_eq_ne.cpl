@@ -2,29 +2,29 @@ entry foo{
 	a = 1;
 	b = 2;
 	if a == b {
-		print "equals";
+		println "equals";
 	}else{
-		print "not equals";
+		println "not equals";
 	}
 
 	b = 1;
 	if a == b {
-		print "equals";
+		println "equals";
 	}else{
-		print "not equals";
+		println "not equals";
 	}
 
 	b = "foobar";
 	if a == b {
-		print "equals";
+		println "equals";
 	}else{
-		print "not equals";
+		println "not equals";
 	}
 
 	b = [1,2,3];
 	if a == b {
-		print "equals";
+		println "equals";
 	}else{
-		print "not equals";
+		println "not equals";
 	}
 }

@@ -2,9 +2,9 @@ entry foo(){
 	array = [1,2,3];
 	i=0;
 	end = Length(array);
-	print "....".end;
+	println "....".end;
 	while i<end {
-		print "array[i]=".array[i];
+		println "array[i]=".array[i];
 		i+=1;
 	}
 }

@@ -1,2 +1,2 @@
 include_var = 1000;
-print "this var was included: ".include_var;
+println "this var was included: ".include_var;

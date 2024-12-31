@@ -1,0 +1,27 @@
+entry dup(args){
+	if Length(args) < 1 {
+		print "Usage: dups <ls output file>";
+		return 1;
+	}
+	// open the file
+	ls_file = Fopen(args[0],"<");
+
+	//	read the file into memory
+	directory_lines = [];
+	Fread(ls_file, directory_lines);
+	count=0;
+	foreach line directory_lines{
+		if Length(line) == 0{
+			continue;
+		}
+		first = Substr(line,0,1);
+		eval first{
+			when "/" {println line;}
+			when "-" {println line;}
+		}
+		count += 1;
+		if count & 8191 == 0 {eprintln count."\r";}
+	}
+
+	eprintln "\ntotal entries=".count;
+}

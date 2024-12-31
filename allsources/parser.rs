@@ -232,7 +232,7 @@ pub struct Parser<'a>{
 	struct_model_context : Vec<usize>,
 	struct_member_name : String,
 
-	simple : Token,		// PRINT, RETURN, ETC.
+	simple : Token,		// PRINT, EPRINT, RETURN, ETC.
 
 	//	When we see a function call in an expression, we save it's name and the parameter count
 	//expression_function_call_name: Vec<Token>,
@@ -497,7 +497,7 @@ impl <'a> Parser<'a>{
 			//	fetch the next transition state
 			match self.fetch_transition(){
 				Err(msg) => {
-					println!("{msg}");
+					eprintln!("{msg}");
 					return (false,None);
 				},
 				Ok(transition) => {
@@ -510,7 +510,7 @@ impl <'a> Parser<'a>{
 			//	need to know that current state when they are called.
 			//  *******************************************************************************************
 
-			if self.cli.is_debug_bit(TRACE_PARSE_LOOP){println!("transition: {} + {} (\"{}\") -> {} : \"{}\" [{}]"
+			if self.cli.is_debug_bit(TRACE_PARSE_LOOP){eprintln!("transition: {} + {} (\"{}\") -> {} : \"{}\" [{}]"
 				, self.current_state
 				, self.token.token_category
 				, self.token.token_value
@@ -527,7 +527,7 @@ impl <'a> Parser<'a>{
 					None => self.current_state = self.current_transition.new_parser_state.clone(),
 					Some(p) => match p{
 						ParserState::Error(m) => {
-							println!("{} from CPL source line {} -- ({})",m, self.token.line_number, self.token.line_text);
+							eprintln!("{} from CPL source line {} -- ({})",m, self.token.line_number, self.token.line_text);
 							error_flag = true;
 							break;
 						},
@@ -540,7 +540,7 @@ impl <'a> Parser<'a>{
 				self.current_state = self.current_transition.new_parser_state.clone();
 			}
 
-			if self.cli.is_debug_bit(TRACE_PARSE_LOOP){println!("    final state: {} context: {}", self.current_state, self.parser_context.last().unwrap());}
+			if self.cli.is_debug_bit(TRACE_PARSE_LOOP){eprintln!("    final state: {} context: {}", self.current_state, self.parser_context.last().unwrap());}
 			self.token = self.next_token();	
 		}
 
@@ -654,7 +654,7 @@ impl <'a> Parser<'a>{
 	//	actual binary operator.  <binary op> can only follow a factor or )
 	//	or ] or } (but that's another story)
 	fn unary_op_test (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: unary_op_test {}", self.token.token_type)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: unary_op_test {}", self.token.token_type)}
 
 		match self.token.token_type{
 			TokenType::SUB 		|
@@ -689,7 +689,7 @@ impl <'a> Parser<'a>{
 	//	This is called when a factor is preceded by a "++" or "--".  the look ahead must be an ID
 	//	or this function fails.  Get the previous token to figure if it's a ++ or --
 	// fn pre_inc_dec(&mut self) -> Option<ParserState>{
-	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: pre_inc_dec {}", self.token.token_type)}
+	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: pre_inc_dec {}", self.token.token_type)}
 
 	// 	//	The current token must be an ID or an error occurs
 	// 	match self.token.token_type{
@@ -699,7 +699,7 @@ impl <'a> Parser<'a>{
 	// 			self.infix_expression.push(back_token.clone());
 	// 			self.infix_expression.push(self.token.clone());
 
-	// 			if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: pre_inc_dec is {}", back_token.token_value)}
+	// 			if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: pre_inc_dec is {}", back_token.token_value)}
 	// 			return Some(self.current_transition.new_parser_state.clone());
 	// 		},
 	// 		_ => return Some(ParserState::Error(format!"Syntax error from pre_inc_dec, line {}: Inc/Dec can only predede an ID", line!()))),
@@ -709,14 +709,14 @@ impl <'a> Parser<'a>{
 
 	//	This is called when inc/dec follows a factor (ID or function call)
 	fn post_inc_dec(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: post_inc_dec \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: post_inc_dec \"{}\"", self.token.token_value)}
 		self.infix_expression.push(self.token.clone());
 		None
 	}
 
 	//	<function> :: fn | entry | entry fn
 	fn function_declaration(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: function_declaration {} context={:?}", self.token.token_type, self.parser_context)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: function_declaration {} context={:?}", self.token.token_type, self.parser_context)}
 
 		//  if we see ENTRY then we might see FN but that is just suger and can be ignored
 		if self.token.token_type == TokenType::ENTRY{
@@ -732,7 +732,7 @@ impl <'a> Parser<'a>{
 	}
 	//	<function> :: fn | entry | entry fn <id>
 	fn function_name(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: function_name {}", self.token.token_type)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: function_name {}", self.token.token_type)}
 		self.function_name = self.token.clone();
 		self.function_parameters.clear();
 		None
@@ -740,13 +740,13 @@ impl <'a> Parser<'a>{
 
 	//	<function> :: fn | entry | entry fn <id> (
 	// fn function_signature(&mut self) -> Option<ParserState>{
-	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: function_signature {}", self.token.token_type)}
+	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: function_signature {}", self.token.token_type)}
 	// 	None
 	// }
 
 	//	<function> :: fn | entry | entry fn <id> (<parameter,....)
 	fn function_parameter(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: function_parameter \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: function_parameter \"{}\"", self.token.token_value)}
 
 		//	if we're all done collecting parameters, then add the function declaration to the model
 		if self.token.token_type == TokenType::RPAREN{
@@ -761,31 +761,31 @@ impl <'a> Parser<'a>{
 	//	A funciton can be declared with not parameters by simply leaving off
 	//	the parameter block "(...)";  Here we've seen:  entry/fn foo{
 	fn function_no_parameters(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: function_no_parameters \"{}\" parser_context:{}", self.token.token_value,self.parser_context.last().unwrap())}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: function_no_parameters \"{}\" parser_context:{}", self.token.token_value,self.parser_context.last().unwrap())}
 		self.model.add_function(self.function_name.token_value.clone(), self.function_entry_flag, self.function_parameters.clone(), &self.cli.cl_args);
 		self.begin_block();
 		None
 	}
 
 	fn struct_declaration(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: struct_declaration \"{}\" parser_context:{}", self.token.token_value,self.parser_context.last().unwrap())}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: struct_declaration \"{}\" parser_context:{}", self.token.token_value,self.parser_context.last().unwrap())}
 		self.parser_context.push(ParserContext::Struct);
 		None
 	}
 	fn struct_name(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: struct_name \"{}\" parser_context:{}", self.token.token_value,self.parser_context.last().unwrap())}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: struct_name \"{}\" parser_context:{}", self.token.token_value,self.parser_context.last().unwrap())}
 		self.struct_model_context.push(self.model.add_struct(self.token.token_value.clone()));
 		self.brace_counter += 1;
 		None
 	}
 	fn struct_member(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: struct_member \"{}\" context={:?}", self.token.token_value,self.parser_context)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: struct_member \"{}\" context={:?}", self.token.token_value,self.parser_context)}
 		self.struct_member_name = self.token.token_value.clone();
 		None
 	}
 
 	fn struct_member_add(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: struct_member_add \"{}\" model_context:{} parser_context:{} braces={}", self.struct_member_name, self.struct_model_context.last().unwrap(),self.parser_context.last().unwrap(), self.brace_counter);}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: struct_member_add \"{}\" model_context:{} parser_context:{} braces={}", self.struct_member_name, self.struct_model_context.last().unwrap(),self.parser_context.last().unwrap(), self.brace_counter);}
 		self.postfix_expression.clear();
 		self.model.add_struct_member(self.struct_member_name.clone(),&self.postfix_expression, *self.struct_model_context.last().unwrap());
 		self.infix_expression.clear();
@@ -793,7 +793,7 @@ impl <'a> Parser<'a>{
 	}
 
 	fn struct_member_init(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: struct_member_init \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: struct_member_init \"{}\"", self.token.token_value)}
 		self.parser_context.push(ParserContext::StructMember);
 		self.infix_expression.clear();
 		None
@@ -814,7 +814,7 @@ impl <'a> Parser<'a>{
 	//
 	//	set the ID type to Struct and add the asssignment statement
 	fn struct_instantiate(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: struct_instantiation \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: struct_instantiation \"{}\"", self.token.token_value)}
 	
 		if self.token.token_type != TokenType::ID {
 			return Some(ParserState::Error(format!("Syntax Error:  Expecting to see an <ID> following the assignment operator. Found:{}",self.token.token_type)));
@@ -840,18 +840,18 @@ impl <'a> Parser<'a>{
 
 	//	any time we see a "{"
 	fn begin_block(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: begin_block \"{}\" context={:?} braces={}", self.token.token_value, self.parser_context, self.brace_counter);}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: begin_block \"{}\" context={:?} braces={}", self.token.token_value, self.parser_context, self.brace_counter);}
 		self.brace_counter += 1;
 		None
 	}
 
 	// fn collection_target (&mut self) -> Option<ParserState>{
-	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: collection_target \"{}\"", self.token.token_value)}
+	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: collection_target \"{}\"", self.token.token_value)}
 	// 	None
 	// }
 
 	fn statement_factor(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: statement_factor \"{}\" context={:?}", self.token.token_value, self.parser_context);}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: statement_factor \"{}\" context={:?}", self.token.token_value, self.parser_context);}
 		self.statement_factor = self.token.clone();
 		//  initialize some things
 		self.assignment_target_index_expression.clear();
@@ -871,12 +871,12 @@ impl <'a> Parser<'a>{
 	
 	//	This adds a statement to the model depending on the context
 	fn dispatch_model_adder(&mut self, parser_context : ParserContext){
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("        Action: dispatch_model_adder context={}", parser_context)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("        Action: dispatch_model_adder context={}", parser_context)}
 
 		//	Now, add whatever we found
 		match parser_context{
 			ParserContext::Assignment => {
-				//println!(".... dispatch_model_adder\nassignment_target ({})\nstatement_factor ({})", self.assignment_target, self.statement_factor);
+				//eprintln!(".... dispatch_model_adder\nassignment_target ({})\nstatement_factor ({})", self.assignment_target, self.statement_factor);
 				self.do_infix_to_postfix();
 				self.model.add_assignment_statement(self.assignment_target.clone(), self.assignment_operator.clone(), &self.assignment_target_index_expression, &self.postfix_expression.clone());
 			},
@@ -909,11 +909,11 @@ impl <'a> Parser<'a>{
 
 	fn statement_end(&mut self) -> Option<ParserState>{
 		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {
-			println!("    Action: statement_end \"{}\" context={:?} braces={}", self.token.token_value, self.parser_context, self.brace_counter);
+			eprintln!("    Action: statement_end \"{}\" context={:?} braces={}", self.token.token_value, self.parser_context, self.brace_counter);
 		}
 
 		if self.token.token_type != TokenType::SEMI{
-			println!("*********** token is other {}", self.token.token_type);
+			eprintln!("*********** token is other {}", self.token.token_type);
 			return None;
 		}
 
@@ -966,20 +966,20 @@ impl <'a> Parser<'a>{
 
 		if self.look_ahead_test_token(TokenType::NEW) && self.token.token_type == TokenType::ASG_EQ{
 			self.statement_factor.token_type = TokenType::STRUCT;
-			if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: assignment_op : struct instantiation \"{}\" target=new \"{}\"", self.token.token_value, self.assignment_target.token_value)}
+			if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: assignment_op : struct instantiation \"{}\" target=new \"{}\"", self.token.token_value, self.assignment_target.token_value)}
 			self.next_token();
 			return Some(ParserState::StructInstantiate);
 		}
 
 		//	Otherwise it's just a "normal" assignment statement
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: assignment_op \"{}\" target=\"{}\"", self.token.token_value, self.assignment_target.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: assignment_op \"{}\" target=\"{}\"", self.token.token_value, self.assignment_target.token_value)}
 		None
 	}
 
 	//	This is called when we've seen "<factor>(" within the context of a statement (i.e. on the left
 	//	side of an assignment operator)
 	fn function_call_statement(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: function_call_statement \"{}\" context={:?}", self.token.token_value, self.parser_context)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: function_call_statement \"{}\" context={:?}", self.token.token_value, self.parser_context)}
 
 		self.parser_context.push(ParserContext::FunctionCallStatement);
 
@@ -1008,18 +1008,18 @@ impl <'a> Parser<'a>{
 	}
 
 	// fn function_call_term(&mut self) -> Option<ParserState>{
-	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: function_call_term \"{}\" context={:?}", self.token.token_value, self.parser_context);}
+	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: function_call_term \"{}\" context={:?}", self.token.token_value, self.parser_context);}
 	// 	None
 	// }
 
 	fn expression_term(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: expression_term \"{}\" context={:?}", self.token.token_value, self.parser_context)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: expression_term \"{}\" context={:?}", self.token.token_value, self.parser_context)}
 		self.infix_expression.push(self.token.clone());
 		None
 	}
 
 	fn binary_op(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: binary_op \"{}\" context={:?}", self.token.token_value, self.parser_context)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: binary_op \"{}\" context={:?}", self.token.token_value, self.parser_context)}
 		self.infix_expression.push(self.token.clone());
 		None
 	}
@@ -1034,7 +1034,7 @@ impl <'a> Parser<'a>{
 	//	we don't add the function call to the infix expression here, rather we do it
 	//	in the "function_call_argument" action
 	fn expression_factor(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: expression_factor \"{}\" context={:?}", self.token.token_value, self.parser_context)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: expression_factor \"{}\" context={:?}", self.token.token_value, self.parser_context)}
 
 		//  if this is an ID followed by a "(" then go to a special "argument" state
 		//	otherwise go to wherever the transition table sends us.  If it's and ID followed by '['
@@ -1072,7 +1072,7 @@ impl <'a> Parser<'a>{
 	//	is a function and this is a function call.  And, we have not added the
 	//	the function call to the infix expression yet. We do that here.
 	fn function_call_argument (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: function_call_argument \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: function_call_argument \"{}\"", self.token.token_value)}
 
 		//	Increment the expression wide paren counter
 		self.paren_counter += 1;
@@ -1157,7 +1157,7 @@ impl <'a> Parser<'a>{
 	//  For argument separators, We increment the general comma counter.  For
 	//  list separator we just convert (we don't care how many there are)
 	fn expression_list_item (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: expression_list_item \"{}\" context={:?}", self.token.token_value, self.parser_context)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: expression_list_item \"{}\" context={:?}", self.token.token_value, self.parser_context)}
 	
 		let mut token = self.token.clone();
 
@@ -1190,16 +1190,16 @@ impl <'a> Parser<'a>{
 
 		self.infix_expression.push(token.clone());	
 
-		//println!("================== parser.expression_list_item: {} list={}",token, token_list_text(&self.infix_expression));
+		//eprintln!("================== parser.expression_list_item: {} list={}",token, token_list_text(&self.infix_expression));
 
 		None
 	}
 
 	fn verb (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: verb \"{}\" context:{:?} braces={}", self.token.token_value, self.parser_context, self.brace_counter);}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: verb \"{}\" context:{:?} braces={}", self.token.token_value, self.parser_context, self.brace_counter);}
 		self.infix_expression.clear();
 		match self.token.token_type{
-			TokenType::PRINT | TokenType::RETURN => {
+			TokenType::PRINT | TokenType::EPRINT | TokenType::PRINTLN | TokenType::EPRINTLN | TokenType::RETURN => {
 				self.parser_context.push(ParserContext::Simple);
 				self.simple = self.token.clone();
 			},
@@ -1219,14 +1219,14 @@ impl <'a> Parser<'a>{
 			}else{
 				return Some(ParserState::Error(format!("Syntax Error:  from Parser.verb: 'WHEN' may only appear as an arm to EVALUATE")));
 			},
-  			_ => println!("****** from verb:  unknown token {}", self.token.token_type),
+  			_ => eprintln!("****** from verb:  unknown token {}", self.token.token_type),
 		}
 
 		None
 	}
 
 	fn keyword_otherwise (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: keyword_otherwise \"{}\" braces={}", self.token.token_value, self.brace_counter)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: keyword_otherwise \"{}\" braces={}", self.token.token_value, self.brace_counter)}
 
 		if let ParserContext::Eval = self.parser_context.last().unwrap(){
 			self.parser_context.push(ParserContext::When);
@@ -1290,7 +1290,7 @@ impl <'a> Parser<'a>{
 	//	at #6, we do the same thing as #4.
 	
 	fn keyword_else (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: keyword_else \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: keyword_else \"{}\"", self.token.token_value)}
 
 		// there should be something on the if_model_context stack
 		if self.if_model_context.is_empty(){
@@ -1310,7 +1310,7 @@ impl <'a> Parser<'a>{
 	}
 	
 	fn keyword_loop (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: keyword_loop \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: keyword_loop \"{}\"", self.token.token_value)}
 		self.model.add_loop_statement();
 
 		// if self.look_ahead_test_token(TokenType::LBRACE){
@@ -1327,7 +1327,7 @@ impl <'a> Parser<'a>{
 	//	starget is indexed (e.g. a[1] = 10).  Set the context to IndexedTarget
 	//	and change the token_type of the target to INDEXED_ID.
 	fn indexed_target(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: indexed_target \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: indexed_target \"{}\"", self.token.token_value)}
 	
 		self.parser_context.push(ParserContext::IndexedTarget);
 
@@ -1354,7 +1354,7 @@ impl <'a> Parser<'a>{
 	//
 	//		When we save the token
 	fn index_expression (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: index_expression.  CurrentState={} \"{}\"", self.current_state, self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: index_expression.  CurrentState={} \"{}\"", self.current_state, self.token.token_value)}
 
 		if self.current_state == ParserState::Assignment{
 			//	if we  see a '[' after a <factor> the context is assignment
@@ -1374,18 +1374,27 @@ impl <'a> Parser<'a>{
 	}
 
 	//	We know definately that this is [1,2,3] so all we have to do here is set the context to ArrayLiteral
+	//	however, we want to check for [] so that the  CPL program can say: create an empty array
 	fn array_literal (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: array_literal \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: array_literal \"{}\"", self.token.token_value)}
+
+		if self.look_ahead_test_token(TokenType::RBRACKET){
+			//	If we've seen x=[] then we do this hack
+			self.next_token();
+			let mut new_array_token = self.token.clone();
+			new_array_token.token_type = TokenType::NEW_COLLECTION;
+			new_array_token.token_category = TokenCategory::LBracket;
+			self.infix_expression.push(new_array_token);
+			return Some(ParserState::ExpressionTerm);
+		}
 
 		self.parser_context.push(ParserContext::ArrayLiteral);
-
 		self.infix_expression.push(self.token.clone());
-
 		None
 	}
 
 	fn dict_literal_begin (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: dict_literal_begin \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: dict_literal_begin \"{}\"", self.token.token_value)}
 		self.parser_context.push(ParserContext::DictLiteral);		
 		let mut token = self.token.clone();
 		token.token_type = TokenType::LDICT;
@@ -1394,7 +1403,7 @@ impl <'a> Parser<'a>{
 		None
 	}
 	fn dict_literal_kv_begin (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: dict_literal_kv_begin \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: dict_literal_kv_begin \"{}\"", self.token.token_value)}
 		let mut token = self.token.clone();
 		token.token_type = TokenType::LDICT_KV;
 		token.token_category = TokenCategory::LDict_Kv;
@@ -1402,7 +1411,7 @@ impl <'a> Parser<'a>{
 		None
 	}
 	fn dict_literal_end (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: dict_literal_end \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: dict_literal_end \"{}\"", self.token.token_value)}
 		self.parser_context.pop();
 		let mut token = self.token.clone();
 		token.token_type = TokenType::RDICT;
@@ -1412,15 +1421,15 @@ impl <'a> Parser<'a>{
 	}
 
 	// fn dict_literal_kv (&mut self) -> Option<ParserState>{
-	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: dict_literal_kv \"{}\"", self.token.token_value)}
+	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: dict_literal_kv \"{}\"", self.token.token_value)}
 	// 	self.infix_expression.push(self.token.clone());
 	// 	None
 	// }
 
 	fn dict_literal_kv_end (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: dict_literal_kv_end \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: dict_literal_kv_end \"{}\"", self.token.token_value)}
 
-		//println!(".......dict_literal_kv_end {}",self._parser_context_text());
+		//eprintln!(".......dict_literal_kv_end {}",self._parser_context_text());
 
 		let mut token = self.token.clone();
 		token.token_type = TokenType::RDICT_KV;
@@ -1431,7 +1440,7 @@ impl <'a> Parser<'a>{
 
 	//	This is called when we see an LParen token
 	fn lparen(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: lparen \"{}\" context={:?}", self.token.token_value, self.parser_context)}		
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: lparen \"{}\" context={:?}", self.token.token_value, self.parser_context)}		
 
 		//	 increment the expression wide paren counter
 		self.paren_counter += 1;
@@ -1449,7 +1458,7 @@ impl <'a> Parser<'a>{
 	//	if the parser context is FunctionCallStatement and the paren_counter goes to
 	//	zero, then we know this is the end of the arguments to a function call statement
 	fn rparen(&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: rparen \"{}\" context={:?}", self.token.token_value, self.parser_context)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: rparen \"{}\" context={:?}", self.token.token_value, self.parser_context)}
 
 		//	first, decrement the global paren counter
 		self.paren_counter -= 1;
@@ -1509,7 +1518,7 @@ impl <'a> Parser<'a>{
 	//
 	//	Reset the context to "Nothing"
 	fn rbracket (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: rbracket \"{}\" context={:?}", self.token.token_value, self.parser_context)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: rbracket \"{}\" context={:?}", self.token.token_value, self.parser_context)}
 
 		//	Build a RINDEX
 		let mut rindex = self.token.clone();
@@ -1543,7 +1552,7 @@ impl <'a> Parser<'a>{
 				Some(ParserState::Assignment)
 			}
 			_ => {
-				println!("From rbracket: Unexpected ParserContext value: {}", self.parser_context.last().unwrap());
+				eprintln!("From rbracket: Unexpected ParserContext value: {}", self.parser_context.last().unwrap());
 				//  We might want to call this ane error
 				None
 			},
@@ -1551,7 +1560,7 @@ impl <'a> Parser<'a>{
 	}
 
 	fn lbrace (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: lbrace \"{}\" context={:?} braces={}", self.token.token_value, self.parser_context, self.brace_counter)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: lbrace \"{}\" context={:?} braces={}", self.token.token_value, self.parser_context, self.brace_counter)}
 
 		self.brace_counter += 1;
 
@@ -1596,7 +1605,7 @@ impl <'a> Parser<'a>{
 	
 
 	fn rbrace (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: rbrace \"{}\" context={:?} braces={}", self.token.token_value, self.parser_context, self.brace_counter)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: rbrace \"{}\" context={:?} braces={}", self.token.token_value, self.parser_context, self.brace_counter)}
 
 		match self.parser_context.last().unwrap(){
 			ParserContext::Eval => {
@@ -1671,7 +1680,7 @@ impl <'a> Parser<'a>{
 	}
 
 	fn foreach_target (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: foreach_target \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: foreach_target \"{}\"", self.token.token_value)}
 		if self.token.token_type != TokenType::ID{
 			return Some(ParserState::Error(format!("Syntax error from foreach_target, line {}: Target of Foreach must be an ID", line!())));
 		}
@@ -1684,7 +1693,7 @@ impl <'a> Parser<'a>{
 	//
 	//	TODO:add support for literal arrays and dictionaries.
 	fn foreach_source (&mut self) -> Option<ParserState>{
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Action: foreach_source \"{}\"", self.token.token_value)}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: foreach_source \"{}\"", self.token.token_value)}
 
 		//	we use the token type following the target to determine what kind
 		//	of source will be used:  ID == scalar, LBRACKET = array, LBRACE = dictionary
@@ -1710,7 +1719,7 @@ impl <'a> Parser<'a>{
 	***********************************************************************************/
 	
 	fn backpatch_expression_function_argument_count(&mut self){
-		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Sub-Action: backpatch_expression_function_argument_count")}
+		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Sub-Action: backpatch_expression_function_argument_count")}
 
 		//	So the way this works is we go to the "locations vector" and get the
 		//	TOS.  this will be the location in the infix expression of the most recently
@@ -1725,7 +1734,7 @@ impl <'a> Parser<'a>{
 	}
 
 	// fn backpatch_statement_function_argument_count(&mut self){
-	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {println!("    Sub-Action: backpatch_statement_function_argument_count")}
+	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Sub-Action: backpatch_statement_function_argument_count")}
 	// 	//  this is just like backpatching a function call expression item except
 	// 	//	we know where the function call token is.
 	// 	let count = self.comma_counters.pop().unwrap() + 1;
@@ -1747,7 +1756,7 @@ impl <'a> Parser<'a>{
 		}
 
 		if self.cli.is_debug_bit(TRACE_PARSER_NEXT_TOKEN) {
-			println!("parser/{}: <{}> \"{}\" (<{}>)"
+			eprintln!("parser/{}: <{}> \"{}\" (<{}>)"
 				, "next_token"
 				, rtn.token_type
 				, rtn.token_value

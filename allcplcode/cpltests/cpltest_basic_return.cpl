@@ -1,6 +1,6 @@
 entry foo(){
 	x = bar(10,20);
-	print x;
+	println x;
 }
 
 fn bar(a,b){

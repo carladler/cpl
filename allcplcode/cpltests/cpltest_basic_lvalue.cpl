@@ -4,18 +4,18 @@ entry foo(){
 
 	array[0] = "bleeping fart";
 	foreach a array{
-		print a;
+		println a;
 	}
 
 	k="key1";
-	print dictionary[k];
+	println dictionary[k];
 	dictionary[k] = "new one, ahah!";
-	print dictionary[k];
+	println dictionary[k];
 
 	keys = Keys(&dictionary);
 	Sort(&keys);
 	foreach k keys{
-		print k."=".dictionary[k];
+		println k."=".dictionary[k];
 	}
 
 }

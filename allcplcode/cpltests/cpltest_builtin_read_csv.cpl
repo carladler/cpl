@@ -19,9 +19,9 @@ entry foobar{
 	inst = Freadln(in_file);
 	while !Feof(in_file){
 		if Type(inst:Cost) == "CplNumber"{
-			print inst:Date." \t".inst:Generic."\t".(inst:Cost);			
+			println inst:Date." \t".inst:Generic."\t".(inst:Cost);			
 		}else{
-			print inst;
+			println inst;
 		}
 		inst = Freadln(in_file);
 	}

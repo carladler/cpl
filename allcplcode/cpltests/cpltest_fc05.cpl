@@ -1,24 +1,24 @@
 entry foo(){
 	array = ["zot",100, 200, "three"];
 	set_array(array,1,"bloot");
-	print "After call to set_array: ".array[1];
+	println "After call to set_array: ".array[1];
 	
 	dictionary = {{"key1","one"},{"key2","two"},{"key3","three"},{"key4","four"}};
 	set_dict(dictionary, "key2", "NEW KEY2");
-	print "After all to set_dict: ".dictionary["key2"];
+	println "After all to set_dict: ".dictionary["key2"];
 }
 
 fn dump_dict(a){
 	keys = Keys(a);
 	Sort(keys);
 	foreach key keys{
-		print key."=".a[key];
+		println key."=".a[key];
 	}
 }
 
 fn dump_array(a){
 	foreach x a{
-		print x;
+		println x;
 	}
 }
 

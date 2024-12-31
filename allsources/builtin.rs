@@ -31,12 +31,14 @@ pub struct BuiltinFunctions{
 	//	and return a value)
 	pub builtin_function_list : Vec<BuiltinFunctionDetail>,
 	pub opens : Vec<CplVar>,
+	pub compiled_regex_list : Vec<Regex>,
 }
 
 impl BuiltinFunctions {
 	pub fn new() -> BuiltinFunctions{
 		BuiltinFunctions{
 			opens : Vec::new(),
+			compiled_regex_list : Vec::new(),
 			builtin_function_list : vec!
 				[
 					BuiltinFunctionDetail::new(BuiltinFunctions::builtin_dump_operands, "Dump".to_string(), 
@@ -52,8 +54,12 @@ impl BuiltinFunctions {
 						["haystack".to_string(), "needle".to_string(), "replacement".to_string(), "start".to_string()].to_vec()),
 					BuiltinFunctionDetail::new(BuiltinFunctions::builtin_match, "Match".to_string(), 
 						["haystack".to_string(), "needle".to_string(), "start".to_string()].to_vec()),
+					BuiltinFunctionDetail::new(BuiltinFunctions::builtin_capture, "Capture".to_string(), 
+						["haystack".to_string(), "needle".to_string(), "start".to_string()].to_vec()),
 					BuiltinFunctionDetail::new(BuiltinFunctions::builtin_split, "Split".to_string(), 
 						["haystack".to_string(), "delimiter".to_string()].to_vec()),
+					BuiltinFunctionDetail::new(BuiltinFunctions::builtin_regex, "Regex".to_string(), 
+						["needle".to_string()].to_vec()),
 
 					BuiltinFunctionDetail::new(BuiltinFunctions::builtin_length, "Length".to_string(), 
 						["collection".to_string()].to_vec()),
@@ -80,7 +86,7 @@ impl BuiltinFunctions {
 					BuiltinFunctionDetail::new(BuiltinFunctions::builtin_fopen, "Fopen".to_string(), 
 						["file_name".to_string(), "open_mode".to_string()].to_vec()),
 					BuiltinFunctionDetail::new(BuiltinFunctions::builtin_fread, "Fread".to_string(), 
-						["file_handle".to_string()].to_vec()),
+						["file_handle".to_string(), "lines".to_string()].to_vec()),
 					BuiltinFunctionDetail::new(BuiltinFunctions::builtin_freadln, "Freadln".to_string(), 
 						["file_handle".to_string()].to_vec()),
 					BuiltinFunctionDetail::new(BuiltinFunctions::builtin_fwrite, "Fwrite".to_string(), 
@@ -230,15 +236,18 @@ impl BuiltinFunctions {
 		return CplVar::new(CplDataType::CplArray(rtn_array));		
 	}	
 
-
-	pub fn builtin_match(&mut self, arguments : &Vec<CplVar>, operand_stack : &mut OperandStack) -> CplVar{
+	fn match_or_capture_help(&mut self, match_or_cap : char, arguments : &Vec<CplVar>, operand_stack : &mut OperandStack) -> CplVar{
 		if arguments.len() != 3 {
 			abend!(format!("from Builtin Function 'Match' - Expecing 3 arguments, found {}", arguments.len()));
 		}
 
 		let argslen = arguments.len();
 		let haystack = operand_stack.dereference(&arguments[argslen-1]).as_string();
-		let needle = operand_stack.dereference(&arguments[argslen-2]).as_string();
+		
+		//	If needle is a CplNumber then it is a reference to an existing pre-compiled
+		//	regex.
+		let needle = operand_stack.dereference(&arguments[argslen-2]);
+
 		let start = operand_stack.dereference(&arguments[argslen-3]).as_number() as usize;
 
 		if start >= haystack.len() {
@@ -246,15 +255,68 @@ impl BuiltinFunctions {
 		}
 
 		let haystack_suffix: String = haystack.chars().skip(start as usize).collect();
-		let re = Regex::new(&needle).unwrap();	
-		let matches: Vec<Match> = re.find_iter(&haystack_suffix).map(|m| m).collect();
-
-		let mut rtn_array = CplArray::new();
-		for m in &matches{
-			let item = format!("{}:{}:{}",m.start(), m.end(), m.as_str());
-			rtn_array.push(&CplVar::new(CplDataType::CplString(CplString::new(item))));
+		
+		let re : Regex;
+		if let CplDataType::CplString(regex) = needle.var{
+			re = Regex::new(&regex.cpl_string).unwrap();
+		}else if let CplDataType::CplNumber(n) = needle.var{
+			re = self.compiled_regex_list[n.cpl_number as usize].clone();
+		}else{
+			if match_or_cap == 'm'{
+				abend!(format!("from Builtin Function 'Match' - needle must be either regex string or the number returned from Regex)"));
+			}else{
+				abend!(format!("from Builtin Function 'Capture' - needle must be either regex string or the number returned from Regex)"));
+			}
 		}
-		return CplVar::new(CplDataType::CplArray(rtn_array));
+		
+		let mut rtn_array = CplArray::new();
+
+		if match_or_cap == 'm'{
+			let matches: Vec<Match> = re.find_iter(&haystack_suffix).map(|m| m).collect();
+
+			for m in &matches{
+				let item = format!("{}:{}:{}",m.start(), m.end(), m.as_str());
+				rtn_array.push(&CplVar::new(CplDataType::CplString(CplString::new(item))));
+			}
+			return CplVar::new(CplDataType::CplArray(rtn_array));	
+		}else{
+			match re.captures(&haystack_suffix){
+				Some(cap) => {
+					let mut i=0;
+					while i<cap.len(){
+						rtn_array.push(&CplVar::new(CplDataType::CplString(CplString::new(cap[i].to_string()))));
+						i+=1;
+					}
+					return CplVar::new(CplDataType::CplArray(rtn_array));
+				}
+				None => {
+					return CplVar::new(CplDataType::CplArray(rtn_array));
+				}
+			}
+		}
+		
+	}
+
+	pub fn builtin_capture (&mut self, arguments : &Vec<CplVar>, operand_stack : &mut OperandStack) -> CplVar{
+		return self.match_or_capture_help('c', arguments, operand_stack);
+	}
+
+
+	pub fn builtin_match(&mut self, arguments : &Vec<CplVar>, operand_stack : &mut OperandStack) -> CplVar{
+		return self.match_or_capture_help('m', arguments, operand_stack);
+	}
+
+	//	Compile a regex and put in the compiled_regex_list
+	pub fn builtin_regex(&mut self, arguments : &Vec<CplVar>, operand_stack : &mut OperandStack) -> CplVar{
+		if arguments.len() != 1 {
+			abend!(format!("from Builtin Function 'Regex' - Expecing 1 argument, found {}", arguments.len()));
+		}
+
+		let needle = operand_stack.dereference(&arguments[0]).as_string();
+		let re = Regex::new(&needle).unwrap();
+		self.compiled_regex_list.push(re);
+		let rtn = self.compiled_regex_list.len() - 1;
+		return CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Int, rtn as f64)));
 	}
 
 	pub fn builtin_locate(&mut self, arguments : &Vec<CplVar>, operand_stack : &mut OperandStack) -> CplVar{
@@ -268,9 +330,9 @@ impl BuiltinFunctions {
 		let start = operand_stack.dereference(&arguments[argslen-3]).as_number() as usize;
 
 
-		let start_limit = haystack.len() - lookfor.len();
-		if start >= start_limit{
-			abend!(format!("from Builtin Function 'Locate' - start is > haystack length - lookfor length"));
+		let start_limit = haystack.len() as i32 - lookfor.len() as i32;
+		if start as i32 >= start_limit{
+			return CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Int,-2.0)));
 		}
 
 		match haystack.get(start..).unwrap().find(&lookfor){
@@ -488,20 +550,33 @@ impl BuiltinFunctions {
 		}
 	}
 
-	pub fn builtin_fread (&mut self, arguments : &Vec<CplVar>, _operand_stack : &mut OperandStack) -> CplVar{
-		if (arguments.len()) != 1{
-			abend!(format!("from Builtin Function 'Fread' - Expecing 1 arguments, found {}", arguments.len()));
+	pub fn builtin_fread (&mut self, arguments : &Vec<CplVar>, operand_stack : &mut OperandStack) -> CplVar{
+		if (arguments.len()) != 2{
+			abend!(format!("from Builtin Function 'Fread' - Expecing 2 arguments, found {}", arguments.len()));
 		}
 		let argslen = arguments.len();
-		if let CplDataType::CplNumber(cpl_num) = &arguments[argslen-1].var{
-			let file_num = cpl_num.cpl_number;
-			let mut line = String::new();
-			if let CplDataType::CplFileReader(ref mut r) = self.opens[file_num as usize].var{
-				r.read(&mut line);
-				return CplVar::new(CplDataType::CplString(CplString::new(line.trim().to_string())));	
-			};
+
+		if let CplDataType::CplNumber(file_num) = &arguments[argslen-1].var{
+			if let CplDataType::CplVarRef(array_ref) = &arguments[argslen-2].var{
+				if let CplDataType::CplFileReader(ref mut r) = self.opens[file_num.cpl_number as usize].var{
+					if let CplDataType::CplArray(ref mut array) = 
+							&mut operand_stack.operand_frames.get_mut(array_ref.frame_num).unwrap()
+							.operand_blocks.get_mut(array_ref.block_num).unwrap()
+							.operand_block.get_mut(array_ref.address).unwrap().var{
+						r.read(array);
+						CplVar::new(CplDataType::CplBool(CplBool::new(true)))	
+					}else{						
+						panic!("from 'Fread': Huston, we have a problem.  The array ref did not point at an Array");
+					}
+				}else{
+					panic!("from 'Fread': Huston, we have a problem.  The file number did not point at a FileReader: {}", &arguments[argslen-1]);
+				}
+			}else{
+				panic!("from 'Fread':  2nd parameter must be a reference to an array. Got: {}", &arguments[argslen-2]);
+			}
+		}else{
+			abend!(format!("from 'Fread' - first argument must be a file number.  Got: {}", &arguments[argslen-1]));
 		}
-		CplVar::new(CplDataType::CplBool(CplBool::new(false)))
 	}
 	
 	pub fn builtin_freadln (&mut self, arguments : &Vec<CplVar>, _operand_stack : &mut OperandStack) -> CplVar{

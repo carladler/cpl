@@ -286,7 +286,7 @@ impl OperandStack{
 
 	//	fetch a variable at the fully qualified address
 	pub fn fetch_var(&self, frame_num : usize, block_num : usize, address : usize) -> CplVar{
-		//println!("{}fetch_var {},{},{}",DEBUG_INDENT, frame_num, block_num, address);
+		//eprintln!("{}fetch_var {},{},{}",DEBUG_INDENT, frame_num, block_num, address);
 		let frame = &self.operand_frames[frame_num];
 		let block = &frame.operand_blocks[block_num];
 		block.operand_block[address].clone()
@@ -363,7 +363,7 @@ impl OperandStack{
 		}
 
 		//	Now loop through the indices until we find a scalar or we run out
-		//	of indices.  If the latter and warnings have been enabled, print a warning
+		//	of indices.  If the latter and warnings have been enabled, println a warning
 		//	that we are returning an array which we wouldn't normally expect to do.
 		while !indices.is_empty(){
 			let index = indices.pop().unwrap();
@@ -381,7 +381,7 @@ impl OperandStack{
 
 			if indices.is_empty(){
 				if self.cli_warnings{
-					println!("Warning:  The index {} for the array {} is pointing at another array",index,array_ref);
+					eprintln!("Warning:  The index {} for the array {} is pointing at another array",index,array_ref);
 				}
 				return element.clone();
 			}
@@ -468,7 +468,7 @@ impl OperandStack{
 		}
 
 		//	Now loop through the indices until we find a scalar or we run out
-		//	of indices.  If the latter and warnings have been enabled, print a warning
+		//	of indices.  If the latter and warnings have been enabled, println a warning
 		//	that we are returning an array which we wouldn't normally expect to do.
 		while !indices.is_empty(){
 			let index = &indices.pop().unwrap();
@@ -491,7 +491,7 @@ impl OperandStack{
 
 			if indices.is_empty(){
 				if self.cli_warnings{
-					println!("Warning:  The index {} for the dictionary {} is pointing at another dictionary",index,dict_ref);
+					eprintln!("Warning:  The index {} for the dictionary {} is pointing at another dictionary",index,dict_ref);
 				}
 				return element.clone();
 			}
@@ -778,18 +778,18 @@ impl OperandStack{
 	}
 
 	pub fn dump_operands_with_message(&self, msg : &str){
-		println!("OPERAND STACK DUMP : {}", msg);
+		eprintln!("OPERAND STACK DUMP : {}", msg);
 		self.dump_operands_without_title();
 	}
 
 	pub fn dump_operands(&self){
-		println!("--- OPERAND STACK DUMP --\n");
+		eprintln!("--- OPERAND STACK DUMP --\n");
 		self.dump_operands_without_title();
 	}
 
 	pub fn dump_operands_without_title(&self){
 		if self.operand_frames.len() == 0{
-			println!("No Frames");
+			eprintln!("No Frames");
 			return;
 		}
 		
@@ -797,21 +797,21 @@ impl OperandStack{
 		while frame_num < self.operand_frames.len(){
 			let block_count = self.operand_frames[frame_num].operand_blocks.len();
 			if block_count == 0{
-				println!("   No blocks in frame# {}",frame_num);
+				eprintln!("   No blocks in frame# {}",frame_num);
 			}else{
-				println!("Frame# {} Block Count={}", frame_num, block_count);
+				eprintln!("Frame# {} Block Count={}", frame_num, block_count);
 				let mut block_num = 0;
 				while block_num < block_count{
-					// println!("   Block# {}", block_num);
+					// eprintln!("   Block# {}", block_num);
 					let variable_count = self.operand_frames[frame_num].operand_blocks[block_num].operand_block.len();
 					if variable_count == 0{
-						println!("   No variables in block# {}", block_num);
+						eprintln!("   No variables in block# {}", block_num);
 					}else{
-						println!("   Block# {} Variable count={}", block_num, variable_count);
+						eprintln!("   Block# {} Variable count={}", block_num, variable_count);
 						let mut variable_num = 0;
 						while variable_num < variable_count{
 							let variable = &self.operand_frames[frame_num].operand_blocks[block_num].operand_block[variable_num];
-							println!("      {}: {}",variable_num, variable);
+							eprintln!("      {}: {}",variable_num, variable);
 							variable_num += 1;
 						}	
 					}
@@ -820,7 +820,7 @@ impl OperandStack{
 			}
 			frame_num += 1;
 		}
-		println!("");
+		eprintln!("");
 	}
 
 	fn get_data_loc_from_ref(&self, var_ref : &CplVar) -> (usize, usize, usize){
@@ -995,7 +995,7 @@ impl CplVar{
 			CplDataType::CplFileWriter(_) |
 			CplDataType::CplFileAppender(_) => {
 				if warn{
-					println!("Warning: unable compare {} with {}", self.var, v.var);
+					eprintln!("Warning: unable compare {} with {}", self.var, v.var);
 				}
 				return true;
 			},
@@ -1027,7 +1027,7 @@ impl CplVar{
 				CplDataType::CplBool(b1) => if let CplDataType::CplBool(ref b2) = self.var {return b1.cpl_bool == b2.cpl_bool}else{return false},
 				CplDataType::CplString(s1) => if let CplDataType::CplString(ref s2) = self.var {return s1.cpl_string == s2.cpl_string}else{return false},
 				_ => if warn {
-					println!("Warning from CplVar.is_equal:  I don't know what this is {}", v.var);
+					eprintln!("Warning from CplVar.is_equal:  I don't know what this is {}", v.var);
 				},
 			}
 		}
@@ -1047,7 +1047,7 @@ impl CplVar{
 				CplDataType::CplBool(b1) => if let CplDataType::CplBool(ref b2) = self.var {return b1.cpl_bool != b2.cpl_bool}else{return false},
 				CplDataType::CplString(s1) => if let CplDataType::CplString(ref s2) = self.var {return s1.cpl_string != s2.cpl_string}else{return false},
 				_ => if warn {
-					println!("Warning from CplVar.is_equal:  I don't know what this is {}", v.var);
+					eprintln!("Warning from CplVar.is_equal:  I don't know what this is {}", v.var);
 				},
 			}
 		}
@@ -1094,17 +1094,17 @@ impl CplVar{
 
 	pub fn print(&self){
 		match &self.var{
-			CplDataType::CplNumber(n) 				=> println!("{}",n.cpl_number),
-			CplDataType::CplString(s)				=> println!("{}",s.cpl_string),
-			CplDataType::CplBool(b)					=> println!("{}",b.cpl_bool),
-			CplDataType::CplVarRef(v)				=> println!("VarRef: {},{},{}", v.frame_num, v.block_num, v.address),
+			CplDataType::CplNumber(n) 				=> eprintln!("{}",n.cpl_number),
+			CplDataType::CplString(s)				=> eprintln!("{}",s.cpl_string),
+			CplDataType::CplBool(b)					=> eprintln!("{}",b.cpl_bool),
+			CplDataType::CplVarRef(v)				=> eprintln!("VarRef: {},{},{}", v.frame_num, v.block_num, v.address),
 			CplDataType::CplArray(a)				=> a.print(),
-			CplDataType::CplUninitialized(_) 		=> println!("Uninitialized"),
-			CplDataType::CplUndefined(_) 			=> println!("Undefined"),
-			CplDataType::CplDict(_) 				=> println!("Dictionary"),
-			CplDataType::CplFileReader(_) 			=> println!("File Reader"),
-			CplDataType::CplFileWriter(_) 			=> println!("File Writer"),
-			CplDataType::CplFileAppender(_) 		=> println!("File Appender"),
+			CplDataType::CplUninitialized(_) 		=> eprintln!("Uninitialized"),
+			CplDataType::CplUndefined(_) 			=> eprintln!("Undefined"),
+			CplDataType::CplDict(_) 				=> eprintln!("Dictionary"),
+			CplDataType::CplFileReader(_) 			=> eprintln!("File Reader"),
+			CplDataType::CplFileWriter(_) 			=> eprintln!("File Writer"),
+			CplDataType::CplFileAppender(_) 		=> eprintln!("File Appender"),
 			CplDataType::CplStruct(a)				=> a.print(),
 		}
 	}
@@ -1164,7 +1164,7 @@ impl CplVarRef{
 
 	pub fn apply_binary_operator_indexed(&mut self, _operand_stack : &OperandStack, _new_value : &CplVar, _index : &CplVar, _opcode : Opcode){
 
-		println!("================ CplVarRef:apply_binary_operator_indexed!!")
+		eprintln!("================ CplVarRef:apply_binary_operator_indexed!!")
 
 	}
 }
@@ -1251,7 +1251,7 @@ impl CplArray{
 
 	//	We'll treat append as kind of special case since it only works with strings
 	fn update_indexed_append(&mut self, index : usize, new_value : &CplVar){
-		println!("============== {}",self.cpl_array[index].var);
+		eprintln!("============== {}",self.cpl_array[index].var);
 		if let CplDataType::CplString(ref s) = self.cpl_array[index].var{
 			let mut updated_value = s.cpl_string.clone();
 			if let CplDataType::CplString(ref new_s) = new_value.var{
@@ -1371,12 +1371,16 @@ impl CplArray{
 		self.cpl_array.len()
 	}
 
+	pub fn clear(&mut self){
+		self.cpl_array.clear();
+	}
+
 	pub fn print(&self){
-		println!("Array len: {}", self.cpl_array.len());
+		eprintln!("Array len: {}", self.cpl_array.len());
 
 		let mut i = 0;
 		for var in &self.cpl_array{
-			println!("    {}:{}", i, var.var);
+			eprintln!("    {}:{}", i, var.var);
 			i += 1;
 		}
 	}
@@ -1456,7 +1460,7 @@ impl CplString{
 	}
 
 	pub fn update_operator(&mut self, _new_value : &CplVar, _op : Opcode){
-		println!("    CplString.update_operator CplString.update_operator");
+		eprintln!("    CplString.update_operator CplString.update_operator");
 	}
 
 	pub fn update(&mut self, num : &CplVar){
@@ -1540,7 +1544,7 @@ impl CplBool{
 	}
 
 	pub fn update_operator(&mut self, _new_value : &CplVar, _op : Opcode){
-		println!("    CplBool.update_operator CplBool.update_operator");
+		eprintln!("    CplBool.update_operator CplBool.update_operator");
 	}
 
 	pub fn apply_daminit(&mut self){
@@ -1732,16 +1736,36 @@ impl CplFileReader{
 
 	//	Read entire file from the file and return how many
 	//	characters were read (0 = eof)
-	pub fn read(&mut self, line : & mut String) -> usize{
-		let mut bytes : Vec<u8> = vec!(0;self.file_len);
-		self.count = self.file_len;
-		self.reader.get_ref().read_exact(&mut bytes).unwrap();
-		self.eof_flag = true;
-		let rtn = str::from_utf8(&bytes).unwrap().to_string();
-		//line.clear();
-		line.push_str(&rtn);
-		self.count
+	// pub fn read(&mut self, line : & mut String) -> usize{
+	// 	let mut bytes : Vec<u8> = vec!(0;self.file_len);
+	// 	self.count = self.file_len;
+	// 	self.reader.get_ref().read_exact(&mut bytes).unwrap();
+	// 	self.eof_flag = true;
+	// 	let rtn = str::from_utf8(&bytes).unwrap().to_string();
+	// 	//line.clear();
+	// 	line.push_str(&rtn);
+	// 	self.count
+	// }
+
+
+	//	Read an entire file of text lines into an array
+	//	The array reference is the parameter
+	pub fn read(&mut self, lines_ref: &mut CplArray){
+		lines_ref.clear();
+
+		loop{
+			//	get the next line of text and return if hit eof
+			let mut line = String::new();
+			self.count = self.reader.read_line(&mut line).unwrap();
+			if self.count == 0{
+				return;
+			}
+
+			//	add the line we just read to the array
+			lines_ref.push(&CplVar::new(CplDataType::CplString(CplString::new(line.trim().to_string()))));
+		}
 	}
+
 
 	pub fn read_csv(&mut self) -> CplArray{
 		let mut line = String::new();

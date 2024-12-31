@@ -13,62 +13,62 @@ struct s_bar{
 entry ENTRY(){
 	foo=new s_foo;
 	foo:member_a = "hello";
-	print foo:member_a;
-	print foo:member_b;
+	println foo:member_a;
+	println foo:member_b;
 
 	dummy = "this is a dummy";
-	print dummy;
+	println dummy;
 
 	bar=new s_bar;
 	a = foo:member_b;
 	b = bar:c;
-	print a;
-	print b;
+	println a;
+	println b;
 	a = bar:c+1000;
-	print a;
+	println a;
 	a = bar:c+bar:a;
-	print a;
+	println a;
 	c = bar:c + a;
-	print c;
+	println c;
 	d = bar:c * 1000;
-	print d;
-	print "bar:a=".bar:a;
-	print "bar:c=".bar:c;
+	println d;
+	println "bar:a=".bar:a;
+	println "bar:c=".bar:c;
 	bar:a += bar:c;
-	print "bar:a+=bar:c:".bar:a;
+	println "bar:a+=bar:c:".bar:a;
 	bar:a /= (bar:c + bar:a);
-	print bar:a;
+	println bar:a;
 	fun1(foo);
 	fun2(bar);
 }
 
 
 fn fun1(s:s_foo){
-	print "at fun1";
-	print s:member_a;
-	print "function fun";
+	println "at fun1";
+	println s:member_a;
+	println "function fun";
 	array=[1,2,3];
 	foreach a array{
-		print a;
+		println a;
 	}
 
 	if array[0] == 1{
-		print "tada!";
+		println "tada!";
 	}
 
 	array[1] = 500;
-	print array[0];
-	print array[1];
+	println array[0];
+	println array[1];
 	
 	foreach b array{
-		print b;
+		println b;
 	}
 }
 
 fn fun2(b:s_bar){
-	print "at fun2";
-	print "b:a=".b:a;
-	print "b:c=".b:c;
+	println "at fun2";
+	println "b:a=".b:a;
+	println "b:c=".b:c;
 	b:a += b:c;
-	print "b:a+=b:c:".b:a;
+	println "b:a+=b:c:".b:a;
 }

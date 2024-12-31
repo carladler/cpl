@@ -7,14 +7,6 @@ struct s_foo{
 entry ENTRY{
 	foo=new s_foo;
 	foo:member_a = [1,2,3];
-	foo:member_a[0] += 4;
-	//print foo:member_a[0];
-	//print "foo:member_a=".foo:member_a;
-	// foreach f foo{
-	// 	print f;
-	// }
+	b = foo:member_a;
+	println b[1];
 }
-
-// fn fun(a){
-// 	a[0] .= "blah lbah";
-// }

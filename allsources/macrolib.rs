@@ -4,7 +4,7 @@
 macro_rules! abend{
 	($x:expr) => {
 		{
-			println!("Cpl Abend {}",$x);
+			eprintln!("Cpl Abend {}",$x);
 			std::process::exit(1);
 		}
 	};

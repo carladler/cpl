@@ -9,7 +9,7 @@
 // }
 
 entry main(){
-	print "multi-level structs are not implemented yet and I don't know when or even if they will be";
+	println "multi-level structs are not implemented yet and I don't know when or even if they will be";
 	// local = new bar;
 	// zot = new foo;
 }

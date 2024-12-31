@@ -8,8 +8,8 @@ entry ENTRY(){
 	
 
 	item = Pop(a);
-	print Type(item)." popped ".item;
+	println Type(item)." popped ".item;
 
 	item = Pop(a);
-	print Type(item)." popped: ".item;
+	println Type(item)." popped: ".item;
 }

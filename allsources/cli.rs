@@ -26,53 +26,53 @@ pub const SET_BACKTRACE : u32 = 30;
 pub const INSERT_DIAG_COMMENTS : u32 = 31;
 
 fn usage_d_swiches(){
-	println!("\n         -d values:");
-	println!("            TRACE_TOKENIZER = {}",TRACE_TOKENIZER);
-	println!("            TRACE_PARSER_NEXT_TOKEN = {}",TRACE_PARSER_NEXT_TOKEN);
-	println!("            TRACE_PARSER_STATES = {}",TRACE_PARSER_STATES);
-	println!("            TRACE_PARSE_LOOP = {}",TRACE_PARSE_LOOP);
-	println!("            TRACE_MODEL_ADD = {}",TRACE_MODEL_ADD);
-	println!("            TRACE_INFIX_TO_POSTFIX = {}",TRACE_INFIX_TO_POSTFIX);
-	println!("            TRACE_INFIX_TO_POSTFIX_DRIVER= {}", TRACE_INFIX_TO_POSTFIX_DRIVER);
-	println!("            TRACE_CODE_GEN = {}",TRACE_CODE_GEN);
-	println!("            TRACE_CODE_GEN_ADD_INSTRUCTION = {}",TRACE_CODE_GEN_ADD_INSTRUCTION);
-	println!("            TRACE_EXEC = {}", TRACE_EXEC);
-	println!("            TRACE_EXEC_DISPATCHER= {}", TRACE_EXEC_DISPATCHER);
-	println!("            TRACE_STATEMENT_ADD = {}", TRACE_STATEMENT_ADD);
-	println!("");
-	println!("            DUMP_POSTFIX_EXPRESSION = {}",DUMP_POSTFIX_EXPRESSION);
-	println!("            DUMP_OPERATOR_STACK = {}", DUMP_OPERATOR_STACK);
-	println!("            DUMP_GEN_CODE = {}",DUMP_GEN_CODE);
-	println!("            DUMP_SYMBOL_TABLE = {}",DUMP_SYMBOL_TABLE);
-	println!("            DUMP_OPERANDS = {}",DUMP_OPERANDS);
-	println!("            DUMP_OPERANDS_DISPATCH = {}",DUMP_OPERANDS_DISPATCH);
-	println!("            DUMP_STRUCTS = {}",DUMP_STRUCTS);
-	println!("");
-	println!("            SET_BACKTRACE = {}",SET_BACKTRACE);
-	println!("            INSERT_DIAG_COMMENTS = {}",INSERT_DIAG_COMMENTS);
+	eprintln!("\n         -d values:");
+	eprintln!("            TRACE_TOKENIZER = {}",TRACE_TOKENIZER);
+	eprintln!("            TRACE_PARSER_NEXT_TOKEN = {}",TRACE_PARSER_NEXT_TOKEN);
+	eprintln!("            TRACE_PARSER_STATES = {}",TRACE_PARSER_STATES);
+	eprintln!("            TRACE_PARSE_LOOP = {}",TRACE_PARSE_LOOP);
+	eprintln!("            TRACE_MODEL_ADD = {}",TRACE_MODEL_ADD);
+	eprintln!("            TRACE_INFIX_TO_POSTFIX = {}",TRACE_INFIX_TO_POSTFIX);
+	eprintln!("            TRACE_INFIX_TO_POSTFIX_DRIVER= {}", TRACE_INFIX_TO_POSTFIX_DRIVER);
+	eprintln!("            TRACE_CODE_GEN = {}",TRACE_CODE_GEN);
+	eprintln!("            TRACE_CODE_GEN_ADD_INSTRUCTION = {}",TRACE_CODE_GEN_ADD_INSTRUCTION);
+	eprintln!("            TRACE_EXEC = {}", TRACE_EXEC);
+	eprintln!("            TRACE_EXEC_DISPATCHER= {}", TRACE_EXEC_DISPATCHER);
+	eprintln!("            TRACE_STATEMENT_ADD = {}", TRACE_STATEMENT_ADD);
+	eprintln!("");
+	eprintln!("            DUMP_POSTFIX_EXPRESSION = {}",DUMP_POSTFIX_EXPRESSION);
+	eprintln!("            DUMP_OPERATOR_STACK = {}", DUMP_OPERATOR_STACK);
+	eprintln!("            DUMP_GEN_CODE = {}",DUMP_GEN_CODE);
+	eprintln!("            DUMP_SYMBOL_TABLE = {}",DUMP_SYMBOL_TABLE);
+	eprintln!("            DUMP_OPERANDS = {}",DUMP_OPERANDS);
+	eprintln!("            DUMP_OPERANDS_DISPATCH = {}",DUMP_OPERANDS_DISPATCH);
+	eprintln!("            DUMP_STRUCTS = {}",DUMP_STRUCTS);
+	eprintln!("");
+	eprintln!("            SET_BACKTRACE = {}",SET_BACKTRACE);
+	eprintln!("            INSERT_DIAG_COMMENTS = {}",INSERT_DIAG_COMMENTS);
 }
 
 fn usage_all(){
-	println!("\nWELCOME TO CARL'S PROGRAMMING LANGAUGE (CPL)\n");
-	println!("\ncpl <source> <switches> [<arguments>] \n");
-	println!("    <source>      ::= file containing source code");
-	println!("    <switches>    ::= [-<sw>[<sw_parameter>]]\n");
-	println!("         <sw>     := 'd<debug bit>[+<debug bit>]' (debug)");
-	println!("                   | 'w' (Warn runtime errors)");
-	println!("                   | 'h' (help/usage))");
-	println!("                   | 'o'<file> (output file)");
-	println!("   <arguments>    ::= a space separated list of arguments passed to ENTRY function");
+	eprintln!("\nWELCOME TO CARL'S PROGRAMMING LANGAUGE (CPL)\n");
+	eprintln!("\ncpl <source> <switches> [<arguments>] \n");
+	eprintln!("    <source>      ::= file containing source code");
+	eprintln!("    <switches>    ::= [-<sw>[<sw_parameter>]]\n");
+	eprintln!("         <sw>     := 'd<debug bit>[+<debug bit>]' (debug)");
+	eprintln!("                   | 'w' (Warn runtime errors)");
+	eprintln!("                   | 'h' (help/usage))");
+	eprintln!("                   | 'o'<file> (output file)");
+	eprintln!("   <arguments>    ::= a space separated list of arguments passed to ENTRY function");
 	
 	usage_d_swiches();
 
-	println!("\n");
-	println!("        -d values can be 'added' together to specify multiple switches; e.g. -d1+4 will set bits 1 and 4");
-	println!("        -w switch tells the executor to print a warning message instead of abend if possible");
-	println!("\n");
-	println!("        NOTE: the source file may appear anywhere in the argument list but must be the first non-switch");
-	println!("        <switches can appear anywhere on the command line");
+	eprintln!("\n");
+	eprintln!("        -d values can be 'added' together to specify multiple switches; e.g. -d1+4 will set bits 1 and 4");
+	eprintln!("        -w switch tells the executor to println a warning message instead of abend if possible");
+	eprintln!("\n");
+	eprintln!("        NOTE: the source file may appear anywhere in the argument list but must be the first non-switch");
+	eprintln!("        <switches can appear anywhere on the command line");
 
-	println!("\n    NOTE: no space between switch name and its parameter (e.g. use -ojunk instead of -o junk)");
+	eprintln!("\n    NOTE: no space between switch name and its parameter (e.g. use -ojunk instead of -o junk)");
 }
 
 pub fn is_debug_bit(debug_bits : u32, bit_no : u32) -> bool{
@@ -103,14 +103,14 @@ impl<'a> CLI<'a>{
 		};
 
 		if cli.cl.len() < 2 {
-			println!("Source file name expected as first argument");
+			eprintln!("Source file name expected as first argument");
 			usage_all();
 			return None;
 		}
 
 		//  now look for switches
 		while cli.cl_index < cli.cl.len(){
-			//println!("ix: {} arg: {}", cli.cl_index, cli.cl[cli.cl_index]);
+			//eprintln!("ix: {} arg: {}", cli.cl_index, cli.cl[cli.cl_index]);
 			if cli.cl[cli.cl_index].as_bytes()[0] as char == '-'{
 				if cli.cl[cli.cl_index].len() == 1{
 					usage_d_swiches();return None;
@@ -122,7 +122,7 @@ impl<'a> CLI<'a>{
 					'w' | 'W' => cli.runtime_warnings += 1,
 					'-' => {},
 					_   =>	{
-								println!("Switch {} ignored",cl[cli.cl_index].as_bytes()[1] as char);
+								eprintln!("Switch {} ignored",cl[cli.cl_index].as_bytes()[1] as char);
 							},
 				};
 			}else{

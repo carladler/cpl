@@ -172,7 +172,11 @@ pub enum TokenType{
 	IN,
 	TRUE,
 	FALSE,
-	PRINT,			// true if println, false if just print
+
+	PRINT,			//  println to stdout
+	EPRINT,			//  println to stderr
+	PRINTLN,		//  println to stdout
+	EPRINTLN,		//  println to stderr
 
 	EQ,
 	GE,
@@ -243,6 +247,7 @@ pub enum TokenType{
 
 	INDEX_EXPRESSION,
 	ARGUMENT_EXPRESSION,
+	NEW_COLLECTION,			// when x=[] is encountered this is the expression token
 }
 
 impl fmt::Display for TokenType {
@@ -283,6 +288,9 @@ impl fmt::Display for TokenType {
 			TokenType::ASSIGNMENT => write!(f, "ASSIGNMENT"),
 
 			TokenType::PRINT => write!(f, "PRINT"),
+			TokenType::EPRINT => write!(f, "EPRINT"),
+			TokenType::PRINTLN => write!(f, "PRINT"),
+			TokenType::EPRINTLN => write!(f, "EPRINT"),
 
 			TokenType::ENTRY  => write!(f, "ENTRY"),
 			TokenType::INCLUDE  => write!(f, "INCLUDE"),
@@ -360,6 +368,7 @@ impl fmt::Display for TokenType {
 
 			TokenType::INDEX_EXPRESSION => write!(f, "INDEX_EXPRESSION"),
 			TokenType::ARGUMENT_EXPRESSION => write!(f, "ARGUMENT_EXPRESSION"),
+			TokenType::NEW_COLLECTION => write!(f, "NEW_COLLECTION"),
 		}
     }
 }
@@ -521,6 +530,10 @@ impl<'a> Tokenizer<'_>{
 					(TokenType::WHEN,TokenCategory::Verb),
 
 					(TokenType::PRINT, TokenCategory::Verb),
+					(TokenType::EPRINT, TokenCategory::Verb),
+					(TokenType::PRINTLN, TokenCategory::Verb),
+					(TokenType::EPRINTLN, TokenCategory::Verb),
+
 					(TokenType::RETURN,TokenCategory::Verb),
 					(TokenType::INCLUDE,TokenCategory::Verb),
 
@@ -627,8 +640,9 @@ impl<'a> Tokenizer<'_>{
 					(TokenType::LINE_COMMENT,TokenCategory::Comment),
 					(TokenType::BLOCK_COMMENT,TokenCategory::Comment),
 			
-					(TokenType::INDEX_EXPRESSION,TokenCategory::IndexExpression),	
+					(TokenType::INDEX_EXPRESSION,TokenCategory::IndexExpression),
 					(TokenType::ARGUMENT_EXPRESSION,TokenCategory::ArgumentExpression),	
+					(TokenType::NEW_COLLECTION,TokenCategory::Unknown),	
 				]
 			),
 		};
@@ -694,6 +708,9 @@ impl<'a> Tokenizer<'_>{
 			"true"			=> TokenType::BOOL,
 			"false"			=> TokenType::BOOL,
 			"print"			=> TokenType::PRINT,
+			"eprint"		=> TokenType::EPRINT,
+			"println"		=> TokenType::PRINTLN,
+			"eprintln"		=> TokenType::EPRINTLN,
 
 			//	Nope, it's an ID.  It might be a qualified ID (e.g. foo:bar)
 			_ 				=> 	if self.is_qualified_id(){
@@ -1180,6 +1197,7 @@ impl<'a> Tokenizer<'_>{
 
 	//	We are collecting a string defined by '"" characters.
 	fn state_DOUBLE_Q(&mut self, c : char){
+		//eprintln!("======== '{}'",c);
         match c{
 			'"'			=> 	{
 								self.tokenizer_state = TokenizerStates::EOT;

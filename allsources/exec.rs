@@ -160,7 +160,7 @@ impl<'a> Executor<'a>{
 	}
 
 	fn dump_operands(&self, title : &str){
-		println!("{}", title);
+		eprintln!("{}", title);
 		self.operand_stack.dump_operands();
 	}
 
@@ -188,7 +188,7 @@ impl<'a> Executor<'a>{
 		while self.instruction_counter < self.code_frames[self.code_frame_num].code_block_list[self.code_block_num].code_block.len() {
 			//	get the current instruction
 			let instruction = self.code_frames[self.code_frame_num].code_block_list[self.code_block_num].code_block.get(self.instruction_counter).unwrap();
-			if self.cli.is_debug_bit(TRACE_EXEC_DISPATCHER){println!("exec(dispatcher): {}:{} {}",self.code_block_num, self.instruction_counter, instruction);}
+			if self.cli.is_debug_bit(TRACE_EXEC_DISPATCHER){eprintln!("exec(dispatcher): {}:{} {}",self.code_block_num, self.instruction_counter, instruction);}
 			
 			match instruction.opcode{
 
@@ -196,7 +196,12 @@ impl<'a> Executor<'a>{
 				Opcode::BlockEnd				=> self.exec_block_end(instruction),
 				Opcode::Push 					=> self.exec_push(instruction),
 				Opcode::PushNewCollection		=> self.exec_push_new_collection(instruction),
-				Opcode::Print 					=> self.exec_print(instruction.clone()),
+
+				Opcode::Print 					=> self.exec_print(instruction.clone(),'s','n'),
+				Opcode::Eprint					=> self.exec_print(instruction.clone(),'e','n'),
+				Opcode::Println					=> self.exec_print(instruction.clone(),'s','l'),
+				Opcode::Eprintln				=> self.exec_print(instruction.clone(),'e','l'),
+
 				Opcode::Pop 					=> self.exec_pop(instruction),
 
 				Opcode::Add 					=> self.exec_binary_operator(instruction),
@@ -259,7 +264,7 @@ impl<'a> Executor<'a>{
 			}
 
 			if self.cli.is_debug_bit(DUMP_OPERANDS_DISPATCH){
-				println! ("instruction: {}", instruction);
+				eprintln! ("instruction: {}", instruction);
 				self.dump_operands("After instruction Execution");
 			}
 
@@ -287,7 +292,7 @@ impl<'a> Executor<'a>{
 		}
 
 
-		if self.cli.is_debug_bit(TRACE_EXEC_DISPATCHER){println!("exec(dispatcher -- exit): {}:{}",self.code_block_num, self.instruction_counter);}
+		if self.cli.is_debug_bit(TRACE_EXEC_DISPATCHER){eprintln!("exec(dispatcher -- exit): {}:{}",self.code_block_num, self.instruction_counter);}
 		self.operand_stack.pop_frame();
 		return CplVar::new(self.return_value.var.clone());
 	}
@@ -296,7 +301,7 @@ impl<'a> Executor<'a>{
 	//	I can't think of reason to support creating a block in another frame
 	fn exec_block_begin(&mut self, instruction : &MachineInstruction){		
 		if self.cli.is_debug_bit(TRACE_EXEC){
-			println!("{}:{} : exec_block_begin: {} block {}", self.code_block_num, self.instruction_counter, instruction, self.block_counter);
+			eprintln!("{}:{} : exec_block_begin: {} block {}", self.code_block_num, self.instruction_counter, instruction, self.block_counter);
 		}
 
 		self.block_counter += 1;
@@ -316,7 +321,7 @@ impl<'a> Executor<'a>{
 	fn exec_block_end(&mut self, instruction : &MachineInstruction){
 
 		if self.block_end_return_address.is_empty(){
-			if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_block_end: {} block_len {}", self.code_block_num,self.instruction_counter, instruction, self.operand_stack.variable_count())}
+			if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_block_end: {} block_len {}", self.code_block_num,self.instruction_counter, instruction, self.operand_stack.variable_count())}
 			self.instruction_counter += 1;
 			return;
 		}
@@ -324,7 +329,7 @@ impl<'a> Executor<'a>{
 		let block_end_return_address = self.block_end_return_address.pop().unwrap();
 
 		if self.cli.is_debug_bit(TRACE_EXEC){
-			println!("{}:{} : exec_block_end: {} returning to: {}:{}", 
+			eprintln!("{}:{} : exec_block_end: {} returning to: {}:{}", 
 				self.code_block_num, self.instruction_counter, self.code_block_num, block_end_return_address.0, block_end_return_address.1);
 		}
 
@@ -351,7 +356,7 @@ impl<'a> Executor<'a>{
 	//	where the CPL expression is:  array[index0, index1, ... indexn];
 	//
 	fn exec_fetch_indexed(&mut self, instruction: &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_fetch_indexed: {}", self.code_block_num,self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_fetch_indexed: {}", self.code_block_num,self.instruction_counter, instruction)}
 		// self.dump_operands("at exec_fetch_indexed");
 
 		//	if the number of indices is not mentioned or, if mentioned is 1 then just do a normal
@@ -386,7 +391,7 @@ impl<'a> Executor<'a>{
 
 	fn push_lit_string(&mut self, instruction: &MachineInstruction, _instruction_address : usize){
 		//	get the current operand_frame
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("     push_lit_string: {}", instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("     push_lit_string: {}", instruction)}
 
 		self.operand_stack.push(&CplVar::new(
 			CplDataType::CplString(CplString::new(instruction.literal.token_value.clone()))));
@@ -394,7 +399,7 @@ impl<'a> Executor<'a>{
 
 	fn push_lit_number(&mut self, instruction: &MachineInstruction, _instruction_address : usize){
 		//	get the current operand_frame
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_lit_number: {}", instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      push_lit_number: {}", instruction)}
 
 		let mut rust_type : RustDataType = RustDataType::NONE;
 
@@ -412,13 +417,13 @@ impl<'a> Executor<'a>{
 
 	//	used by push_lit_bool and comparison ops
 	fn push_lit_bool_help(&mut self, b : bool, instruction_address : usize, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : push_lit_bool_help: {}", self.code_block_num,instruction_address, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : push_lit_bool_help: {}", self.code_block_num,instruction_address, instruction)}
 		self.operand_stack.push(&CplVar::new(CplDataType::CplBool (CplBool::new (b))));
 	}
 
 	//	used by exec_push
 	fn push_lit_bool(&mut self, instruction: &MachineInstruction, instruction_address : usize){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : push_lit_bool: {}", self.code_block_num, instruction_address, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : push_lit_bool: {}", self.code_block_num, instruction_address, instruction)}
 		let b = instruction.literal.token_value.parse::<bool>().unwrap();
 		self.push_lit_bool_help(b, instruction_address, instruction);
 	}
@@ -426,7 +431,7 @@ impl<'a> Executor<'a>{
 	//	used by exec_push to create an uninitialized variable
 	fn push_lit_none(&mut self, instruction: &MachineInstruction){
 		//	get the current operand_frame
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("     push_lit_none: {}", instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("     push_lit_none: {}", instruction)}
 
 		self.operand_stack.push(&CplVar::new(CplDataType::CplUninitialized(CplUninitialized::new())));
 	}
@@ -441,7 +446,7 @@ impl<'a> Executor<'a>{
 		}else if instruction.literal.token_type == TokenType::NONE{
 			self.push_lit_none(instruction);
 		}else{
-			println!("push_lit: {}", instruction.literal.token_type);
+			eprintln!("push_lit: {}", instruction.literal.token_type);
 		}
 	}
 
@@ -449,8 +454,8 @@ impl<'a> Executor<'a>{
 	//	stack.  If the operand is a collection, create a VarRef pointing at it
 	//	and push that onto the stack.
 	fn push_copy(&mut self, operand : &CplVar, instruction : &MachineInstruction){
-		// if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_copy: operand={}, instruction={}",operand, instruction)}
-		//println!("=========== from push_copy operand={} instrunction={}", operand, instruction);
+		// if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      push_copy: operand={}, instruction={}",operand, instruction)}
+		//eprintln!("=========== from push_copy operand={} instrunction={}", operand, instruction);
 		// self.dump_operands("======== at push_copy");
 
 		match operand.var{
@@ -461,16 +466,16 @@ impl<'a> Executor<'a>{
 			CplDataType::CplUninitialized(_)	|
 			CplDataType::CplUndefined(_) 		=> {
 				if instruction.opcode_mode == OpcodeMode::VarRef{
-					if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_copy(VarRef) {},{},{}",  self.operand_stack.current_frame(), instruction.block_num, instruction.address)};
+					if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      push_copy(VarRef) {},{},{}",  self.operand_stack.current_frame(), instruction.block_num, instruction.address)};
 					self.operand_stack.push(&CplVar::new(CplDataType::CplVarRef(CplVarRef::new(self.operand_stack.current_frame(), instruction.block_num, instruction.address))));
 				}else{
-					if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_copy(mode={}) {}", instruction.opcode_mode, instruction)};
+					if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      push_copy(mode={}) {}", instruction.opcode_mode, instruction)};
 					self.operand_stack.push(operand);
 				}
 			}
 			
 			CplDataType::CplArray(_) | CplDataType::CplDict(_) =>{
-				if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_copy(Collection) {} {}", operand, instruction)};
+				if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      push_copy(Collection) {} {}", operand, instruction)};
 				self.operand_stack.push(&CplVar::new(CplDataType::CplVarRef(CplVarRef::new(self.operand_stack.current_frame(), instruction.block_num, instruction.address))));
 			},
 
@@ -488,7 +493,7 @@ impl<'a> Executor<'a>{
 	//	addresses that were in the symbol table. In other words, the parameters are really
 	//	aliases to the arguments.
 	fn push_arg(&mut self, instruction : &MachineInstruction, _instruction_address : usize){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("      push_arg: {}", instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      push_arg: {}", instruction)}
 		//	fetch the next argument from the arguments register
 		let arg = self.arguments.pop().unwrap();
 		//	and push it onto the stack
@@ -497,13 +502,13 @@ impl<'a> Executor<'a>{
 
 	//	Push Array means:  create a new empty array at the top of the stack
 	// fn push_array(&mut self, instruction : &MachineInstruction, _instruction_address : usize){
-	// 	if self.cli.is_debug_bit(TRACE_EXEC){println!("     push_array: {}",instruction)}
+	// 	if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("     push_array: {}",instruction)}
 	// 	self.operand_stack.push(&CplVar::new(CplDataType::CplArray(CplArray::new())));
 	// }
 
 	// //	Push Dict means:  create a new empty dictionary rray at the top of the stack
 	// fn push_dict(&mut self, instruction : &MachineInstruction, instruction_address : usize){
-	// 	if self.cli.is_debug_bit(TRACE_EXEC){println!("     push_dict: {}", self.code_block_num, instruction_address, instruction)}
+	// 	if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("     push_dict: {}", self.code_block_num, instruction_address, instruction)}
 	// 	self.operand_stack.push(&CplVar::new(CplDataType::CplDict(CplDict::new())));
 	// }
 
@@ -512,7 +517,7 @@ impl<'a> Executor<'a>{
 	//	collection.  This will be the only actual instance of the collection.  All other
 	//	"instances" will be VarRef's to it (I hope).
 	fn exec_push_new_collection(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_push_new_collection: {} Mode: {}", self.code_block_num, self.instruction_counter,instruction, instruction.opcode_mode)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_push_new_collection: {} Mode: {}", self.code_block_num, self.instruction_counter,instruction, instruction.opcode_mode)}
 		match instruction.opcode_mode{
 			OpcodeMode::Array		=> {
 				self.operand_stack.push(&CplVar::new(CplDataType::CplArray(CplArray::new())));
@@ -537,7 +542,7 @@ impl<'a> Executor<'a>{
 	//		  (this is used for struct instantiation -- see exec_update (mode = array)
 	//		  which does something similar -- maybe even the same thing)
 	fn exec_push(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_push: {} Mode: {}", self.code_block_num, self.instruction_counter,instruction, instruction.opcode_mode)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_push: {} Mode: {}", self.code_block_num, self.instruction_counter,instruction, instruction.opcode_mode)}
 
 		match instruction.opcode_mode{
 			OpcodeMode::Lit 			=> self.push_lit(instruction, instruction.address),
@@ -568,18 +573,18 @@ impl<'a> Executor<'a>{
 
 	//	Removes the item at the top of the operand stack
 	fn exec_pop(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_pop: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_pop: {}", self.code_block_num, self.instruction_counter, instruction)}
 		
 		//	pop the stack but throw it away
 		self.operand_stack.pop();
 	}
 
-	//	Print always uses whatever is at the top of the current frame.  If that var
-	//	is  VarRef then print whatever it's pointing at.  NOTE:  we only support
+	//	println always uses whatever is at the top of the current frame.  If that var
+	//	is  VarRef then println whatever it's pointing at.  NOTE:  we only support
 	//	a single level of indirection.  If the thing that the VarRef is pointing at
-	//	is, itself, a VarRef, the print instruction fails.
-	fn exec_print(&mut self, instruction : MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_print: {}", self.code_block_num, self.instruction_counter, instruction)}
+	//	is, itself, a VarRef, the println instruction fails.
+	fn exec_print(&mut self, instruction : MachineInstruction, s_or_e : char, ln_or_n : char){
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_print: {}", self.code_block_num, self.instruction_counter, instruction)}
 
 		let mut tos_ref = self.operand_stack.fetch_tos_ref();
 
@@ -589,25 +594,79 @@ impl<'a> Executor<'a>{
 
 		match tos_ref.var{
 				CplDataType::CplNumber(ref v) => {
-					//	and print the value
-					println!("{}", v.cpl_number);
+					//	and println the value
+					if s_or_e == 's'{
+						if ln_or_n == 'l' {
+							println!("{}", v.cpl_number);
+						}else{
+							print!("{}", v.cpl_number)
+						}
+					}else{
+						if ln_or_n == 'l' {
+							eprintln!("{}", v.cpl_number);
+						}else{
+							eprint!("{}", v.cpl_number)
+						}
+					}
 				}
 
 				CplDataType::CplString(ref v) => {
-					//	and print the value
-					println!("{}", v.cpl_string);
+					//	and println the value
+					if s_or_e == 's'{
+						if ln_or_n == 'l' {
+							println!("{}", v.cpl_string);
+						}else{
+							print!("{}", v.cpl_string)
+						}
+					}else{
+						if ln_or_n == 'l' {
+							eprintln!("{}", v.cpl_string);
+						}else{
+							eprint!("{}", v.cpl_string)
+						}
+					}
 				}
 
 				CplDataType::CplBool(ref b) => {
-					//	and print the value
-					println!("{}", b.cpl_bool);
+					//	and println the value
+					if s_or_e == 's'{
+						if ln_or_n == 'l' {
+							println!("{}", b.cpl_bool);
+						}else{
+							print!("{}", b.cpl_bool)
+						}
+					}else{
+						if ln_or_n == 'l' {
+							eprintln!("{}", b.cpl_bool);
+						}else{
+							eprint!("{}", b.cpl_bool)
+						}
+					}
 				}
 
 				CplDataType::CplArray(ref a) => {
 					println!("[{}]",a);
+					if s_or_e == 's'{
+						println!("[{}]",a);
+					}else{
+						eprintln!("[{}]",a);
+					}
+					if s_or_e == 's'{
+						if ln_or_n == 'l' {
+							println!("[{}]",a);
+						}else{
+							print!("[{}]",a)
+						}
+					}else{
+						if ln_or_n == 'l' {
+							eprintln!("[{}]",a);
+						}else{
+							eprint!("[{}]",a)
+						}
+					}
 				}
 
-				_ => println!("Can't print: {}", tos_ref.var),
+				_ => eprintln!("Can't print: {}", tos_ref.var),
 		}
 
 		//	When we're done printing, consume the top of stack
@@ -617,24 +676,24 @@ impl<'a> Executor<'a>{
 
 	//	This updates a local operand in situ via the address in the instruction
 	fn update_scalar(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("      update_scalar(start): {}", instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar(start): {}", instruction)}
 
 		self.operand_stack.update_local(instruction.block_num, instruction.address);
 
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("      update_scalar(end): {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar(end): {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
 	}
 
 	//	if the mode is UpdateIndexed and the target is an actual colletion
 	//	update it directly
 	fn update_indexed_direct(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("      update_indexed_direct: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_indexed_direct: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
 		self.operand_stack.update_local_collection(instruction.block_num, instruction.address);
 	}
 
 	//	As noted, this is a bit tricky:  we need to get a rust reference to the
 	//	operand pointed to by the VarRef
 	fn update_indexed_indirect(&mut self, instruction : &MachineInstruction, current_frame_num : usize){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("      update_indexed_indirect: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_indexed_indirect: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
 	
 		let value = self.operand_stack.dereference_tos();
 		let index = self.operand_stack.dereference_tos();
@@ -689,7 +748,7 @@ impl<'a> Executor<'a>{
 	//	If the target is a VarRef we don't want to simply dereference because it could be
 	//	an array with 500,000 element in it.
 	fn update_indexed (&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("      update_indexed: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_indexed: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
 
 		let frame_num = self.operand_stack.operand_frames.len()-1;
 
@@ -702,7 +761,7 @@ impl<'a> Executor<'a>{
 	//	Adds a Var to an array that is at the top of the stack.  Tos is the value to update.
 	//	Tos-1 is the array to update.
 	fn update_collection_array(&mut self){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("      update_collection_array: {} {}", self.code_block_num, self.instruction_counter)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_collection_array: {} {}", self.code_block_num, self.instruction_counter)}
 		self.operand_stack.push_array_element();
 	}
 
@@ -716,7 +775,7 @@ impl<'a> Executor<'a>{
 	//	If the mode is Update, then update the scalar value at the address specified in the instruction
 	//  If the mode is UpdateIndexed, see comments at "update_indexed"
 	fn exec_update(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_update: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_update: {}", self.code_block_num, self.instruction_counter, instruction)}
 
 		//self.dump_operands("begin exec_update");
 
@@ -731,14 +790,14 @@ impl<'a> Executor<'a>{
 
 	//	Appends the array at tos with the value at tos-1
 	fn exec_append(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_append: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_append: {}", self.code_block_num, self.instruction_counter, instruction)}
 		self.update_collection_array();
 	}
 
 	//	Inserts a key/value pair into a dictionary at tos from the key at tos-1 and the value at tos-2
 	//	Appends the array at tos with the value at tos-1
 	fn exec_insert(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_insert: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_insert: {}", self.code_block_num, self.instruction_counter, instruction)}
 		self.update_collection_dict();
 	}
 
@@ -750,7 +809,7 @@ impl<'a> Executor<'a>{
 	//	the mode is "UpdateIndexed") then the target is a collection.  Otherwise it's a
 	//	scalar.
 	fn exec_assignment_operator(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_assignment_operator: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_assignment_operator: {}", self.code_block_num, self.instruction_counter, instruction)}
 
 		if instruction.opcode_mode == OpcodeMode::UpdateIndexed{
 			//	if the mode is indexed then update an element of an array
@@ -783,7 +842,7 @@ impl<'a> Executor<'a>{
 					}
 
 					CplDataType::CplArray (ref mut a) => {
-						println!("================= exec_assignment_operator {}",a);
+						eprintln!("================= exec_assignment_operator {}",a);
 						a.apply_binary_operator_to_array(&new_value_var, instruction.opcode);
 					}
 					_=> panic!("from exec.apply_binary_operator_scalar:  expected a VarRef to array or dictionary.  Got {}",varref),
@@ -804,7 +863,7 @@ impl<'a> Executor<'a>{
 	
 	//	Apply and operator to an element of a collection
 	fn apply_binary_operator_indexed(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("     apply_binary_operator_indexed {}", instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("     apply_binary_operator_indexed {}", instruction)}
 
 		let var = self.operand_stack.fetch_local_var(instruction.block_num, instruction.address);
 	
@@ -855,8 +914,8 @@ impl<'a> Executor<'a>{
 
 	//	A special purpose opcode used internally for diagnosit purposes
 	fn exec_diag(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("**** {}", instruction.literal.token_value)}
-		//println!("***** {}",instruction.literal.token_value);
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("**** {}", instruction.literal.token_value)}
+		//eprintln!("***** {}",instruction.literal.token_value);
 	}
 
 	//	hackability helper.  Get the argument at the top of the stack, clear it and return it.
@@ -865,13 +924,13 @@ impl<'a> Executor<'a>{
 		let tos = self.operand_stack.pop();
 		match tos.var {
 			CplDataType::CplNumber(ref v) => {
-				// println!("================ grab_an_argument match number {}, mode={}",v,_opcode_mode);
+				// eprintln!("================ grab_an_argument match number {}, mode={}",v,_opcode_mode);
 				return CplVar::new(CplDataType::CplNumber(CplNumber::new(v.rust_data_type, v.cpl_number)))
 			},
 			CplDataType::CplBool(b) => return CplVar::new(CplDataType::CplBool(CplBool::new(b.cpl_bool))),
 			CplDataType::CplString(v) => return CplVar::new(CplDataType::CplString(CplString::new(v.cpl_string.clone()))),
 			CplDataType::CplVarRef(v) => {
-				// println!("================== grab_an_argument match VarRef {}",v);
+				// eprintln!("================== grab_an_argument match VarRef {}",v);
 				return CplVar::new(CplDataType::CplVarRef(v));
 			},
 			CplDataType::CplArray(v) => return CplVar::new(CplDataType::CplArray(v.clone())),
@@ -897,7 +956,7 @@ impl<'a> Executor<'a>{
 	//	the number of parameters the called function is expecting.
 	//
 	fn exec_function_call(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_function_call: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_function_call: {}", self.code_block_num, self.instruction_counter, instruction)}
 
 		//	We don't need this from now on so reset it
 		self.arg_count = 0;
@@ -917,7 +976,7 @@ impl<'a> Executor<'a>{
 		//	otherwise we launch a new executor
 		if instruction.opcode_mode == OpcodeMode::Extern{
 			let rslt = (self.builtin_functions.builtin_function_list.get_mut(instruction.block_num).unwrap().target)(&mut self.builtin_functions, &arguments, &mut self.operand_stack);
-			if self.cli.is_debug_bit(TRACE_EXEC){println!("      return from external \"{}\" rslt={}", instruction.literal.token_value, rslt)}
+			if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      return from external \"{}\" rslt={}", instruction.literal.token_value, rslt)}
 			self.operand_stack.push(&rslt);
 			return;
 		}
@@ -933,7 +992,7 @@ impl<'a> Executor<'a>{
 		//	This is the actual call to the run function
 		let return_value = executor.exec();
 
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : Return from function call: {} return value {}", self.code_block_num, self.instruction_counter, instruction, return_value)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : Return from function call: {} return value {}", self.code_block_num, self.instruction_counter, instruction, return_value)}
 
 		//	If the call was from a statement (as opposed to a term in an expression)
 		if instruction.qualifier[1] == 0{
@@ -957,7 +1016,7 @@ impl<'a> Executor<'a>{
 
 	//	Allocate (or reuse) a slot in the current block of the current frame.
 	fn exec_alloc(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_alloc: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_alloc: {}", self.code_block_num, self.instruction_counter, instruction)}
 		if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("at exec_alloc");}
 
 		//let block_num = self.operand_stack.current_block_num();
@@ -969,7 +1028,7 @@ impl<'a> Executor<'a>{
 	*** Jump Instructions
 	******************************************************************/
 	fn exec_j (&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_j: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_j: {}", self.code_block_num, self.instruction_counter, instruction)}
 
 		// if instruction.address >= self.code_frames[self.code_frame_num].code_frame.len() as i32{
 		// 	panic! ("From exec_j: address out of bounds {}", instruction.address);
@@ -978,7 +1037,7 @@ impl<'a> Executor<'a>{
 	}
 
 	fn exec_jt(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_jt: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_jt: {}", self.code_block_num, self.instruction_counter, instruction)}
 
 		let tos = self.operand_stack.dereference_tos();
 
@@ -999,7 +1058,7 @@ impl<'a> Executor<'a>{
 	}
 
 	fn exec_jf(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_jf: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_jf: {}", self.code_block_num, self.instruction_counter, instruction)}
 
 		let tos = self.operand_stack.dereference_tos();
 		match tos.var {
@@ -1025,7 +1084,7 @@ impl<'a> Executor<'a>{
 	//		transfer control to the address 0 of a new block.  The new
 	//		block is always the return block + 1
 	fn exec_bl(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_bl: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_bl: {}", self.code_block_num, self.instruction_counter, instruction)}
 		
 		//	This is where the BlockEnd instruction jumps to
 		self.block_end_return_address.push((instruction.block_num, instruction.address));
@@ -1042,7 +1101,7 @@ impl<'a> Executor<'a>{
 
 
 	fn exec_break (&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_break: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_break: {}", self.code_block_num, self.instruction_counter, instruction)}
 		let mut n : i32 = self.block_end_return_address.len() as i32;
 		while n >= 0{
 			self.block_end_return_address.pop();
@@ -1053,7 +1112,7 @@ impl<'a> Executor<'a>{
 		self.instruction_counter = instruction.address;
 
 		self.block_counter -= 1;
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{} : exec_break:  return to {} block {}", self.instruction_counter, self.code_block_num, self.block_counter);}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{} : exec_break:  return to {} block {}", self.instruction_counter, self.code_block_num, self.block_counter);}
 
 		//	pop the operand stack block
 		self.operand_stack.pop_block();			
@@ -1061,7 +1120,7 @@ impl<'a> Executor<'a>{
 	}
 
 	fn exec_continue (&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_continue: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_continue: {}", self.code_block_num, self.instruction_counter, instruction)}
 
 		while !self.block_end_return_address.is_empty(){
 			let _temp = self.block_end_return_address.pop().unwrap();
@@ -1519,7 +1578,7 @@ impl<'a> Executor<'a>{
 		let tos2 = self.operand_stack.dereference_tos();
 		let tos1 = self.operand_stack.dereference_tos();
 
-		if self.cli.is_debug_bit(TRACE_EXEC){println!("{}:{} : exec_binary_operator: ({} {} {})", self.code_block_num, self.instruction_counter, tos1, instruction.opcode, tos2)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_binary_operator: ({} {} {})", self.code_block_num, self.instruction_counter, tos1, instruction.opcode, tos2)}
 
 		let eval = self.operand_eval(&tos1, &tos2);
 		match instruction.opcode{
@@ -1534,8 +1593,10 @@ impl<'a> Executor<'a>{
 					OperandAnalysis::BoolString			=>	self.compare_bool_string(&tos1,&tos2,instruction.opcode),
 					OperandAnalysis::BoolNumber			=>	self.compare_bool_number(&tos1,&tos2,instruction.opcode),
 					OperandAnalysis::BoolBool			=>	self.compare_bool_bool(&tos1,&tos2,instruction.opcode),
-					//OperandAnalysis::ArrayArray			=>  self.compare_array_array(&tos1,&tos2,instruction.opcode),
-					_=> panic!("from exec_binary_operator: {}{}{} is invalid", tos1, instruction.opcode, tos2),
+					_=> if self.cli.is_runtime_warnings(){
+						eprintln!("WARNING from exec_binary_operator: {}{}{} is invalid.  returning false", tos1, instruction.opcode, tos2);
+						self.operand_stack.push(&CplVar::new(CplDataType::CplBool(CplBool::new(false))));
+					}
 				}		
 			}
 			Opcode::Add | Opcode::Sub | Opcode::Mul | Opcode::Div | Opcode::Mod | Opcode::Concat | Opcode::BwAnd | Opcode::BwOr =>{

@@ -1,9 +1,9 @@
 entry foo(){
 	variable = 1;
-	print "variable=".variable;
+	println "variable=".variable;
 	variable += 2;
-	print "variable+=2 = ".variable;
+	println "variable+=2 = ".variable;
 	string = "xxx";
 	string .="b";
-	print "string.=b = ".string;
+	println "string.=b = ".string;
 }

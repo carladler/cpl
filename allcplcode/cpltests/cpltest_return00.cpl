@@ -1,6 +1,6 @@
 entry main(){
 	rslt = foo(10);
-	print rslt;
+	println rslt;
 }
 
 fn foo(arg){

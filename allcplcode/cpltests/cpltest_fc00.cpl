@@ -1,17 +1,17 @@
 entry fn foo(args){
 	if Length(args) == 0{
-		print "This test requires at least 2 command line arguments";
+		println "This test requires at least 2 command line arguments";
 		return "eek";
 	}
 
 	a = bar(args[1]);
-	print a;
+	println a;
 }
 
 fn bar(a){
 	a *=2;
-	print "bar!";
+	println "bar!";
 	b = a+1;
-	print "...".b;
+	println "...".b;
 	return "blat";
 }

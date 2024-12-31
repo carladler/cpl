@@ -1,0 +1,482 @@
+total 26336
+drwxr-xr-x    5 carl  staff      160 Dec 21 22:44:47 2024 Applications
+drwxr-xr-x@   5 carl  staff      160 Dec 28 06:12:30 2024 Applications (Parallels)
+drwx------+  13 carl  staff      416 Dec 29 14:20:12 2024 Desktop
+drwx------+  13 carl  staff      416 Oct 22 16:32:39 2024 Documents
+drwx------@ 305 carl  staff     9760 Dec 21 08:41:19 2024 Downloads
+drwx------@ 109 carl  staff     3488 Oct 24 00:00:08 2024 Library
+drwxr-xr-x   22 carl  staff      704 Dec 28 06:16:46 2024 McTreeHouse
+drwx------+   8 carl  staff      256 Apr 22 23:16:46 2024 Movies
+drwx------+   8 carl  staff      256 Feb  2 21:24:41 2023 Music
+lrwxr-xr-x    1 carl  staff       50 Oct 11 06:13:53 2022 OneDrive -> /Users/carl/Library/CloudStorage/OneDrive-Personal
+drwx------    5 carl  staff      160 Dec 24 22:57:06 2024 Parallels
+drwx------+  10 carl  staff      320 Dec  7 15:47:40 2024 Pictures
+drwxr-xr-x+   4 carl  staff      128 Aug 23 13:19:06 2022 Public
+drwxr-xr-x+  16 carl  staff      512 Jul 10 13:13:17 2023 Sites
+drwxr-xr-x    5 carl  staff      160 Mar 22 08:20:57 2023 eclipse
+-rw-r--r--@   1 carl  wheel  5968437 Dec 28 20:35:00 2024 every.txt
+-rw-r--r--@   1 carl  staff  1005343 Dec 29 13:57:25 2024 every_out.csv
+-rw-r--r--@   1 carl  staff   493420 Dec 29 07:28:54 2024 every_out.xlsx
+-rw-r--r--    1 carl  staff  5953147 Dec 28 12:17:41 2024 every_test.txt
+-rw-r--r--    1 carl  staff     1158 Dec 29 07:39:54 2024 every_test2.txt
+-rw-r--r--    1 carl  staff      182 Dec 29 13:57:51 2024 skips.txt
+
+/Users/Carl/Applications:
+total 0
+drwxr-xr-x@ 3 carl  staff   96 Dec 19 11:34:52 2024 Visual Studio Code.app
+drwxr-xr-x  4 carl  staff  128 Mar 27 13:49:12 2023 WillMaker
+
+/Users/Carl/Applications/Visual Studio Code.app:
+total 0
+drwxr-xr-x  9 carl  staff  288 Dec 19 04:05:55 2024 Contents
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents:
+total 104
+-rw-r--r--   1 carl  staff   2934 Dec 19 04:05:55 2024 CodeResources
+drwxr-xr-x  10 carl  staff    320 Dec 19 11:34:54 2024 Frameworks
+-rw-r--r--   1 carl  staff  42498 Dec 19 11:36:48 2024 Info.plist
+drwxr-xr-x   3 carl  staff     96 Dec 19 03:51:51 2024 MacOS
+-rw-r--r--   1 carl  staff      8 Dec 19 11:34:54 2024 PkgInfo
+drwxr-xr-x  89 carl  staff   2848 Dec 19 11:34:52 2024 Resources
+drwxr-xr-x   3 carl  staff     96 Dec 19 11:34:52 2024 _CodeSignature
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks:
+total 0
+drwxr-xr-x  3 carl  staff   96 Dec 19 11:34:54 2024 Code Helper (GPU).app
+drwxr-xr-x  3 carl  staff   96 Dec 19 11:34:54 2024 Code Helper (Plugin).app
+drwxr-xr-x  3 carl  staff   96 Dec 19 11:34:54 2024 Code Helper (Renderer).app
+drwxr-xr-x  3 carl  staff   96 Dec 19 11:34:54 2024 Code Helper.app
+drwxr-xr-x  7 carl  staff  224 Dec 19 11:21:30 2024 Electron Framework.framework
+drwxr-xr-x  5 carl  staff  160 Dec 19 11:21:30 2024 Mantle.framework
+drwxr-xr-x  5 carl  staff  160 Dec 19 11:21:30 2024 ReactiveObjC.framework
+drwxr-xr-x  5 carl  staff  160 Dec 19 11:21:30 2024 Squirrel.framework
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (GPU).app:
+total 0
+drwxr-xr-x  6 carl  staff  192 Dec 19 11:34:54 2024 Contents
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (GPU).app/Contents:
+total 16
+-rw-r--r--  1 carl  staff  1233 Dec 19 11:36:48 2024 Info.plist
+drwxr-xr-x  3 carl  staff    96 Dec 19 03:51:47 2024 MacOS
+-rw-r--r--  1 carl  staff     8 Dec 19 11:34:54 2024 PkgInfo
+drwxr-xr-x  3 carl  staff    96 Dec 19 11:34:54 2024 _CodeSignature
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (GPU).app/Contents/MacOS:
+total 528
+-rwxr-xr-x  1 carl  staff  268096 Dec 19 03:51:47 2024 Code Helper (GPU)
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (GPU).app/Contents/_CodeSignature:
+total 8
+-rw-r--r--  1 carl  staff  2200 Dec 19 03:51:47 2024 CodeResources
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app:
+total 0
+drwxr-xr-x  6 carl  staff  192 Dec 19 11:34:54 2024 Contents
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents:
+total 16
+-rw-r--r--  1 carl  staff  1236 Dec 19 11:36:48 2024 Info.plist
+drwxr-xr-x  3 carl  staff    96 Dec 19 03:51:47 2024 MacOS
+-rw-r--r--  1 carl  staff     8 Dec 19 11:34:54 2024 PkgInfo
+drwxr-xr-x  3 carl  staff    96 Dec 19 11:34:54 2024 _CodeSignature
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS:
+total 528
+-rwxr-xr-x  1 carl  staff  268352 Dec 19 03:51:47 2024 Code Helper (Plugin)
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/_CodeSignature:
+total 8
+-rw-r--r--  1 carl  staff  2200 Dec 19 03:51:47 2024 CodeResources
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app:
+total 0
+drwxr-xr-x  6 carl  staff  192 Dec 19 11:34:54 2024 Contents
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents:
+total 16
+-rw-r--r--  1 carl  staff  1238 Dec 19 11:36:48 2024 Info.plist
+drwxr-xr-x  3 carl  staff    96 Dec 19 03:51:48 2024 MacOS
+-rw-r--r--  1 carl  staff     8 Dec 19 11:34:54 2024 PkgInfo
+drwxr-xr-x  3 carl  staff    96 Dec 19 11:34:54 2024 _CodeSignature
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/MacOS:
+total 528
+-rwxr-xr-x  1 carl  staff  268096 Dec 19 03:51:48 2024 Code Helper (Renderer)
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Renderer).app/Contents/_CodeSignature:
+total 8
+-rw-r--r--  1 carl  staff  2200 Dec 19 03:51:47 2024 CodeResources
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app:
+total 0
+drwxr-xr-x  6 carl  staff  192 Dec 19 11:34:54 2024 Contents
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents:
+total 16
+-rw-r--r--  1 carl  staff  1224 Dec 19 11:36:48 2024 Info.plist
+drwxr-xr-x  3 carl  staff    96 Dec 19 03:51:48 2024 MacOS
+-rw-r--r--  1 carl  staff     8 Dec 19 11:34:54 2024 PkgInfo
+drwxr-xr-x  3 carl  staff    96 Dec 19 11:34:54 2024 _CodeSignature
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/MacOS:
+total 528
+-rwxr-xr-x  1 carl  staff  268432 Dec 19 03:51:48 2024 Code Helper
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper.app/Contents/_CodeSignature:
+total 8
+-rw-r--r--  1 carl  staff  2200 Dec 19 03:51:47 2024 CodeResources
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework:
+total 0
+lrwxr-xr-x  1 carl  staff   35 Dec 19 11:21:30 2024 Electron Framework -> Versions/Current/Electron Framework
+lrwxr-xr-x  1 carl  staff   24 Dec 19 11:21:30 2024 Helpers -> Versions/Current/Helpers
+lrwxr-xr-x  1 carl  staff   26 Dec 19 11:21:30 2024 Libraries -> Versions/Current/Libraries
+lrwxr-xr-x  1 carl  staff   26 Dec 19 11:21:30 2024 Resources -> Versions/Current/Resources
+drwxr-xr-x  4 carl  staff  128 Dec 19 11:21:30 2024 Versions
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions:
+total 0
+drwxr-xr-x  7 carl  staff  224 Dec 19 03:51:50 2024 A
+lrwxr-xr-x  1 carl  staff    1 Dec 19 11:21:30 2024 Current -> A
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A:
+total 611432
+-rwxr-xr-x   1 carl  staff  313051504 Dec 19 03:51:50 2024 Electron Framework
+drwxr-xr-x   3 carl  staff         96 Dec 19 03:51:48 2024 Helpers
+drwxr-xr-x   7 carl  staff        224 Dec 19 03:51:32 2024 Libraries
+drwxr-xr-x  65 carl  staff       2080 Dec 19 11:36:48 2024 Resources
+drwxr-xr-x   3 carl  staff         96 Dec 19 11:34:52 2024 _CodeSignature
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Helpers:
+total 4784
+-rwxr-xr-x  1 carl  staff  2446240 Dec 19 03:51:48 2024 chrome_crashpad_handler
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries:
+total 80848
+-rwxr-xr-x  1 carl  staff    522848 Dec 19 03:51:29 2024 libEGL.dylib
+-rwxr-xr-x  1 carl  staff  15313024 Dec 19 03:51:31 2024 libGLESv2.dylib
+-rwxr-xr-x  1 carl  staff   4268448 Dec 19 03:51:32 2024 libffmpeg.dylib
+-rwxr-xr-x  1 carl  staff  21278320 Dec 19 03:51:30 2024 libvk_swiftshader.dylib
+-rw-r--r--  1 carl  staff       110 Dec 19 11:34:52 2024 vk_swiftshader_icd.json
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources:
+total 34232
+-rw-r--r--  1 carl  staff      1327 Dec 19 11:36:48 2024 Info.plist
+-rw-r--r--  1 carl  staff      2005 Dec 19 11:34:52 2024 MainMenu.nib
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 af.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 am.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 ar.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 bg.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 bn.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 ca.lproj
+-rw-r--r--  1 carl  staff    102838 Dec 19 11:34:52 2024 chrome_100_percent.pak
+-rw-r--r--  1 carl  staff    160265 Dec 19 11:34:52 2024 chrome_200_percent.pak
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 cs.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 da.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 de.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 el.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 en.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 en_GB.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 es.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 es_419.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 et.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 fa.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 fi.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 fil.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 fr.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 gu.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 he.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 hi.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 hr.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 hu.lproj
+-rw-r--r--  1 carl  staff  10468208 Dec 19 11:34:52 2024 icudtl.dat
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 id.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 it.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 ja.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 kn.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 ko.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 lt.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 lv.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 ml.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 mr.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 ms.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 nb.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 nl.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 pl.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 pt_BR.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 pt_PT.lproj
+-rw-r--r--  1 carl  staff   5441179 Dec 19 11:34:52 2024 resources.pak
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 ro.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 ru.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 sk.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 sl.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 sr.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 sv.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 sw.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 ta.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 te.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 th.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 tr.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 uk.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 ur.lproj
+-rw-r--r--  1 carl  staff    666177 Dec 19 11:36:48 2024 v8_context_snapshot.arm64.bin
+-rw-r--r--  1 carl  staff    666177 Dec 19 11:34:52 2024 v8_context_snapshot.x86_64.bin
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 vi.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 zh_CN.lproj
+drwxr-xr-x  3 carl  staff        96 Dec 19 11:34:52 2024 zh_TW.lproj
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/af.lproj:
+total 1000
+-rw-r--r--  1 carl  staff  511290 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/am.lproj:
+total 1624
+-rw-r--r--  1 carl  staff  829169 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/ar.lproj:
+total 1776
+-rw-r--r--  1 carl  staff  908481 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/bg.lproj:
+total 1848
+-rw-r--r--  1 carl  staff  945249 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/bn.lproj:
+total 2384
+-rw-r--r--  1 carl  staff  1218838 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/ca.lproj:
+total 1128
+-rw-r--r--  1 carl  staff  574029 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/cs.lproj:
+total 1160
+-rw-r--r--  1 carl  staff  592394 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/da.lproj:
+total 1048
+-rw-r--r--  1 carl  staff  535674 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/de.lproj:
+total 1120
+-rw-r--r--  1 carl  staff  571548 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/el.lproj:
+total 2024
+-rw-r--r--  1 carl  staff  1035930 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/en.lproj:
+total 920
+-rw-r--r--  1 carl  staff  470362 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/en_GB.lproj:
+total 912
+-rw-r--r--  1 carl  staff  465514 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/es.lproj:
+total 1112
+-rw-r--r--  1 carl  staff  565300 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/es_419.lproj:
+total 1104
+-rw-r--r--  1 carl  staff  565143 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/et.lproj:
+total 1008
+-rw-r--r--  1 carl  staff  514083 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/fa.lproj:
+total 1648
+-rw-r--r--  1 carl  staff  841870 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/fi.lproj:
+total 1024
+-rw-r--r--  1 carl  staff  524010 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/fil.lproj:
+total 1168
+-rw-r--r--  1 carl  staff  594374 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/fr.lproj:
+total 1200
+-rw-r--r--  1 carl  staff  611695 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/gu.lproj:
+total 2344
+-rw-r--r--  1 carl  staff  1198756 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/he.lproj:
+total 1448
+-rw-r--r--  1 carl  staff  737971 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/hi.lproj:
+total 2472
+-rw-r--r--  1 carl  staff  1263410 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/hr.lproj:
+total 1120
+-rw-r--r--  1 carl  staff  570715 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/hu.lproj:
+total 1208
+-rw-r--r--  1 carl  staff  614610 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/id.lproj:
+total 1000
+-rw-r--r--  1 carl  staff  508383 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/it.lproj:
+total 1096
+-rw-r--r--  1 carl  staff  557245 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/ja.lproj:
+total 1328
+-rw-r--r--  1 carl  staff  678956 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/kn.lproj:
+total 2680
+-rw-r--r--  1 carl  staff  1371236 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/ko.lproj:
+total 1128
+-rw-r--r--  1 carl  staff  574404 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/lt.lproj:
+total 1216
+-rw-r--r--  1 carl  staff  619709 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/lv.lproj:
+total 1208
+-rw-r--r--  1 carl  staff  618022 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/ml.lproj:
+total 2792
+-rw-r--r--  1 carl  staff  1425989 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/mr.lproj:
+total 2296
+-rw-r--r--  1 carl  staff  1173747 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/ms.lproj:
+total 1048
+-rw-r--r--  1 carl  staff  533025 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/nb.lproj:
+total 1008
+-rw-r--r--  1 carl  staff  514334 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/nl.lproj:
+total 1048
+-rw-r--r--  1 carl  staff  533063 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/pl.lproj:
+total 1168
+-rw-r--r--  1 carl  staff  594859 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/pt_BR.lproj:
+total 1096
+-rw-r--r--  1 carl  staff  558039 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/pt_PT.lproj:
+total 1104
+-rw-r--r--  1 carl  staff  561679 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/ro.lproj:
+total 1144
+-rw-r--r--  1 carl  staff  582427 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/ru.lproj:
+total 1880
+-rw-r--r--  1 carl  staff  958482 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/sk.lproj:
+total 1176
+-rw-r--r--  1 carl  staff  601599 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/sl.lproj:
+total 1128
+-rw-r--r--  1 carl  staff  577517 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/sr.lproj:
+total 1744
+-rw-r--r--  1 carl  staff  889684 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/sv.lproj:
+total 1016
+-rw-r--r--  1 carl  staff  518138 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/sw.lproj:
+total 1072
+-rw-r--r--  1 carl  staff  546729 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/ta.lproj:
+total 2776
+-rw-r--r--  1 carl  staff  1418939 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/te.lproj:
+total 2560
+-rw-r--r--  1 carl  staff  1307731 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/th.lproj:
+total 2152
+-rw-r--r--  1 carl  staff  1098449 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/tr.lproj:
+total 1096
+-rw-r--r--  1 carl  staff  558122 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/uk.lproj:
+total 1880
+-rw-r--r--  1 carl  staff  959858 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/ur.lproj:
+total 1632
+-rw-r--r--  1 carl  staff  835090 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/vi.lproj:
+total 1296
+-rw-r--r--  1 carl  staff  662169 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/zh_CN.lproj:
+total 936
+-rw-r--r--  1 carl  staff  476078 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/zh_TW.lproj:
+total 920
+-rw-r--r--  1 carl  staff  470337 Dec 19 11:34:52 2024 locale.pak
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Versions/A/_CodeSignature:
+total 56
+-rw-r--r--  1 carl  staff  24785 Dec 19 03:51:48 2024 CodeResources
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Mantle.framework:
+total 0
+lrwxr-xr-x  1 carl  staff   23 Dec 19 11:21:30 2024 Mantle -> Versions/Current/Mantle
+lrwxr-xr-x  1 carl  staff   26 Dec 19 11:21:30 2024 Resources -> Versions/Current/Resources
+drwxr-xr-x  4 carl  staff  128 Dec 19 11:21:30 2024 Versions
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Mantle.framework/Versions:
+total 0
+drwxr-xr-x  5 carl  staff  160 Dec 19 03:51:48 2024 A
+lrwxr-xr-x  1 carl  staff    1 Dec 19 11:21:30 2024 Current -> A
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Mantle.framework/Versions/A:
+total 504
+-rwxr-xr-x  1 carl  staff  254688 Dec 19 03:51:48 2024 Mantle
+drwxr-xr-x  3 carl  staff      96 Dec 19 11:34:54 2024 Resources
+drwxr-xr-x  3 carl  staff      96 Dec 19 11:34:54 2024 _CodeSignature
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Mantle.framework/Versions/A/Resources:
+total 8
+-rw-r--r--  1 carl  staff  1424 Dec 19 11:36:48 2024 Info.plist
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/Mantle.framework/Versions/A/_CodeSignature:
+total 8
+-rw-r--r--  1 carl  staff  2442 Dec 19 03:51:47 2024 CodeResources
+
+/Users/Carl/Applications/Visual Studio Code.app/Contents/Frameworks/ReactiveObjC.framework:
+total 0
+lrwxr-xr-x  1 carl  staff   29 Dec 19 11:21:30 2024 ReactiveObjC -> Versions/Current/ReactiveObjC
+lrwxr-xr-x  1 carl  staff   26 Dec 19 11:21:30 2024 Resources -> Versions/Current/Resources
+drwxr-xr-x  4 carl  staff  128 Dec 19 11:21:30 2024 Versions

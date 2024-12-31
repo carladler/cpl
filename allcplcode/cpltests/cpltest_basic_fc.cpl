@@ -4,6 +4,6 @@ entry foo(){
 
 fn bar(a,b){
 	c = a*b;
-	print c;
+	println c;
 }
 

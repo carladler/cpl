@@ -8,7 +8,7 @@ entry ENTRY(){
 	out_file = Fopen("testdata/cpltest_builtin_io_output.dat", ">");
 	a = Freadln(in_file);
 	while !Feof(in_file){
-		print a;
+		println a;
 		Fwriteln(out_file, a);
 		a = Freadln(in_file);
 	}

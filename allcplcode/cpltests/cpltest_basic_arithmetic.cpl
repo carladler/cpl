@@ -1,13 +1,13 @@
 entry foo{
 	a = 129;
 	b = 27;
-	print a+b;
-	print a*b;
-	print a-b;
-	print a/b;
-	print a%b;
+	println a+b;
+	println a*b;
+	println a-b;
+	println a/b;
+	println a%b;
 
 	x=8;
-	print x | 2;
-	print x & 10;
+	println x | 2;
+	println x & 10;
 }

@@ -170,12 +170,12 @@ impl<'a> CodeGen<'a>{
 	//	arrays.
 	pub fn add_structs_to_symbol_table(&mut self, structs : &Vec<Struct>){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){
-			println!("CodeGen:add_structs_to_symbol_table");
+			eprintln!("CodeGen:add_structs_to_symbol_table");
 			for s in structs{
 				let struct_name = s.name.clone();
-				println!("struct {}", struct_name);
+				eprintln!("struct {}", struct_name);
 				for m in &s.members{
-					println!("   {}:{}", struct_name, m.name);
+					eprintln!("   {}:{}", struct_name, m.name);
 				}
 			}
 		}
@@ -195,7 +195,7 @@ impl<'a> CodeGen<'a>{
 	}
 
 	fn error_abend (&self, error_text : &str){
-		println!("CPL abend due to code generation error: {}", error_text);
+		eprintln!("CPL abend due to code generation error: {}", error_text);
 		std::process::exit(1);
 	}
 
@@ -212,13 +212,13 @@ impl<'a> CodeGen<'a>{
 
 	fn add_machine_instruction(&mut self, instruction : MachineInstruction, function_num : usize){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN_ADD_INSTRUCTION){
-			println!("add_machine_instruction: {}:{}", self.frames.frames_list.get_mut(function_num).unwrap().get_address_counter(), instruction);
+			eprintln!("add_machine_instruction: {}:{}", self.frames.frames_list.get_mut(function_num).unwrap().get_address_counter(), instruction);
 		}
 		self.frames.frames_list.get_mut(function_num).unwrap().add_machine_instruction(instruction);
 	}
 
 	fn make_block_current(&mut self, block_num: usize, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    make_block_current: {} block counter: {}", block_num, self.block_begin_counter);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    make_block_current: {} block counter: {}", block_num, self.block_begin_counter);}
 		self.frames.frames_list.get_mut(function_num).unwrap().current_code_block_num.push(block_num);
 
 		//	generate the BlockBegin instruction for the new block
@@ -250,7 +250,7 @@ impl<'a> CodeGen<'a>{
 		//	Add a new block to the block list
 		self.frames.frames_list.get_mut(function_num).unwrap().code_block_list.push(CodeBlock::new(breakable));
 
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    add_code_block: added {}", block_num);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    add_code_block: added {}", block_num);}
 
 		//	return the block number of the block just created
 		block_num
@@ -301,7 +301,7 @@ impl<'a> CodeGen<'a>{
 	//	We add all of the functions to the Frame Map before we generate op codes.  I think this will obviate the
 	//	need for forward functions.  We also add SymbolTableFunctions in the symbol table.
 	pub fn add_function_to_frame(&mut self, name : &String, function_parameters : &Vec<String>, function_entry_flag : bool){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen::ADD_FUNCTION_TO_FRAME function name={}", name);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::ADD_FUNCTION_TO_FRAME function name={}", name);}
 
 		//	Make sure that the function doesn't already exist
 		if self.frames.frame_names.contains_key(name){
@@ -318,7 +318,7 @@ impl<'a> CodeGen<'a>{
 	//	this is analagous to parameter_name = new struct_name.
 	fn add_struct_parameter_to_symbol_table(&mut self, parameter_name : &String, struct_name : &String){
 
-		//println!("=============== add_struct_parameter_to_symbol_table parameter_name={} struct_name={}",parameter_name,struct_name);
+		//eprintln!("=============== add_struct_parameter_to_symbol_table parameter_name={} struct_name={}",parameter_name,struct_name);
 		self.symbol_table.add_normal_symbol(parameter_name);
 
 		//  Get the index of this struct in the struct map
@@ -339,9 +339,9 @@ impl<'a> CodeGen<'a>{
 			//	Add this local reference to the symbol table.
 			let member_ref = format!("{}:{}", parameter_name, m.name);
 
-			//println!("====================== add_struct_parameter_to_symbol_table parameter_name={} member_name={}",parameter_name, m.name);
+			//eprintln!("====================== add_struct_parameter_to_symbol_table parameter_name={} member_name={}",parameter_name, m.name);
 			if self.cli.is_debug_bit(TRACE_CODE_GEN){
-				println!("    CodeGen:add_struct_parameter_to_symbol_table:adding {} ({},{}) to symbol table",member_ref, struct_index, member_index);
+				eprintln!("    CodeGen:add_struct_parameter_to_symbol_table:adding {} ({},{}) to symbol table",member_ref, struct_index, member_index);
 			}
 			self.symbol_table.add_struct_member(member_ref, struct_index, member_index);
 			member_index += 1;
@@ -353,7 +353,7 @@ impl<'a> CodeGen<'a>{
 
 	//	Emit instructions to start a function.
 	pub fn gen_function(&mut self, name : &String, function_parameters : &Vec<String>, function_entry_flag : bool, function_num : usize, cl_args : &Vec<String>){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen::GEN_FUNCTION function name={} num={}", name, function_num);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_FUNCTION function name={} num={}", name, function_num);}
 
 		//  add a frame to the symbol table so that block numbers start at 0
 		self.symbol_table.add_frame(name);
@@ -550,7 +550,7 @@ impl<'a> CodeGen<'a>{
 		}
 
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){
-			println!("CodeGen::GEN_BLOCK_END count {}",self.block_begin_counter);
+			eprintln!("CodeGen::GEN_BLOCK_END count {}",self.block_begin_counter);
 		}
 
 		//  If we're all done with the function, clear the break and continue
@@ -583,7 +583,7 @@ impl<'a> CodeGen<'a>{
 	//	A factor can be an ID, QUAIFIED_ID (i.e. a struct member reference), a number or a boolean
 	//	litearl (i.e. true or false
 	fn gen_expression_factor(&mut self, token : &Token, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_factor: {}", token);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_factor: {}", token);}
 
 		match token.token_type{
 			TokenType::ID | TokenType::INDEXED_ID | TokenType::IDADDR | TokenType::QUALIFIED_ID => self.gen_expression_id(token, function_num),
@@ -598,7 +598,7 @@ impl<'a> CodeGen<'a>{
 	//	<instantiated struct>: then we are assuming the pcl program is referencing the
 	//	the entire struct (e.g. in a function call or just copying it).
 	fn gen_expression_struct_member(&mut self, token : &Token, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_struct_member: {}", token);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_struct_member: {}", token);}
 
 		//	first we need to split this into the struct part and the member part
 		let parts: Vec<&str> = token.token_value.split(':').collect();
@@ -655,7 +655,7 @@ impl<'a> CodeGen<'a>{
 	//	operand stack.  For example a = b will generate this as will foo(&x).  The mode
 	//	for the former is "Var" and "VarRef" for the latter.
 	fn gen_expression_id_detail(&mut self, token : &Token, symbol_detail : &NormalSymbolEntry, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_id_detail: {} {}", token, symbol_detail);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_id_detail: {} {}", token, symbol_detail);}
 
 		let mode : OpcodeMode;
 		if token.token_type == TokenType::IDADDR{
@@ -680,7 +680,7 @@ impl<'a> CodeGen<'a>{
 	//	If the ID was the name of an instantiated struct, we want to push a VarRef
 	//	pointing to it onto the stack.
 	fn gen_expression_struct(&mut self, token : &Token, symbol_block_num : usize, symbol_index : usize, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_struct: {}", token);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_struct: {}", token);}
 
 		self.add_machine_instruction(
 			MachineInstruction::new(
@@ -696,7 +696,7 @@ impl<'a> CodeGen<'a>{
 	}
 
 	fn gen_expression_id(&mut self, token : &Token, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_id: {}", token);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_id: {}", token);}
 
 		//	let's look at the id (token) in the symbol table because it might be either
 		//	a normal symbol or a struct
@@ -709,17 +709,17 @@ impl<'a> CodeGen<'a>{
 			None => abend!(&format!("From gen_expression_id: {} Not in symbol table",token.token_value)),
 			Some(ref e) => match e{
 				SymbolTableEntryType::NormalSymbolEntry(normal_symbol_detail) => {
-					// println!("==================== gen_expression_id entry={}",e);
+					// eprintln!("==================== gen_expression_id entry={}",e);
 					self.gen_expression_id_detail(token, &normal_symbol_detail, function_num);
 				},
 
 				SymbolTableEntryType::StructMemberEntry(_) => {
-					//println!("==================== gen_expression_id entry={}",e);
+					//eprintln!("==================== gen_expression_id entry={}",e);
 					self.gen_expression_struct_member(&token, function_num);
 				},
 
 				SymbolTableEntryType::StructEntry(struct_detail) => {
-					// println!("==================== gen_expression_id entry={}",e);
+					// eprintln!("==================== gen_expression_id entry={}",e);
 					self.gen_expression_struct(token, struct_detail.block_num, struct_detail.index, function_num);
 				}
 			}
@@ -728,7 +728,7 @@ impl<'a> CodeGen<'a>{
 	}
 
 	fn gen_expression_scalar(&mut self, token : &Token, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_scalar: {}", token);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_scalar: {}", token);}
 
 		self.add_machine_instruction(
 			MachineInstruction::new(
@@ -744,7 +744,7 @@ impl<'a> CodeGen<'a>{
 	}
 
 	fn gen_expression_function_call(&mut self, token : &Token, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_function_call: {}", token);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_function_call: {}", token);}
 
 		//  For function calls in an expression, we build machine instructions
 		//	in the order they appear in the postfix express.
@@ -793,7 +793,7 @@ impl<'a> CodeGen<'a>{
 	//	causes the update of the array.  The array is at the top of the stack
 	//	And will never be "popped".
 	fn gen_expression_comma(&mut self, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_comma");}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_comma");}
 
 		if self.collection_context.len() > 0{
 			//	only update if context is array.  Dictionary updates are triggered by RDict tokens
@@ -815,7 +815,7 @@ impl<'a> CodeGen<'a>{
 	}
 
 	fn gen_expression_lbracket(&mut self, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_lbracket");}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_lbracket");}
 		
 		//	if this is the first time we've seen this, set the context to
 		//	array.
@@ -844,7 +844,7 @@ impl<'a> CodeGen<'a>{
 	//	We are creating a new array to be populated via a literal expression.
 	//	it'll never be popped.
 	fn gen_expression_rbracket(&mut self, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_rbracket: delimiters={}", self.delimiter_counter);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_rbracket: delimiters={}", self.delimiter_counter);}
 
 		self.delimiter_counter -= 1;
 
@@ -870,7 +870,7 @@ impl<'a> CodeGen<'a>{
 	}
 
 	fn gen_expression_rindex(&mut self, token : &Token, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_rindex: {}", token);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_rindex: {}", token);}
 		//  At this point TOS is an index and TOS-1 is an array.  The rindex (i.e. "]"
 		//	triggers the fetch_indexed exec function).
 
@@ -890,7 +890,7 @@ impl<'a> CodeGen<'a>{
 	//	This is the bginning of a dictionary literal.  Create a new empty dictionary
 	//	at the top of the stack
 	fn gen_expression_ldict(&mut self, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_ldict");}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_ldict");}
 		self.collection_context.push(CollectionContext::Dict);
 
 		self.add_machine_instruction(
@@ -910,7 +910,7 @@ impl<'a> CodeGen<'a>{
 	//	the dictionary.  This is triggered via the construction of dictionary
 	//	via a literal dictionary expression
 	fn gen_expression_rdict_kv(&mut self, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_rdict_kv");}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_rdict_kv");}
 
 		self.add_machine_instruction(
 			MachineInstruction::new(
@@ -928,16 +928,39 @@ impl<'a> CodeGen<'a>{
 	
 	//	This is the end of a dictionary literal
 	fn gen_expression_rdict(&mut self, _frame_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression_rdict");}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_rdict");}
 
 		self.collection_context.pop();
 	}
 
 	fn gen_expression(&mut self, expression_list : &Vec<Token>, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CODEGEN.gen_expression {}",token_list_text(expression_list));}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CODEGEN.gen_expression {}",token_list_text(expression_list));}
 
 		for t in expression_list{
-			if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_expression: driver {}", t);}
+			if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression: driver {}", t);}
+
+			//	This is a special case (HACK!!!!) that happens when an empty array is getting
+			//	initialized
+			if t.token_type == TokenType::NEW_COLLECTION{
+				let mode : OpcodeMode;
+				if t.token_category == TokenCategory::LBracket{
+					mode = OpcodeMode::Array;
+				}else if t.token_category == TokenCategory::LBrace{
+					mode = OpcodeMode::Dict;
+				}else{
+					mode = OpcodeMode::NONE;
+				}
+				self.add_machine_instruction(MachineInstruction::new(
+					Opcode::PushNewCollection
+					, mode
+					, self.symbol_table.current_frame()
+					, 0
+					, 0
+					, Vec::new()
+					, t.clone()),function_num
+				);
+				continue;
+			}
 
 			match t.token_category{
 				TokenCategory::Factor => self.gen_expression_factor(&t, function_num),
@@ -980,7 +1003,7 @@ impl<'a> CodeGen<'a>{
 	}
 
 	pub fn gen_loop(&mut self, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("gen_loop");}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("gen_loop");}
 
 		//	This is the block where the return instruction goes to
 		let return_block_num = self.get_current_block_num(function_num);
@@ -1035,7 +1058,7 @@ impl<'a> CodeGen<'a>{
 	//	*************************************************************************************
 	
 	pub fn gen_simple(&mut self, token : &Token, expression_list : &Vec<Token>, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen:GEN_SIMPLE: {} {}",token.token_value, token_list_text(expression_list));}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen:GEN_SIMPLE: {} {}",token.token_value, token_list_text(expression_list));}
 		
 		//	If the expression list is empty then the statement better be either BREAK or CONTINUE
 		if expression_list.is_empty() 
@@ -1153,7 +1176,7 @@ impl<'a> CodeGen<'a>{
 	}
 	fn gen_struct_instantiate_push_uninitialized(&mut self, token : &Token, function_num : usize){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){
-			println!("    gen_struct_instantiate_push_uninitialized target={}", token.token_value);
+			eprintln!("    gen_struct_instantiate_push_uninitialized target={}", token.token_value);
 		}
 		//	Add a CplUninitialized to the array
 		let mut uninit = token.clone();
@@ -1182,7 +1205,7 @@ impl<'a> CodeGen<'a>{
 	//
 	pub fn gen_struct_instantiate(&mut self, instantiated_struct : &Token, struct_name : &Token, function_num : usize){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){
-			println!("CodeGen:GEN_STRUCT_INSTANTIATE target={} struct={}", instantiated_struct.token_value, struct_name.token_value);
+			eprintln!("CodeGen:GEN_STRUCT_INSTANTIATE target={} struct={}", instantiated_struct.token_value, struct_name.token_value);
 		}
 
 		//	So what happens here is that the target becomes an array.  The
@@ -1243,7 +1266,7 @@ impl<'a> CodeGen<'a>{
 			if m.initializer.len() == 0{
 				self.gen_struct_instantiate_push_uninitialized(instantiated_struct, function_num);
 			}else{
-				//println!("=================== gen member {:?}",m.initializer);
+				//eprintln!("=================== gen member {:?}",m.initializer);
 				self.gen_expression(&m.initializer, function_num)
 			}
 
@@ -1253,7 +1276,7 @@ impl<'a> CodeGen<'a>{
 			//	the entry does not take up any space in the operand stack
 			let member_ref = format!("{}:{}", instantiated_struct.token_value, m.name);
 			if self.cli.is_debug_bit(TRACE_CODE_GEN){
-				println!("    CodeGen:GEN_STRUCT_INSTANTIATE:adding {} ({},{}) to symbol table",member_ref, struct_index, member_index);
+				eprintln!("    CodeGen:GEN_STRUCT_INSTANTIATE:adding {} ({},{}) to symbol table",member_ref, struct_index, member_index);
 			}
 			self.symbol_table.add_struct_member(member_ref, struct_index, member_index);
 
@@ -1345,7 +1368,7 @@ impl<'a> CodeGen<'a>{
 			),function_num
 		);
 	
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen:GEN_ASSIGNMENT_TO_STRUCT_MEMBER target={}", target.token_value);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen:GEN_ASSIGNMENT_TO_STRUCT_MEMBER target={}", target.token_value);}
 	}
 
 	fn gen_assignment_to_scalar(&mut self, target : &Token, op : &Token, expression_list : &Vec<Token>, function_num : usize){
@@ -1390,7 +1413,7 @@ impl<'a> CodeGen<'a>{
 			),function_num
 		);
 
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_assignment_to_scalar: target={} detail={}", target.token_value, detail);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_assignment_to_scalar: target={} detail={}", target.token_value, detail);}
 	}
 
 	//	Since this is the "lvalue" we need to update in situ.
@@ -1423,7 +1446,7 @@ impl<'a> CodeGen<'a>{
 			),function_num
 		);
 
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("    gen_assignment_to_collection target={} detail={}", target.token_value, detail);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_assignment_to_collection target={} detail={}", target.token_value, detail);}
 	}
 
 	pub fn gen_assignment(&mut self, target : &Token, op : &Token, target_index_expression : &Vec<Token>,expression_list : &Vec<Token>, function_num : usize){		
@@ -1444,11 +1467,11 @@ impl<'a> CodeGen<'a>{
 	}
 
 	pub fn gen_function_call_statement(&mut self, function_name : &Token, expression_list : &Vec<Token>, function_num : usize, argument_count : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen::GEN_FUNCTION_CALL_STATEMENT:  target={}",function_name.token_value);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_FUNCTION_CALL_STATEMENT:  target={}",function_name.token_value);}
 
 		//	find the function name in the frame map
 		if self.frames.frame_names.contains_key(&function_name.token_value){
-			if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen:gen_function_call_statement: {} block {}",function_name.token_value, self.frames.frame_names.get(&function_name.token_value).unwrap().0);}
+			if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen:gen_function_call_statement: {} block {}",function_name.token_value, self.frames.frame_names.get(&function_name.token_value).unwrap().0);}
 		}else{
 			abend!(format!("From gen_function_call_statement: function name {} not found", function_name.token_value));
 		}
@@ -1507,7 +1530,7 @@ impl<'a> CodeGen<'a>{
 	//	used it creates and uninitialized variable at that location.
 	fn gen_alloc(&mut self, target : &Token, detail_block_num : usize, detail_index : usize, function_num : usize){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){
-			println!("    gen_alloc: {} : {}:{}", target,detail_block_num,detail_index);
+			eprintln!("    gen_alloc: {} : {}:{}", target,detail_block_num,detail_index);
 		};
 
 		//	creates an uninitialized variable at the address frame,block,address
@@ -1529,7 +1552,7 @@ impl<'a> CodeGen<'a>{
 	*************************************************************************/
 
 	pub fn gen_eval(&mut self, target : &Vec<Token>, when_count : usize, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen:GEN_EVAL: count={} target={} block_count={}", when_count, token_list_text(&target), self.block_begin_counter);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen:GEN_EVAL: count={} target={} block_count={}", when_count, token_list_text(&target), self.block_begin_counter);}
 		if self.cli.is_debug_bit(INSERT_DIAG_COMMENTS){
 			self.add_machine_instruction(
 				MachineInstruction::new(
@@ -1619,7 +1642,7 @@ impl<'a> CodeGen<'a>{
 		self.make_block_current(eval_block_num, function_num);
 	}
 	pub fn gen_when(&mut self, when_expression : &Vec<Token>, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen::GEN_WHEN: {}", token_list_text(&when_expression));}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_WHEN: {}", token_list_text(&when_expression));}
 		if self.cli.is_debug_bit(INSERT_DIAG_COMMENTS){
 			self.add_machine_instruction(
 				MachineInstruction::new(
@@ -1767,7 +1790,7 @@ impl<'a> CodeGen<'a>{
 
 
 	pub fn gen_otherwise(&mut self, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen::GEN_OTHERWISE");}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_OTHERWISE");}
 		if self.cli.is_debug_bit(INSERT_DIAG_COMMENTS){
 			self.add_machine_instruction(
 				MachineInstruction::new(
@@ -1845,7 +1868,7 @@ impl<'a> CodeGen<'a>{
 
 	pub fn gen_if(&mut self, condition : &Vec<Token>, has_else:bool, else_block_num : usize, function_num : usize){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){
-			println!("CodeGen::GEN_IF has_else={} else_block: {} cond: {}", has_else, else_block_num, token_list_text(&condition));
+			eprintln!("CodeGen::GEN_IF has_else={} else_block: {} cond: {}", has_else, else_block_num, token_list_text(&condition));
 		}
 
 		let current_block_num = self.get_current_block_num(function_num);
@@ -1962,7 +1985,7 @@ impl<'a> CodeGen<'a>{
 	//	instructions in the else block and makes the else block current
 	//	so that all instructions go go there until BlockEnd
 	pub fn gen_else(&mut self, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen::GEN_ELSE");}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_ELSE");}
 		let else_block = self.add_code_block(false, function_num);
 		self.make_block_current(else_block, function_num);
 	}
@@ -1978,7 +2001,7 @@ impl<'a> CodeGen<'a>{
 	*/
 
 	pub fn gen_while(&mut self, condition : &Vec<Token>, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen::GEN_WHILE");}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_WHILE");}
 
 		//	This is the block where the return instruction goes to
 		let return_block_num = self.get_current_block_num(function_num);
@@ -2121,7 +2144,7 @@ impl<'a> CodeGen<'a>{
 	//	Add instructions which, when executed, generates true when the foreach
 	//	loop reaches the end of the iteration.
 	fn gen_foreach_condition(&mut self, foreach_data : &ForeachData, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen::GEN_FOREACH_CONDITION");}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_FOREACH_CONDITION");}
 
 		//	Fetch the source (array) and push it onto the operand stack.
 		if foreach_data.foreach_source.token_type == TokenType::QUALIFIED_ID{
@@ -2332,7 +2355,7 @@ impl<'a> CodeGen<'a>{
 		where i = number of instructions generated for eval.
 	*/	
 	pub fn gen_foreach(&mut self, target : &Token, source_type : &TokenType, source : &Vec<Token>, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("CodeGen::GEN_FOREACH target: {} source type: {} source: {}",target, source_type, source[0]);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_FOREACH target: {} source type: {} source: {}",target, source_type, source[0]);}
 		
 		//	Create a place for the foreach data in this foreach statement
 		let mut foreach_data = ForeachData::new();

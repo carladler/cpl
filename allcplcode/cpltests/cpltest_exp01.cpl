@@ -5,5 +5,5 @@ entry fn ENTRY(){
 	b=1;
 	c=2;
 	a=xx + arr[b+2*3] * arr[c+4] / yy;
-	print a;
+	println a;
 }

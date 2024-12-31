@@ -3,7 +3,7 @@ entry Entry{
 	add_1_to_1(array);
 
 	foreach a array{
-		print a;
+		println a;
 	}
 
 	dictionary = {{"key1",1},{"key2",2},{"key3",3},{"key4",4}};
@@ -23,6 +23,6 @@ fn print_dictionary(d){
 	keys = Keys(d);
 	Sort(keys);
 	foreach key keys{
-		print key."=".d[key];
+		println key."=".d[key];
 	}
 }

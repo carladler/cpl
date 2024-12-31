@@ -6,7 +6,7 @@ entry foo(){
 
 	i=0;
 	while i<Length(keys){
-		print keys[i];
+		println keys[i];
 		i+=1;
 	}
 }

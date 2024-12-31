@@ -5,7 +5,7 @@ entry foo(){
 
 	i=0;
 	while i<Length(a){
-		print a[i];
+		println a[i];
 		i+=1;
 	}
 
@@ -15,6 +15,6 @@ entry foo(){
 	Sort(a);
 	
 	foreach x a{
-		print x;
+		println x;
 	}
 }

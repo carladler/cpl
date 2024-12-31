@@ -208,7 +208,7 @@ impl SymbolTableFrame{
 		self.table.clear();
 	}
 
-	//	for debugging:  print the entry type of a symbole
+	//	for debugging:  println the entry type of a symbole
 	pub fn print_entry_type_in_frame (&self, symbol : &String){
 		for block in self.table.iter().rev(){
 			let rtn = block.table.get(symbol);
@@ -457,7 +457,7 @@ impl <'a> SymbolTable <'a>{
 		frame.pop_block();
 	}
 
-	//	For debugging:  print the entry type of a symbol
+	//	For debugging:  println the entry type of a symbol
 	pub fn print_entry_type(&mut self, symbol : &String){
 		let frame : &SymbolTableFrame = self.tables.last_mut().unwrap(); 
 		frame.print_entry_type_in_frame(symbol);

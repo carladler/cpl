@@ -3,9 +3,9 @@ entry fn ENTRY(){
 	while i<4{
 			b=2;
 		if i==2{
-			print "blat ".i;
+			println "blat ".i;
 		}else{
-			print "i=".i;
+			println "i=".i;
 		}
 		i+=1;
 	}
