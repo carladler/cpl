@@ -2,6 +2,8 @@ use std::fmt;
 use tokenizer::*;
 use opcode::*;
 use macrolib::*;
+use regex::Regex;
+
 
 /****************************************
 ****	Machine Instruction
@@ -30,9 +32,13 @@ impl MachineInstruction{
 		}
 	}
 
+	//	Display the literal token in the instruction but make \r
+	//	control codes are made displayable
 	fn display_literal(&self) -> String{
 		if self.literal.token_type == TokenType::STRING{
-			format!("\"{}\"",self.literal.token_value)
+			let re = Regex::new(r"([\r])").unwrap();
+			let result = re.replace_all(&self.literal.token_value, r"\r");
+			format!("{}",result)
 		}else{
 			self.literal.token_value.clone()
 		}
@@ -53,6 +59,7 @@ impl fmt::Display for MachineInstruction{
 					write!(f,"{} @{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal())
 				}
 			}
+
 			_=>{
 				match self.opcode_mode{
 					OpcodeMode::NONE 		=> write!(f,"{}",self.opcode),
@@ -61,7 +68,7 @@ impl fmt::Display for MachineInstruction{
 					OpcodeMode::Arg			=> write!(f,"{} ^{},{},{}",self.opcode, self.function_num, self.block_num, self.address),
 					OpcodeMode::Function	=> write!(f,"{} target {} frame number {} parameter count {}",self.opcode, self.display_literal(), self.function_num, self.qualifier[0]),
 					OpcodeMode::Lit 		=> write!(f,"{}(lit) \"{}\"",self.opcode, self.display_literal()),
-					OpcodeMode::Extern		=> write!(f,"{} '{}'",self.opcode, self.display_literal()),
+					OpcodeMode::Builtin		=> write!(f,"{} '{}'",self.opcode, self.display_literal()),
 					OpcodeMode::Jump		=> write!(f,"{} *{}",self.opcode, self.address),
 					//OpcodeMode::JumpRel		=> write!(f,"{} **{}",self.opcode, self.address),
 					OpcodeMode::Bl			=> write!(f,"{} rtn={}:{} targ={}", self.opcode, self.block_num, self.address, self.qualifier[0]),
@@ -132,9 +139,10 @@ pub fn token_type_to_opcode(t : TokenType) -> Opcode{
 		TokenType::LIST_SEPARATOR	=> Opcode::IncArgCount,
 
 		TokenType::DAMNIT			=> Opcode::Damnit,
+		TokenType::LENGTH_OF		=> Opcode::LengthOf,
 
 		TokenType::NEW_COLLECTION	=> Opcode::PushNewCollection,
 
-	_ => abend!(format!("Error in token_type_to_opcode: token type {} not implemented", t)),
+	_ => abend!(format!("Error from MachinInstruction.token_type_to_opcode: token type {} not implemented", t)),
 	}
 }

@@ -2,6 +2,9 @@ entry foo{
 	s1 = "this is s1";
 	s2 = "this is s2";
 
+	println "Length of s1 = ".#s1;
+	println "s1#=".(#s1 + 2);
+
 	sn1 = "9";
 	sn2 = "100.1";
 	n1 = 30.1;

@@ -1,10 +1,10 @@
 entry fn foo(args){
-	if Length(args) == 0{
+	if #args == 0{
 		println "This test requires at least 1 numeric command line argument";
 		return 0;
 	}
 	i = 0;
-	while i<Length(args){
+	while i<#args{
 		println args[i]*10.333/2.6;
 		i+=1;
 	}

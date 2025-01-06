@@ -220,7 +220,7 @@ impl<'a> Model<'a>{
 		self.generator.add_structs_to_symbol_table(&self.program.structs);
 
 		//	Next, we need to know what where to start because
-		//	elsewhere we've added a bunch of external functions to
+		//	elsewhere we've added a bunch of builtin functions to
 		//	the frame map.  This call follows a chain of calls that
 		//	make your head hurt.  Suffice it say, the struct that "knows"
 		//	how many frames there are in the Frame Map is in the genstructs::CodeGen
@@ -236,7 +236,7 @@ impl<'a> Model<'a>{
 
 		//	Once we've added all of the function names to the Frame Map
 		//	we now need to add the code for each of those functions.  Note
-		//	that we start at the frame immediately following the last external
+		//	that we start at the frame immediately following the last builtin
 		//	function we added.
 		//
 		//	Note that we pass "args" to every function but only the

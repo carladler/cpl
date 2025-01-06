@@ -8,8 +8,9 @@ use builtin::*;
 use opcode::*;
 use machineinstruction::*;
 use codeframe::*;
-//use abend::*;
 use macrolib::*;
+use std::time::SystemTime;
+use std::time::Duration;
 
 //	These enums indicate the data types of two operands
 enum OperandAnalysis{
@@ -42,9 +43,44 @@ enum OperandType{
 	OtArray,
 }
 
-// fn undefined()->CplVar{
-// 	CplVar::new(CplDataType::CplUndefined(CplUndefined::new()))
-// }
+pub struct Event{
+	pub elapsed : Duration,
+	pub machine_instruction : MachineInstruction,
+	pub qual : String,
+}
+
+impl Event{
+	pub fn new(elapsed : Duration, machine_instruction : &MachineInstruction, qual : String) -> Event{
+		Event{
+			elapsed : elapsed,
+			machine_instruction : machine_instruction.clone(),
+			qual : qual
+		}
+	}
+}
+
+pub struct RuntimeData{
+	pub mark : SystemTime,
+	pub events : Vec<Event>,
+}
+
+impl RuntimeData{
+	pub fn new() -> RuntimeData{
+		RuntimeData{
+			mark : SystemTime::now(),
+			events : Vec::new(),
+		}
+	}
+
+	pub fn mark_begin (&mut self){
+		self.mark = SystemTime::now();
+	}
+
+	pub fn mark_end (&mut self, machine_instruction : &MachineInstruction, runtime_data_qual : String){
+		let elapsed = self.mark.elapsed().expect("SystemTime::elapsed failed");
+		self.events.push(Event::new(elapsed, machine_instruction, runtime_data_qual));
+	}
+}
 
 //	An Executor contains all of the code, operands and processing data
 //	for the execution of a single function.  There is no communication
@@ -80,7 +116,7 @@ pub struct Executor<'a>{
 	//	function
 	arguments : & 'a mut Vec<CplVar>,		// arguments passed to this function
 
-	//	A reference to the external function table which was
+	//	A reference to the builtin function table which was
 	//	built as part of code generation.  It never changes during
 	//	execution
 	builtin_functions : & 'a mut BuiltinFunctions,
@@ -100,6 +136,9 @@ pub struct Executor<'a>{
 
 	//	hmmmm, just a diagnostic
 	_call_flag : bool,
+
+	runtime_data : & 'a mut RuntimeData,
+	runtime_data_qual : String,
 }
 
 impl<'a> Executor<'a>{
@@ -109,6 +148,7 @@ impl<'a> Executor<'a>{
 				, arguments : & 'a mut Vec<CplVar>
 				, operand_stack : & 'a mut OperandStack
 				, arg_count : usize
+				, runtime_data : & 'a mut RuntimeData
 	    	) -> Executor<'a> {
 		Executor{
 			cli : cli,
@@ -126,6 +166,8 @@ impl<'a> Executor<'a>{
 			return_value : CplVar::new(CplDataType::CplUninitialized(CplUninitialized::new())),
 			block_counter : 0,
 			_call_flag : false,
+			runtime_data : runtime_data,
+			runtime_data_qual : String::new(),
 		}
 	}
 
@@ -138,6 +180,7 @@ impl<'a> Executor<'a>{
 		, operand_stack : & 'a mut OperandStack
 		, builtin_functions : & 'a mut BuiltinFunctions
 		, arg_count : usize
+		, runtime_data : & 'a mut RuntimeData
 		) -> Executor<'a> {
 	
 		Executor{
@@ -156,6 +199,8 @@ impl<'a> Executor<'a>{
 			return_value : CplVar::new(CplDataType::CplUninitialized(CplUninitialized::new())),
 			block_counter : 0,
 			_call_flag : true,
+			runtime_data : runtime_data,
+			runtime_data_qual : String::new(),
 		}
 	}
 
@@ -184,12 +229,20 @@ impl<'a> Executor<'a>{
 		self.operand_stack.push_frame();
 
 		if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("At fn exec");}
+		// if cfg!(feature="debugtrace"){
+		// 	eprintln!("blah blah");
+		// 	if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("At fn exec");}
+		// }else{
+		// 	eprintln!("bleet bleet");
+		// }
 
 		while self.instruction_counter < self.code_frames[self.code_frame_num].code_block_list[self.code_block_num].code_block.len() {
 			//	get the current instruction
 			let instruction = self.code_frames[self.code_frame_num].code_block_list[self.code_block_num].code_block.get(self.instruction_counter).unwrap();
 			if self.cli.is_debug_bit(TRACE_EXEC_DISPATCHER){eprintln!("exec(dispatcher): {}:{} {}",self.code_block_num, self.instruction_counter, instruction);}
-			
+
+			self.runtime_data.mark_begin();
+
 			match instruction.opcode{
 
 				Opcode::BlockBegin 				=> self.exec_block_begin(instruction),
@@ -230,10 +283,11 @@ impl<'a> Executor<'a>{
 				Opcode::Lor 					=> self.exec_lor_land(instruction),
 				Opcode::Land 					=> self.exec_lor_land(instruction),
 
-				Opcode::Inc 					=> self.exec_unary_op(instruction),
-				Opcode::Dec 					=> self.exec_unary_op(instruction),
+				Opcode::Inc 					=> self.exec_inc_dec(instruction),
+				Opcode::Dec 					=> self.exec_inc_dec(instruction),
 				Opcode::Uminus 					=> self.exec_unary_op(instruction),	
 				Opcode::Damnit					=> self.exec_unary_op(instruction),
+				Opcode::LengthOf				=> self.exec_length_of(),
 
 				Opcode::J						=> self.exec_j(instruction),
 				Opcode::Jt						=> self.exec_jt(instruction),
@@ -263,6 +317,9 @@ impl<'a> Executor<'a>{
 				_ => abend!(format!("{} Not Implemented Yet", instruction.opcode)),
 			}
 
+			self.runtime_data.mark_end(instruction, self.runtime_data_qual.clone());
+			self.runtime_data_qual.clear();
+
 			if self.cli.is_debug_bit(DUMP_OPERANDS_DISPATCH){
 				eprintln! ("instruction: {}", instruction);
 				self.dump_operands("After instruction Execution");
@@ -279,7 +336,7 @@ impl<'a> Executor<'a>{
 				Opcode::Jf |
 				Opcode::BlockEnd |
 				Opcode::Break |
-				Opcode::Continue		=> {},
+				Opcode::Continue		=> {}
 				
 				//	After executing the return instruction which adds the return
 				//	value to return value register we break out of the exec loop
@@ -455,16 +512,14 @@ impl<'a> Executor<'a>{
 	//	and push that onto the stack.
 	fn push_copy(&mut self, operand : &CplVar, instruction : &MachineInstruction){
 		// if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      push_copy: operand={}, instruction={}",operand, instruction)}
-		//eprintln!("=========== from push_copy operand={} instrunction={}", operand, instruction);
-		// self.dump_operands("======== at push_copy");
 
 		match operand.var{
 			CplDataType::CplNumber(_)			|
 			CplDataType::CplString(_)			|
 			CplDataType::CplBool(_) 			|
-			CplDataType::CplVarRef(_)			|
 			CplDataType::CplUninitialized(_)	|
 			CplDataType::CplUndefined(_) 		=> {
+				self.runtime_data_qual = "Scalar".to_string();
 				if instruction.opcode_mode == OpcodeMode::VarRef{
 					if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      push_copy(VarRef) {},{},{}",  self.operand_stack.current_frame(), instruction.block_num, instruction.address)};
 					self.operand_stack.push(&CplVar::new(CplDataType::CplVarRef(CplVarRef::new(self.operand_stack.current_frame(), instruction.block_num, instruction.address))));
@@ -474,15 +529,25 @@ impl<'a> Executor<'a>{
 				}
 			}
 			
+			CplDataType::CplVarRef(_)					=> {
+				self.runtime_data_qual = "VarRef".to_string();
+				if instruction.opcode_mode == OpcodeMode::VarRef{
+					if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      push_copy(VarRef) {},{},{}",  self.operand_stack.current_frame(), instruction.block_num, instruction.address)};
+					self.operand_stack.push(&CplVar::new(CplDataType::CplVarRef(CplVarRef::new(self.operand_stack.current_frame(), instruction.block_num, instruction.address))));
+				}else{
+					if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      push_copy(mode={}) {}", instruction.opcode_mode, instruction)};
+					self.operand_stack.push(operand);
+				}
+			}
+
 			CplDataType::CplArray(_) | CplDataType::CplDict(_) =>{
+				self.runtime_data_qual = "Collection".to_string();
 				if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      push_copy(Collection) {} {}", operand, instruction)};
 				self.operand_stack.push(&CplVar::new(CplDataType::CplVarRef(CplVarRef::new(self.operand_stack.current_frame(), instruction.block_num, instruction.address))));
 			},
 
 			_ => abend!(format!("From push_copy: I don't know what {} means", operand.var)),
 		}
-
-		//self.dump_operands("======== at end of push_copy");
 	}
 
 	//	Arguments are passed to a function via the arguments array in the exec object.
@@ -593,80 +658,95 @@ impl<'a> Executor<'a>{
 		}
 
 		match tos_ref.var{
-				CplDataType::CplNumber(ref v) => {
-					//	and println the value
-					if s_or_e == 's'{
-						if ln_or_n == 'l' {
-							println!("{}", v.cpl_number);
-						}else{
-							print!("{}", v.cpl_number)
-						}
+			CplDataType::CplNumber(ref v) => {
+				//	and println the value
+				if s_or_e == 's'{
+					if ln_or_n == 'l' {
+						println!("{}", v.cpl_number);
 					}else{
-						if ln_or_n == 'l' {
-							eprintln!("{}", v.cpl_number);
-						}else{
-							eprint!("{}", v.cpl_number)
-						}
+						print!("{}", v.cpl_number)
+					}
+				}else{
+					if ln_or_n == 'l' {
+						eprintln!("{}", v.cpl_number);
+					}else{
+						eprint!("{}", v.cpl_number)
 					}
 				}
+			}
 
-				CplDataType::CplString(ref v) => {
-					//	and println the value
-					if s_or_e == 's'{
-						if ln_or_n == 'l' {
-							println!("{}", v.cpl_string);
-						}else{
-							print!("{}", v.cpl_string)
-						}
+			CplDataType::CplString(ref v) => {
+				//	and println the value
+				if s_or_e == 's'{
+					if ln_or_n == 'l' {
+						println!("{}", v.cpl_string);
 					}else{
-						if ln_or_n == 'l' {
-							eprintln!("{}", v.cpl_string);
-						}else{
-							eprint!("{}", v.cpl_string)
-						}
+						print!("{}", v.cpl_string)
+					}
+				}else{
+					if ln_or_n == 'l' {
+						eprintln!("{}", v.cpl_string);
+					}else{
+						eprint!("{}", v.cpl_string)
 					}
 				}
+			}
 
-				CplDataType::CplBool(ref b) => {
-					//	and println the value
-					if s_or_e == 's'{
-						if ln_or_n == 'l' {
-							println!("{}", b.cpl_bool);
-						}else{
-							print!("{}", b.cpl_bool)
-						}
+			CplDataType::CplBool(ref b) => {
+				//	and println the value
+				if s_or_e == 's'{
+					if ln_or_n == 'l' {
+						println!("{}", b.cpl_bool);
 					}else{
-						if ln_or_n == 'l' {
-							eprintln!("{}", b.cpl_bool);
-						}else{
-							eprint!("{}", b.cpl_bool)
-						}
+						print!("{}", b.cpl_bool)
+					}
+				}else{
+					if ln_or_n == 'l' {
+						eprintln!("{}", b.cpl_bool);
+					}else{
+						eprint!("{}", b.cpl_bool)
 					}
 				}
+			}
 
-				CplDataType::CplArray(ref a) => {
-					println!("[{}]",a);
-					if s_or_e == 's'{
-						println!("[{}]",a);
+			CplDataType::CplArray(ref a) => {
+				if s_or_e == 's'{
+					if ln_or_n == 'l' {
+						println!("{}", a);
 					}else{
-						eprintln!("[{}]",a);
+						print!("{}", a)
 					}
-					if s_or_e == 's'{
-						if ln_or_n == 'l' {
-							println!("[{}]",a);
-						}else{
-							print!("[{}]",a)
-						}
+				}else{
+					if ln_or_n == 'l' {
+						eprintln!("{}", a);
 					}else{
-						if ln_or_n == 'l' {
-							eprintln!("[{}]",a);
-						}else{
-							eprint!("[{}]",a)
-						}
+						eprint!("{}", a)
 					}
 				}
+			}
 
-				_ => eprintln!("Can't print: {}", tos_ref.var),
+			// 	if s_or_e == 's'{
+			// 		println!("[{}]",a);
+			// 	}else{
+			// 		eprintln!("[{}]",a);
+			// 	}
+
+			// 	if s_or_e == 's'{
+			// 		if ln_or_n == 'l' {
+			// 			println!("[{}]",a);
+			// 		}else{
+			// 			print!("[{}]",a)
+			// 		}
+			// 	}
+				
+			// 		if ln_or_n == 'l' {
+			// 			eprintln!("[{}]",a);
+			// 		}else{
+			// 			eprint!("[{}]",a)
+			// 		}
+			// }
+
+			_ => eprintln!("Can't print: {}", tos_ref.var),
 		}
 
 		//	When we're done printing, consume the top of stack
@@ -679,6 +759,7 @@ impl<'a> Executor<'a>{
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar(start): {}", instruction)}
 
 		self.operand_stack.update_local(instruction.block_num, instruction.address);
+		self.runtime_data_qual = "Scalar".to_string();
 
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar(end): {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
 	}
@@ -688,6 +769,7 @@ impl<'a> Executor<'a>{
 	fn update_indexed_direct(&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_indexed_direct: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
 		self.operand_stack.update_local_collection(instruction.block_num, instruction.address);
+		self.runtime_data_qual = "Indexed".to_string();
 	}
 
 	//	As noted, this is a bit tricky:  we need to get a rust reference to the
@@ -808,7 +890,8 @@ impl<'a> Executor<'a>{
 	//  Apply an operator to an lvalue.  If the lvalue is an indexed value (i.e. if
 	//	the mode is "UpdateIndexed") then the target is a collection.  Otherwise it's a
 	//	scalar.
-	fn exec_assignment_operator(&mut self, instruction : &MachineInstruction){
+	fn exec_assignment_operator(&mut self, instruction : &MachineInstruction) {
+
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_assignment_operator: {}", self.code_block_num, self.instruction_counter, instruction)}
 
 		if instruction.opcode_mode == OpcodeMode::UpdateIndexed{
@@ -842,7 +925,6 @@ impl<'a> Executor<'a>{
 					}
 
 					CplDataType::CplArray (ref mut a) => {
-						eprintln!("================= exec_assignment_operator {}",a);
 						a.apply_binary_operator_to_array(&new_value_var, instruction.opcode);
 					}
 					_=> panic!("from exec.apply_binary_operator_scalar:  expected a VarRef to array or dictionary.  Got {}",varref),
@@ -908,6 +990,58 @@ impl<'a> Executor<'a>{
 	//	operand frame (note:  if the variable is a VarRef then it can point
 	//	to any place in the operand stack)
 
+	//	replace the top of the stack with its length.
+	fn exec_length_of(&mut self, ){
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_length_of", self.code_block_num, self.instruction_counter)}
+		//	get what's at the tos -- don't dereference it as it may he a varref to an array
+		let tos = self.operand_stack.pop();
+		let length = self.operand_stack.len(&tos);
+		self.operand_stack.push(&CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Int, length as f64))));
+	}
+
+	fn inc_dec_in_situ(&mut self, opcode : Opcode, frame_num : usize, block_num : usize, address : usize){
+		if let CplDataType::CplNumber(ref mut n) = self.operand_stack.operand_frames
+					.get_mut(frame_num).unwrap()
+					.operand_blocks.get_mut(block_num).unwrap()
+					.operand_block.get_mut(address).unwrap()
+					.var
+		{
+			if opcode == Opcode::Inc{
+				n.cpl_number += 1.0;
+			}else{
+				n.cpl_number -= 1.0;
+			}
+		}else{
+			panic!("from inc_dec_in_situ: can only increment or decrement a number");
+		}
+	}
+
+	//	Increment or Decrement a number.  If the mode is NONE and if the variable at
+	//  the top of the stack is NOT a VarRef then replace it with an incremented or
+	//	decremented value.  If the value at the top of the stack is a var ref then
+	//	act like the mode is Var and remove the VarRef from the stack.  If the mode
+	// is Var then increment or decrement in situ.
+	fn exec_inc_dec (&mut self, instruction : &MachineInstruction){
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_inc_dec: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if instruction.opcode_mode == OpcodeMode::Var{
+			self.inc_dec_in_situ(instruction.opcode, self.operand_stack.current_frame(), instruction.block_num, instruction.address);
+		}else if instruction.opcode_mode == OpcodeMode::NONE {
+			let mut tos = self.operand_stack.pop();
+			if let CplDataType::CplVarRef(ref vr) = tos.var{
+				self.inc_dec_in_situ(instruction.opcode, vr.frame_num, vr.block_num, vr.address);
+			}else if let CplDataType::CplNumber(ref mut n) = tos.var{
+				if instruction.opcode == Opcode::Inc{
+					n.cpl_number += 1.0;
+				}else{
+					n.cpl_number -= 1.0;
+				}
+				self.operand_stack.push(&tos);
+			}else{
+				panic!("Huston, we have a problem.  Inc/Dec mode is not Var or NONE. It's {}", instruction.opcode_mode);
+			}
+		}
+	}
+
 	fn exec_unary_op(&mut self, instruction : &MachineInstruction){
 		self.operand_stack.perform_unary_op(instruction.address, instruction.opcode);
 	}
@@ -958,6 +1092,8 @@ impl<'a> Executor<'a>{
 	fn exec_function_call(&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_function_call: {}", self.code_block_num, self.instruction_counter, instruction)}
 
+		self.runtime_data_qual = instruction.literal.token_value.clone();
+
 		//	We don't need this from now on so reset it
 		self.arg_count = 0;
 
@@ -972,11 +1108,11 @@ impl<'a> Executor<'a>{
 			arg_counter += 1;
 		}
 
-		//	Now, if the called function is external, call it directly (somehow),
+		//	Now, if the called function is a builtin function, call it directly (somehow),
 		//	otherwise we launch a new executor
-		if instruction.opcode_mode == OpcodeMode::Extern{
+		if instruction.opcode_mode == OpcodeMode::Builtin{
 			let rslt = (self.builtin_functions.builtin_function_list.get_mut(instruction.block_num).unwrap().target)(&mut self.builtin_functions, &arguments, &mut self.operand_stack);
-			if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      return from external \"{}\" rslt={}", instruction.literal.token_value, rslt)}
+			if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      return from Builtin \"{}\" rslt={}", instruction.literal.token_value, rslt)}
 			self.operand_stack.push(&rslt);
 			return;
 		}
@@ -987,7 +1123,15 @@ impl<'a> Executor<'a>{
 		let arguments_len = arguments.len();
 
 		//	instantiate a new exec object
-		let mut executor = Executor::call(self.cli, self.code_frames, code_frame_num, &mut arguments, &mut self.operand_stack, self.builtin_functions, arguments_len);
+		let mut executor = Executor::call(self.cli
+			, self.code_frames
+			, code_frame_num
+			, &mut arguments
+			, &mut self.operand_stack
+			, self.builtin_functions
+			, arguments_len
+			, &mut self.runtime_data
+		);
 
 		//	This is the actual call to the run function
 		let return_value = executor.exec();
@@ -1102,14 +1246,23 @@ impl<'a> Executor<'a>{
 
 	fn exec_break (&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_break: {}", self.code_block_num, self.instruction_counter, instruction)}
-		let mut n : i32 = self.block_end_return_address.len() as i32;
-		while n >= 0{
-			self.block_end_return_address.pop();
-			n -= 1;
+		
+		//println!("=============== {}",instruction);
+
+		while ! self.block_end_return_address.is_empty(){
+			let temp = self.block_end_return_address.pop();
+			if let Some(addr) = temp{
+				//println!("=============== {:?}",addr);				
+				if addr.0 == instruction.block_num{
+					break;
+				}
+			}
 		}
 
 		self.code_block_num = instruction.block_num;
 		self.instruction_counter = instruction.address;
+
+
 
 		self.block_counter -= 1;
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{} : exec_break:  return to {} block {}", self.instruction_counter, self.code_block_num, self.block_counter);}
@@ -1122,16 +1275,20 @@ impl<'a> Executor<'a>{
 	fn exec_continue (&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_continue: {}", self.code_block_num, self.instruction_counter, instruction)}
 
+		//println!("==================={}",instruction);
+
 		while !self.block_end_return_address.is_empty(){
-			let _temp = self.block_end_return_address.pop().unwrap();
+			let temp = self.block_end_return_address.pop().unwrap();
+			if temp.0 == instruction.block_num && temp.1 == instruction.address{
+				break;
+			}
+			//println!("================== {:?}",temp)
 		}
 
 		self.code_block_num = instruction.block_num;
 		self.instruction_counter = instruction.address;
 
 		self.block_counter -= 1;
-
-		//  ****************** revisit this.... I think we're removing blocks and not variables
 
 		let mut pop_count = self.operand_stack.variable_count();
 		while pop_count > 1{
@@ -1464,7 +1621,7 @@ impl<'a> Executor<'a>{
 		panic!("from do_op_bool_array: Invalid expression {} {} {}",tos1,opcode,tos2);
 	}
 
-//	The folllowing array operations only support Push and Append.  Things like
+	//	The folllowing array operations only support Push and Append.  Things like
 	//	updating values in an array with some assignment operator or creating the
 	//	product to two vectors we'll leave for another day.
 	fn do_op_array_string(&mut self,tos1 : &CplVar,tos2 : &CplVar,opcode : Opcode){
@@ -1578,7 +1735,7 @@ impl<'a> Executor<'a>{
 		let tos2 = self.operand_stack.dereference_tos();
 		let tos1 = self.operand_stack.dereference_tos();
 
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_binary_operator: ({} {} {})", self.code_block_num, self.instruction_counter, tos1, instruction.opcode, tos2)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_binary_operator({}): (tos1={} tos2={})", self.code_block_num, self.instruction_counter, instruction.opcode, tos1.dbg(), tos2.dbg())}
 
 		let eval = self.operand_eval(&tos1, &tos2);
 		match instruction.opcode{

@@ -11,6 +11,7 @@ opcode = { path = "../opcode" }
 tokenizer = { path = "../tokenizer" }
 macrolib = { path = "../macrolib" }
 csvparser = { path = "../csvparser" }
+regex = "1.11.1"
 
 [lib]
 name="cplvar"

@@ -1,5 +1,5 @@
 entry transitions(args){
-	if Length(args) != 1{
+	if #args != 1{
 		return "You must supply the file name.  trans.cpl usage:  run trans.cpl <file name>";
 	}
 	in_file = Fopen(args[0],"<");
@@ -7,14 +7,14 @@ entry transitions(args){
 	in_comment = false;
 	while !Feof(in_file){
 		//	skip emmpty lines
-		if Length(a) == 0{
+		if #a == 0{
 			a = Freadln(in_file);
 			continue;
 		}
 
 		if in_comment {
 			match = Match(a,"\\*/",0);
-			if Length(match) > 0{
+			if #match > 0{
 				in_comment = false;
 				a = Freadln(in_file);
 				continue;
@@ -25,14 +25,14 @@ entry transitions(args){
 		}
 
 		match = Match(a,"/\\*",0);
-		if Length(match) > 0{
+		if #match > 0{
 			in_comment = true;
 			a = Freadln(in_file);
 			continue;
 		}
 
 		match = Match(a,"^//.*",0);
-		if Length(match) > 0{
+		if #match > 0{
 			a = Freadln(in_file);
 			continue;
 		}
@@ -48,11 +48,11 @@ entry transitions(args){
 			do_nothing = "true";
 		}
 
-		if Length(trans) > 0{
+		if #trans > 0{
 			println "(ParserStateTransitionKey::new(ParserState::".trans[0].",TokenCategory::".trans[1]."),";
 			println "\tParserStateTransitionContent::new(ParserState::".trans[2].",".do_nothing.",".'"'.trans[3].'"'.",Parser::".trans[3].")),";
 		}
-		//println Length(trans);
+		//println #trans;
 		//println a;
 		a = Freadln(in_file);
 	}

@@ -1,0 +1,58 @@
+entry dup(args){
+	if #args < 1 {
+		println "Usage: dups <ls output file>";
+		return 1;
+	}
+	// open the file
+	ls_file = Fopen(args[0],"<");
+	// directory_line_capture = Regex("^(?i)(/Users/Carl/McTreeHouse.*):");
+	// file_line_capture = Regex("^([-])([-\\w@]+)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(\\d+)\\s+(\\w+)\\s+(\\d+)\\s+(\\d+:\\d+:\\d+)\\s+(\\d{4})\\s+(.*)");
+
+	//	read the file into memory
+	directory_lines = [];
+	Fread(ls_file, directory_lines);
+	output=[];
+
+	count=0;
+	dir_count = 0;
+	file_count = 0;
+	
+	eprintln "read count: ".#directory_lines;
+
+	process_count = 0;
+	analyze_count = 0;
+	line_index = 0;
+
+	while line_index < #directory_lines{
+		process_count += 1;
+		if process_count & 4097 == 0 {eprint process_count."\r";}
+		if #directory_lines[line_index] > 0{
+			analyze_count += 1;
+			first_char = Substr(directory_lines[line_index],0,1);
+
+			if first_char == "/"{
+				dir_count += 1;
+				line_index += 1;
+				continue;
+			}
+			
+			if first_char == "-"{
+				file_count += 1;				
+			}
+		}
+		line_index += 1;
+	}
+
+	eprintln "";
+	eprintln "total entries processed=".line_index;
+	eprintln "total entries analyzed=".analyze_count;
+
+	// foreach o output{
+	// 	println o;
+	// }
+
+
+	eprintln "directories=".dir_count;
+	eprintln "files=".file_count;
+	// eprintln "total written=".write_count;
+}

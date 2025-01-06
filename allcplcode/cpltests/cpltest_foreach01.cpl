@@ -1,5 +1,5 @@
 entry  fn hello(args){
-	if Length(args) == 0{
+	if #args == 0{
 		println "This test requires at least 1 command line argument";
 		return 0;
 	}

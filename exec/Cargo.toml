@@ -16,6 +16,7 @@ opcode = { path = "../opcode" }
 machineinstruction = { path = "../machineinstruction" }
 codeframe = { path = "../codeframe" }
 macrolib = { path = "../macrolib" }
+cpu-time = "1.0.0"
 
 [lib]
 name="exec"

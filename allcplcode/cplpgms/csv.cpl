@@ -1,5 +1,5 @@
 entry csv(args){
-	if Length(args) < 1 {
+	if #args < 1 {
 		print "Usage: csv <csv file>";
 		return 1;
 	}
@@ -16,7 +16,7 @@ entry csv(args){
 
 fn process_csv_line(line){
 	food = Split(line,'/[,"]/');
-	println Length(food);
+	println #food;
 	foreach f food{
 		println f;	
 	}

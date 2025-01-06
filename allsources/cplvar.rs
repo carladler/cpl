@@ -12,6 +12,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::collections::HashMap;
 use std::str;
+use regex::Regex;
 
 use opcode::*;
 use tokenizer::*;
@@ -754,9 +755,26 @@ impl OperandStack{
 	// 	rtn.clone()
 	// }
 
-	fn len_deref(&mut self, var : &CplVar) -> usize{
-		let local = self.dereference(var);
-		self.len(&local)
+
+	//	Requested the length of a variable pointed to by a VarRef
+	//	Follow it down the rabbit hole until we see a real variable
+	//	and then return its length.
+	fn varref_len(&mut self, varref : &CplVar) -> usize{
+		let mut local_varref = varref;
+		loop{
+			match local_varref.var{
+				CplDataType::CplArray(ref a)	=> return a.len(),
+				CplDataType::CplString(ref s)	=>return  s.len(),
+				CplDataType::CplDict(ref d)		=> return d.len(),
+				CplDataType::CplVarRef(ref vr)		=>{
+					local_varref = &self.operand_frames.get(vr.frame_num).unwrap()
+						.operand_blocks.get(vr.block_num).unwrap()
+						.operand_block.get(vr.address).unwrap();
+					continue;
+				}
+				_=> return 1,
+			}
+		}
 	}
 
 	//	get the length of a variable:
@@ -766,14 +784,14 @@ impl OperandStack{
 	//		Dictionary: number of keys
 	//		All other types: 1
 	pub fn len(&mut self, var : &CplVar) -> usize{
-		return match var.var{
+		match var.var{
 			CplDataType::CplVarRef(_) 		=> {
-				self.len_deref(&var)
+				return self.varref_len(var);
 			}
-			CplDataType::CplArray(ref a)	=> a.len(),
-			CplDataType::CplString(ref s)	=> s.len(),
-			CplDataType::CplDict(ref d)		=> d.len(),
-			_=> 1,
+			CplDataType::CplArray(ref a)	=> return a.len(),
+			CplDataType::CplString(ref s)	=> return s.len(),
+			CplDataType::CplDict(ref d)		=> return d.len(),
+			_=> return 1,
 		};
 	}
 
@@ -1106,6 +1124,20 @@ impl CplVar{
 			CplDataType::CplFileWriter(_) 			=> eprintln!("File Writer"),
 			CplDataType::CplFileAppender(_) 		=> eprintln!("File Appender"),
 			CplDataType::CplStruct(a)				=> a.print(),
+		}
+	}
+
+	//	return a hacked up version of this var used by trace displays and other
+	//	debugging purposes.  If it's not a string just return it.  If it is a string, make sure
+	// 	replace control codes with "//<code>"
+	//	codes in it
+	pub fn dbg(&self) -> String{
+		if let CplDataType::CplString(ref s) = self.var{
+			let re = Regex::new(r"([\r])").unwrap();
+			let result = re.replace_all(&s.cpl_string, r"\r");
+			return format!("{}",result);
+		}else{
+			return format!("{}",self.var);
 		}
 	}
 }
@@ -1516,7 +1548,6 @@ impl CplString{
 			_=> abend!(format!("from CplNumber.apply_operator_to_number: Unable to perform {} {} {}", self.cpl_string, op, newv)),
 		}
 	}
-
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -1777,7 +1808,7 @@ impl CplFileReader{
 
 		//-----------------------------------------------------------------------------
 		//	TODO:	Really big stupid change.  Tokenizer should be able to parse
-		//	CSV but it is to tightly integrated with the command line interpreter
+		//	CSV but it is too tightly integrated with the command line interpreter
 		//	module (CLI). We need to disentangle it from CLI so that it can be
 		//	used with either the CPL program or any other file we want to point
 		//	it at -- like this CSV file for example.  For now, we'll have to do

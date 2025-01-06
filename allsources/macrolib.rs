@@ -1,5 +1,6 @@
 // ********  CPL Macro Library  ********
 //
+#![allow(unused_macros)]
 #[macro_export]
 macro_rules! abend{
 	($x:expr) => {
@@ -10,15 +11,10 @@ macro_rules! abend{
 	};
  }
 
-//  #[macro_export]
-// macro_rules! mtest {
-//     ( $( $x:expr ),* ) => {
-//         {
-// 			println!(
-//                 $(
-//                     "{}",($x)
-//         		)*
-// 			)
-//         }
-//     };
-// }
+//  macro_rules! dbg{
+// 	($x:expr) => {
+// 		{
+			
+// 		}
+// 	};	
+//  }

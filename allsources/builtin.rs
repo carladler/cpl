@@ -102,7 +102,7 @@ impl BuiltinFunctions {
 	/*********************************************************
 		Builtin Functions
 	*********************************************************
-		these functions are accessed via an index into the external
+		these functions are accessed via an index into the builtin
 		function table.
 
 		all function accept a reference to a stack of CplVars

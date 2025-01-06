@@ -1,6 +1,10 @@
 entry foo(){
 	b = "variable b";
 	array=[b,"two",3];
+	
+	array += "four";
+	println array[3];
+
 	println array[0];
 	element=array[1];
 	println element;

@@ -51,7 +51,7 @@ impl FrameMap{
 	pub fn code_dump(&self){
 		//  do this unconditionally:  the debug bit is checked by the callers
 		for f in &self.frames_list{
-			if f.is_extern{
+			if f.is_builtin{
 				println!("{} is Builtin", f.function_name);
 			}else{
 				println!("Generated Code for Function {}", f.function_name);
@@ -140,19 +140,19 @@ pub struct CodeFrame{
 	//cli : & 'a CLI,
 	pub function_name : String,
 	pub is_entry : bool,				// if true then this frame holds the entry function
-	pub is_extern : bool,
+	pub is_builtin : bool,
 	pub parameters : Vec<String>,					// parameters for the function
 	pub code_block_list : Vec<CodeBlock>,			// The list intermediate code blocks
 	pub current_code_block_num : Vec<usize>,		// Which code block are we adding instructions to
 }
 
 impl CodeFrame {
-	pub fn new(function_name : &str, is_entry : bool, is_extern : bool, parameters : Vec<String>) -> CodeFrame{
+	pub fn new(function_name : &str, is_entry : bool, is_builtin : bool, parameters : Vec<String>) -> CodeFrame{
 		CodeFrame{
 			//cli : cli,
 			function_name : function_name.to_string(),
 			is_entry : is_entry,
-			is_extern : is_extern,
+			is_builtin : is_builtin,
 			parameters : parameters,
 			code_block_list : Vec::new(),
 			current_code_block_num : Vec::new(),

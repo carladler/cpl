@@ -48,9 +48,13 @@ pub struct ForeachData{
 	//	The token that created the collection detail
 	foreach_source : Token,
 
-	//	But the source might be a struct member containing an array so
-	//	it's type is "variable".  It might be normal or might be struct member  
-	foreach_source_detail : Option<SymbolTableEntryType>,
+	//	foreach source details
+	foreach_source_block_num : usize,
+	foreach_source_address : usize,
+
+	// //	But the source might be a struct member containing an array so
+	// //	it's type is "variable".  It might be normal or might be struct member  
+	// foreach_source_detail : Option<SymbolTableEntryType>,
 }
 
 impl ForeachData{
@@ -61,7 +65,10 @@ impl ForeachData{
 			foreach_target : Token::new(),
 			foreach_target_detail : NormalSymbolEntry::initialize(),
 			foreach_source: Token::new(),
-			foreach_source_detail : None,	
+			foreach_source_block_num : 0,
+			foreach_source_address : 0,
+
+			// foreach_source_detail : None,	
 		}
 	}
 }
@@ -200,7 +207,7 @@ impl<'a> CodeGen<'a>{
 	}
 
 
-	//	Get the current address of the current block (i.e. the address counter)
+	//	Get the current address of the current code block (i.e. the address counter)
 	fn get_current_address (&self, function_num : usize) -> usize{
 		self.frames.frames_list[function_num].get_current_address()
 	}
@@ -769,7 +776,7 @@ impl<'a> CodeGen<'a>{
 		//	define whether or not the function is internal or builtin
 		let opcode_mode : OpcodeMode;
 		if target_frame_info.1 {
-			opcode_mode = OpcodeMode::Extern;
+			opcode_mode = OpcodeMode::Builtin;
 		}else{
 			opcode_mode = OpcodeMode::Function;
 		}
@@ -953,6 +960,17 @@ impl<'a> CodeGen<'a>{
 				self.add_machine_instruction(MachineInstruction::new(
 					Opcode::PushNewCollection
 					, mode
+					, self.symbol_table.current_frame()
+					, 0
+					, 0
+					, Vec::new()
+					, t.clone()),function_num
+				);
+				continue;
+			}else if t.token_type == TokenType::LENGTH_OF{
+				self.add_machine_instruction(MachineInstruction::new(
+					Opcode::LengthOf
+					, OpcodeMode::Var
 					, self.symbol_table.current_frame()
 					, 0
 					, 0
@@ -1493,7 +1511,7 @@ impl<'a> CodeGen<'a>{
 
 		let opcode_mode : OpcodeMode;
 		if target_frame_info.1 {
-			opcode_mode = OpcodeMode::Extern;
+			opcode_mode = OpcodeMode::Builtin;
 		}else{
 			opcode_mode = OpcodeMode::Function;
 		}
@@ -1622,7 +1640,7 @@ impl<'a> CodeGen<'a>{
 		self.eval_data.push(eval_data.clone());
 
 		//	get the current instruction address
-		let current_address = self.get_current_address(function_num);
+		let current_code_address = self.get_current_address(function_num);
 
 		//	branch and link to the eval block
 		//	current address + 1:  call the if block return to the next instruction
@@ -1632,7 +1650,7 @@ impl<'a> CodeGen<'a>{
 				, OpcodeMode::Bl
 				, self.symbol_table.current_frame()
 				, current_block_num
-				, current_address + 1
+				, current_code_address + 1
 				, vec!(eval_block_num)
 				, Token::new()
 			),function_num
@@ -1708,7 +1726,7 @@ impl<'a> CodeGen<'a>{
 		);	
 
 		//	get the current instruction address
-		let current_address = self.get_current_address(function_num);
+		let current_code_address = self.get_current_address(function_num);
 
 		//	if the two operands were not equal. jump around
 		//	the branch and link
@@ -1718,7 +1736,7 @@ impl<'a> CodeGen<'a>{
 				, OpcodeMode::Jump
 				, self.symbol_table.current_frame()
 				, 0
-				, current_address + 3   
+				, current_code_address + 3   
 				, Vec::new()
 				, Token::new()
 			),function_num
@@ -1732,7 +1750,7 @@ impl<'a> CodeGen<'a>{
 				, OpcodeMode::Bl
 				, self.symbol_table.current_frame()
 				, current_block_num
-				, current_address + 2
+				, current_code_address + 2
 				, vec!(when_block_num)
 				, Token::new()
 			),function_num
@@ -1772,7 +1790,7 @@ impl<'a> CodeGen<'a>{
 						, OpcodeMode::Bl
 						, self.symbol_table.current_frame()
 						, current_block_num
-						, current_address + 2
+						, current_code_address + 2
 						, vec!(self.eval_data[eval_data_index].otherwise_block_num)
 						, Token::new()
 					),function_num
@@ -1812,7 +1830,7 @@ impl<'a> CodeGen<'a>{
 		let otherwise_block_num = self.add_code_block(false, function_num);
 
 		//	get the current instruction address
-		let current_address = self.get_current_address(function_num);
+		let current_code_address = self.get_current_address(function_num);
 
 		//	emit the branch to the otherwise block
 		self.add_machine_instruction(
@@ -1821,7 +1839,7 @@ impl<'a> CodeGen<'a>{
 				, OpcodeMode::Bl
 				, self.symbol_table.current_frame()
 				, current_block_num
-				, current_address + 1
+				, current_code_address + 1
 				, vec!(otherwise_block_num)
 				, Token::new()
 			),function_num
@@ -1882,7 +1900,7 @@ impl<'a> CodeGen<'a>{
 
 		//	get an address that we'll be using as a return address (with some modifications)
 		//  as well as the basis for jumping around
-		let current_address = self.get_current_address(function_num);
+		let current_code_address = self.get_current_address(function_num);
 
 		/*
 				   <condition eval>
@@ -1914,7 +1932,7 @@ impl<'a> CodeGen<'a>{
 				, OpcodeMode::Jump
 				, self.symbol_table.current_frame()
 				, 0
-				, current_address + jf_offset
+				, current_code_address + jf_offset
 				, Vec::new()
 				, Token::new()
 			),function_num
@@ -1927,7 +1945,7 @@ impl<'a> CodeGen<'a>{
 				, OpcodeMode::Bl
 				, self.symbol_table.current_frame()
 				, current_block_num
-				, current_address + 2
+				, current_code_address + 2
 				, vec!(if_block_num)
 				, Token::new()
 			),function_num
@@ -1943,7 +1961,7 @@ impl<'a> CodeGen<'a>{
 					, OpcodeMode::Jump
 					, self.symbol_table.current_frame()
 					, 0
-					, current_address + 4					// this will be modified at block end
+					, current_code_address + 4					// this will be modified at block end
 					, Vec::new()
 					, Token::new()
 				),function_num
@@ -1956,7 +1974,7 @@ impl<'a> CodeGen<'a>{
 					, OpcodeMode::Jump
 					, self.symbol_table.current_frame()
 					, 0
-					, current_address + 3					// this will be modified at block end
+					, current_code_address + 3					// this will be modified at block end
 					, Vec::new()
 					, Token::new()
 				),function_num
@@ -1971,7 +1989,7 @@ impl<'a> CodeGen<'a>{
 					, OpcodeMode::Bl
 					, self.symbol_table.current_frame()
 					, current_block_num
-					, current_address + 4
+					, current_code_address + 4
 					, vec!(else_block_num)
 					, Token::new()
 				),function_num
@@ -2064,287 +2082,6 @@ impl<'a> CodeGen<'a>{
 		self.make_block_current(while_block_num, function_num);
 	}
 
-	//	if the source is struct member, then it is actually an element of an array whose index
-	//	we got from the symbol table
-	fn gen_foreach_struct_member_source(&mut self, foreach_data : &ForeachData, function_num : usize){
-		//	First, we need to get the address of the instantiated struct (e.g. "foo:")
-		//	first we need to split this into the struct part and the member part
-		let parts: Vec<&str> = foreach_data.foreach_source.token_value.split(':').collect();
-		let mut struct_name = parts[0].to_string();
-		struct_name.push(':');
-
-		//	get the address of the instantiated struct
-		let struct_detail = self.symbol_table.get_normal_address(&struct_name);
-
-		//	push the instantiated struct onto the operand stack (this
-		//	is the array that implements the instantiated struct)
-		self.gen_expression_id_detail(&foreach_data.foreach_source, &struct_detail, function_num);
-
-		//	next we need to get the element containing the array we want to
-		//	iterate.  To do this we'll need the the member_number on the stack
-		let member_entry = self.symbol_table.get_struct_member_entry(&foreach_data.foreach_source.token_value);
-
-		//	Construct a token containing the index
-		let mut index_token = foreach_data.foreach_source.clone();
-		index_token.token_value = member_entry.member_index.to_string();
-		index_token.token_category = TokenCategory::Factor;
-		index_token.token_type = TokenType::INTEGER;
-		
-		//	Now push the index onto the stack
-		self.gen_expression_scalar(&index_token, function_num);
-
-		//  Emit the fetch indexed instruction
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::FetchIndexed
-				, OpcodeMode::NONE
-				, self.symbol_table.current_frame()
-				, 0			
-				, 0
-				, Vec::new()
-				, foreach_data.foreach_source.clone()
-			),function_num
-		);
-
-		//  Now, theoretically, the top of the stack contains the array we
-		//	are iterating.  Don't forget to pop the instatiated struct from the
-		//	stack (which is just underneath the source array) when we're all
-		//	done.
-	}
-
-	//	If the sorce is a normal variable, then we get it directly (as opposed to a struct
-	//	member which we have to futz around to get it)
-	fn gen_foreach_normal_source(&mut self, foreach_data : &ForeachData, function_num : usize){
-		//	The source detail is an Option<SymbolTableEntryType> so we have to mess around
-		//	to get the actual detail
-
-		match &foreach_data.foreach_source_detail{
-			None => abend!(format!("from gen_foreach_normal_source:  source detail was empty (None)")),
-			Some(detail) => {
-				if let SymbolTableEntryType::NormalSymbolEntry(entry) = detail{
-					//	push the collection address onto the stack
-					self.add_machine_instruction(
-						MachineInstruction::new(
-							Opcode::Push
-							, OpcodeMode::Var
-							, self.symbol_table.current_frame()
-							, entry.block_num		// block num
-							, entry.index			// address in block
-							, Vec::new()
-							, foreach_data.foreach_source.clone()
-						),function_num
-					);
-				}else{
-					abend!(format!("from gen_foreach_normal_source:  Soruce was souppose to be NORMAL but it wasn't"));
-				}				
-			}
-		}
-	}
-
-	//	Add instructions which, when executed, generates true when the foreach
-	//	loop reaches the end of the iteration.
-	fn gen_foreach_condition(&mut self, foreach_data : &ForeachData, function_num : usize){
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_FOREACH_CONDITION");}
-
-		//	Fetch the source (array) and push it onto the operand stack.
-		if foreach_data.foreach_source.token_type == TokenType::QUALIFIED_ID{
-			self.gen_foreach_struct_member_source(foreach_data, function_num);
-		}else{
-			self.gen_foreach_normal_source(foreach_data, function_num);
-		}
-
-		//	push the iteration counter address onto the stack
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Push
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, foreach_data.foreach_iter_counter_detail.block_num		// block num
-				, foreach_data.foreach_iter_counter_detail.index 			// address in block
-				, Vec::new()
-				, foreach_data.foreach_iter_counter.clone()
-			),function_num
-		);
-
-
-		//	need a number token = 1
-		let one = Token::new2(
-			TokenType::INTEGER
-			, "1".to_string()
-			, 0
-			, "ha ha".to_string()
-			, TokenCategory::Factor
-		);
-	
-		//	increment the iteration counter (it's already on the stack)
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Push
-				, OpcodeMode::Lit
-				, self.symbol_table.current_frame()
-				, 0
-				, 0
-				, Vec::new()
-				, one.clone()
-			),function_num
-		);
-
-		//	add the 1 to the iteration counter (the second instance of it)
-		//	leaves result on the stack.
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Add
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, 0
-				, 0
-				, Vec::new()
-				, Token::make_string("gen_foreach_condition")
-			),function_num
-		);
-
-		//	and update the actual iteration counter (not the copy on the stack).  The
-		//	update removes the update value so that only the unmodified instance
-		//	of the iter counter is on the stack.
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Update
-				, OpcodeMode::Update
-				, self.symbol_table.current_frame()
-				, foreach_data.foreach_iter_counter_detail.block_num
-				, foreach_data.foreach_iter_counter_detail.index
-				, Vec::new()
-				, Token::new()
-			),function_num
-		);
-
-		//	Get the iteration counter in preperation for the fetch indexed
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Push
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, foreach_data.foreach_iter_counter_detail.block_num		// block num
-				, foreach_data.foreach_iter_counter_detail.index			// address in block
-				, Vec::new()
-				, foreach_data.foreach_iter_counter.clone()
-			),function_num
-		);
-
-		//	generate the FetchIndexed Instruction which leaves the result of the fetch
-		//	on the stack
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::FetchIndexed
-				, OpcodeMode::Internal				// this instruction generated internally
-				, self.symbol_table.current_frame()
-				, 0									// frame number of called function
-				, 0
-				, Vec::new()						//  NOTE:  was vec!(1) to restrict to array only
-				, foreach_data.foreach_source.clone()
-			),function_num
-		);
-
-		// the fetch_indexed instructions returns a CplVar which we want to
-		// update the target with
-		self.frames.frames_list.get_mut(function_num).unwrap().add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Update
-				, OpcodeMode::Update
-				, self.symbol_table.current_frame()
-				, foreach_data.foreach_target_detail.block_num
-				, foreach_data.foreach_target_detail.index
-				, Vec::new()
-				, foreach_data.foreach_target.clone()
-			)
-		);
-
-		//  Since the update instruction removes the var that it uses to
-		//  update, we have to fetch it again do we can get it's type
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Push
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, foreach_data.foreach_target_detail.block_num		// block num
-				, foreach_data.foreach_target_detail.index			// address in block
-				, Vec::new()
-				, foreach_data.foreach_target.clone()
-			),function_num
-		);
-
-		//	construct a token that repsents the function call for Type.
-		let get_type_function = Token::new2(
-			TokenType::FUNCTION_CALL(1)
-			, "Type".to_string()
-			, foreach_data.foreach_source.line_number
-			, foreach_data.foreach_source.line_text.clone()
-			, TokenCategory::FunctionCall
-		);
-
-
-		let target_frame_info = self.get_function_frame_info(&get_type_function.token_value);
-		let target_parameter_count = self.get_function_parameter_count(target_frame_info.0);
-
-		//	now, we've got the result of the FetchIndexed instruction, on the stack
-		//	we want get it's type on the stack via the Type function call
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::FunctionCall
-				, OpcodeMode::Extern
-				, self.symbol_table.current_frame()
-				, target_frame_info.0			// frame number of called function
-				, 0
-				, vec!(target_parameter_count, 0)	// number of parameters declared, is_statement=false
-				, get_type_function
-			),function_num
-		);
-
-		//	now we've got the target type on the stack.  We need to see if it's
-		//	a CplUndefined type and, if so, exit the loop, otherwise jump back to
-		//	the beginning of the block.  Recall (if you can) that Type returns
-		//	a CplString containing the name of the data type.  So we're effectively
-		//	comparing strings.  Push the literal "CplUndefined" onto the stack.  First
-		//	create a string token
-		
-		let cpl_undefined = Token::new2(
-			TokenType::STRING
-			, "CplUndefined".to_string()
-			, foreach_data.foreach_source.line_number
-			, foreach_data.foreach_source.line_text.clone()
-			, TokenCategory::Factor
-		);
-
-		//	now add the instruction that pushes the "undefined" string onto the stack
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Push
-				, OpcodeMode::Lit
-				, self.symbol_table.current_frame()
-				, 0
-				, 0
-				, Vec::new()
-				, cpl_undefined.clone()
-			),function_num
-		);	
-
-	 	//	now add the comparison, which will compare the
-		//	the top two element of stack and return:  -1, 0 or 1 depending on the textual
-		//	comparison of the two strings.  Eq asks are these two things the same.
-		//	the resut is either true or false
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Eq
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, 0
-				, 0
-				, Vec::new()
-				, cpl_undefined.clone()
-			),function_num
-		);	
-	}
-
 	/*
 		n
 				<condition eval>
@@ -2357,6 +2094,9 @@ impl<'a> CodeGen<'a>{
 	pub fn gen_foreach(&mut self, target : &Token, source_type : &TokenType, source : &Vec<Token>, function_num : usize){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_FOREACH target: {} source type: {} source: {}",target, source_type, source[0]);}
 		
+		//	get the current address in code space
+		let mut current_code_address = self.get_current_address(function_num);
+
 		//	Create a place for the foreach data in this foreach statement
 		let mut foreach_data = ForeachData::new();
 		
@@ -2371,14 +2111,15 @@ impl<'a> CodeGen<'a>{
 		foreach_data.foreach_target = target.clone();
 
 		//	get the collection (source) detail from the symbol table.  It might be a
-		//	struct member or it might be a normal variable
-		if foreach_data.foreach_source.token_type == TokenType::QUALIFIED_ID{
-			let source_detail = self.symbol_table.get_struct_member_entry(&source[0].token_value);
-			foreach_data.foreach_source_detail = Some(SymbolTableEntryType::StructMemberEntry(source_detail));
-		}else{
-			let source_detail = self.symbol_table.get_normal_address(&source[0].token_value);
-			foreach_data.foreach_source_detail = Some(SymbolTableEntryType::NormalSymbolEntry(source_detail));
-		}
+		//	struct member or it might be a normal variable.
+		//
+		//	NOTE:  we are effectively ignoring "source_type" for now.  That is, we don't support
+		//	foreach on literal arrays or struct members.
+		let source_detail = self.symbol_table.get_normal_address(&source[0].token_value);
+		foreach_data.foreach_source_block_num = source_detail.block_num;
+		foreach_data.foreach_source_address = source_detail.index;
+
+		// foreach_data.foreach_source_detail = Some(SymbolTableEntryType::NormalSymbolEntry(source_detail));
 
 		//	Create a target variable or use it if it alrelady exists
 		match self.symbol_table.get_symbol_entry(&target.token_value){
@@ -2386,7 +2127,9 @@ impl<'a> CodeGen<'a>{
 				//	add the symbol and return its detail
 				foreach_data.foreach_target_detail = self.symbol_table.add_normal_symbol(&target.token_value);
 				//	Generate the alloc for the new symbol
+
 				self.gen_alloc(&target, foreach_data.foreach_target_detail.block_num, foreach_data.foreach_target_detail.index, function_num);
+				current_code_address += 1;
 			},
 			//	the symbol exists so just get its detail	
 			Some (entry) 	=> {
@@ -2412,106 +2155,240 @@ impl<'a> CodeGen<'a>{
 		//	Add the iteration counter to the operand stack to make it a real
 		//	variable
 		//	if the symbol already exists, then it's an error:  this is a temporary variable
-		match self.symbol_table.get_symbol_entry(&iter_counter_name){
-			Some(_) => abend!(format!("Houston we have a problem.  gen_foreach trying to add iteration counter twice")),
-			None => {
-				//	add the symbol and return its detail
-				foreach_data.foreach_iter_counter_detail = self.symbol_table.add_normal_symbol(&iter_counter_name);
-				
-				//	Generate the alloc for the new symbol
-				self.gen_alloc(&foreach_data.foreach_iter_counter, foreach_data.foreach_iter_counter_detail.block_num, foreach_data.foreach_iter_counter_detail.index , function_num);
-
-				let iter_value_0 = Token::new2(
-					TokenType::INTEGER
-					, "-1".to_string()
-					, 0
-					, "ha ha".to_string()
-					, TokenCategory::Factor
-				);
-			
-				//	Set the iteration counter to -1, push a -1 on to the stack.  This is because
-				//	the foreach_condition increments the counter before it tries to fetch the
-				//	item from the collection
-				self.add_machine_instruction(
-					MachineInstruction::new(
-						Opcode::Push
-						, OpcodeMode::Lit
-						, self.symbol_table.current_frame()
-						, 0
-						, 0
-						, Vec::new()
-						, iter_value_0
-					),function_num
-				);
-
-				//	Set the iteration counter to -1
-				self.add_machine_instruction(
-					MachineInstruction::new(
-						Opcode::Update
-						, OpcodeMode::Update
-						, self.symbol_table.current_frame()
-						, foreach_data.foreach_iter_counter_detail.block_num
-						, foreach_data.foreach_iter_counter_detail.index
-						, Vec::new()
-						, foreach_data.foreach_iter_counter.clone()
-					),function_num
-				);
-			},
-		}
-		//	Now, generate the condition evaluation instruction which leaves either true or
-		//	false on the stack
-
-		//	get the address of the expression evaluation instruction start
-		let pre_condition_address = self.get_current_address(function_num);
 		
-		//	generate instruction that will compute the result of the condition
-		self.gen_foreach_condition (&foreach_data, function_num);
+		match self.symbol_table.get_symbol_entry(&iter_counter_name){
+			Some(_) => panic!("Houston we have a problem.  gen_foreach trying to add iteration counter twice"),
+			None => {} 	// this is the normal so just keep going.
+		}
 
-		//	get the address after the condition computation
-		let post_condition_address = self.get_current_address(function_num);
+		//	add the symbol for the iteration index and return its detail
+		foreach_data.foreach_iter_counter_detail = self.symbol_table.add_normal_symbol(&iter_counter_name);
+		
+		//	Generate the alloc for the new symbol
+		self.gen_alloc(&foreach_data.foreach_iter_counter, foreach_data.foreach_iter_counter_detail.block_num, foreach_data.foreach_iter_counter_detail.index , function_num);
+		current_code_address += 1;
 
-		//	post_condition_address + 0:   if condition true (meaning: next_iter returned undefineed), exit the loop
+		let iter_value_0 = Token::new2(
+			TokenType::INTEGER
+			, "0".to_string()
+			, 0
+			, "ha ha".to_string()
+			, TokenCategory::Factor
+		);
+	
+		//	Create a literal 
 		self.add_machine_instruction(
 			MachineInstruction::new(
-				Opcode::Jt
-				, OpcodeMode::Jump
+				Opcode::Push
+				, OpcodeMode::Lit
 				, self.symbol_table.current_frame()
 				, 0
-				, post_condition_address + 3
+				, 0
+				, Vec::new()
+				, iter_value_0.clone()
+			),function_num
+		);
+		current_code_address += 1;
+		
+		//	Set the iteration counter (index) to 0
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Update
+				, OpcodeMode::Update
+				, self.symbol_table.current_frame()
+				, foreach_data.foreach_iter_counter_detail.block_num
+				, foreach_data.foreach_iter_counter_detail.index
+				, Vec::new()
+				, foreach_data.foreach_iter_counter.clone()
+			),function_num
+		);
+		current_code_address += 1;
+
+		//	this is where we jump when looping
+		let top_of_loop = current_code_address;
+
+		//	get the index
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Push
+				, OpcodeMode::Var
+				, self.symbol_table.current_frame()
+				, foreach_data.foreach_iter_counter_detail.block_num		// block num
+				, foreach_data.foreach_iter_counter_detail.index 			// address in block
+				, Vec::new()
+				, foreach_data.foreach_iter_counter.clone()
+			),function_num
+		);
+		current_code_address += 1;
+
+		//	fetch a reference to the source
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Push
+				, OpcodeMode::Var
+				, self.symbol_table.current_frame()
+				, foreach_data.foreach_source_block_num
+				, foreach_data.foreach_source_address
+				, Vec::new()
+				, foreach_data.foreach_source.clone()
+			),function_num
+		);
+
+		current_code_address += 1;
+		
+		//	Get the length of the of the source
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::LengthOf
+				, OpcodeMode::Var
+				, self.symbol_table.current_frame()
+				, 0
+				, 0
 				, Vec::new()
 				, Token::new()
 			),function_num
 		);
+		current_code_address += 1;
 
-		self.break_address.push((return_block_num, post_condition_address + 3));
-		self.continue_address.push((return_block_num, post_condition_address + 2));
+	
+		//	Compare the current index at tos - 1 with the length of the source
+		//	at tos.  If the index is greater than or equal to length then jump
+		//	out of loop
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Lt
+				, OpcodeMode::Var
+				, self.symbol_table.current_frame()
+				, 0
+				, 0
+				, Vec::new()
+				, Token::new()
+			),function_num
+		);
+		current_code_address += 1;
+		
+		//	if the indx is >= length then exit the loop
+		//	jumping to current + whatever to get past the last insruction
+		//	of the foreach statements
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Jf
+				, OpcodeMode::Jump
+				, self.symbol_table.current_frame()
+				, 0
+				, current_code_address + 8	// this is jump ahead (if new instructions are added after increment this number)
+				, Vec::new()
+				, Token::new()
+			),function_num
+		);
+		current_code_address += 1;
 
-		//	post_condition_address + 1 call the while loop, return to the next location
+		//	fetch a reference to the source
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Push
+				, OpcodeMode::Var
+				, self.symbol_table.current_frame()
+				, foreach_data.foreach_source_block_num
+				, foreach_data.foreach_source_address
+				, Vec::new()
+				, foreach_data.foreach_source.clone()
+			),function_num
+		);
+		current_code_address += 1;
+
+		//	get the index
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Push
+				, OpcodeMode::Var
+				, self.symbol_table.current_frame()
+				, foreach_data.foreach_iter_counter_detail.block_num		// block num
+				, foreach_data.foreach_iter_counter_detail.index 			// address in block
+				, Vec::new()
+				, foreach_data.foreach_iter_counter.clone()
+			),function_num
+		);
+		current_code_address += 1;
+
+		//	get the value from the source at index
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::FetchIndexed
+				, OpcodeMode::Var
+				, self.symbol_table.current_frame()
+				, foreach_data.foreach_iter_counter_detail.block_num		// block num
+				, foreach_data.foreach_iter_counter_detail.index 			// address in block
+				, Vec::new()
+				, foreach_data.foreach_iter_counter.clone()
+			),function_num
+		);
+		current_code_address += 1;
+
+		//	Update the target
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Update
+				, OpcodeMode::Update
+				, self.symbol_table.current_frame()
+				, foreach_data.foreach_target_detail.block_num
+				, foreach_data.foreach_target_detail.index
+				, Vec::new()
+				, foreach_data.foreach_target.clone()
+			),function_num
+		);
+		current_code_address += 1;
+
+		//	we are in the loop now, call the foreach block and return to the
+		//	the next instruction
 		self.add_machine_instruction(
 			MachineInstruction::new(
 				Opcode::Bl
 				, OpcodeMode::Bl
 				, self.symbol_table.current_frame()
 				, return_block_num
-				, post_condition_address + 2
-				, vec!(foreach_block_num)		// target block
+				, current_code_address + 1
+				, vec!(foreach_block_num)			// bl target
 				, Token::new()
 			),function_num
 		);
-		
-		//	post_condition_address + 2:   jump to pre_condition_address (i.e. loop)
+
+		current_code_address += 1;
+
+		//	if anybody continues return to here
+		self.continue_address.push ((return_block_num, current_code_address));
+
+
+		//	Increment the index
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Inc
+				, OpcodeMode::Var
+				, self.symbol_table.current_frame()
+				, foreach_data.foreach_iter_counter_detail.block_num		// block num
+				, foreach_data.foreach_iter_counter_detail.index 			// address in block
+				, Vec::new()
+				, foreach_data.foreach_iter_counter.clone()
+			),function_num
+		);
+		current_code_address += 1;
+
+		// jump to the top of the loop
 		self.add_machine_instruction(
 			MachineInstruction::new(
 				Opcode::J
 				, OpcodeMode::Jump
 				, self.symbol_table.current_frame()
 				, 0
-				, pre_condition_address
+				, top_of_loop
 				, Vec::new()
 				, Token::new()
 			),function_num
 		);
+		current_code_address += 1;
 
+		self.break_address.push((return_block_num, current_code_address));
+		
 		//	start adding instructions to the new foreach block
 		self.make_block_current(foreach_block_num, function_num);
 	}

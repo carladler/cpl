@@ -1,5 +1,5 @@
 entry fn ENTRY(args){
-	if Length(args) < 5{
+	if #args < 5{
 		println "This test requires at least 5 command line args";
 		return 0;
 	}

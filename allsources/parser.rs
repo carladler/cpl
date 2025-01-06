@@ -666,7 +666,8 @@ impl <'a> Parser<'a>{
 				self.infix_expression.push(self.binary_op_to_unary_op());
 			},
 			TokenType::MM		|
-			TokenType::PP		=>{
+			TokenType::PP		|
+			TokenType::LENGTH_OF =>{
 				if !self.look_ahead_test_token(TokenType::ID){
 					return Some(ParserState::Error(format!("Syntax error from unary_op_test, line {}: inc/dec can only predede an ID or function call",line!())));
 				}
@@ -1700,7 +1701,7 @@ impl <'a> Parser<'a>{
 		self.foreach_source_type = self.token.token_type;
 
 		match self.token.token_type{
-			TokenType::ID | TokenType::QUALIFIED_ID => {				// if ID add it to the source and we know enough to add it
+			TokenType::ID => {				// if ID add it to the source and we know enough to add it
 				self.foreach_source.push(self.token.clone());
 				self.model.add_foreach_statement(self.foreach_target.clone(), self.foreach_source_type, self.foreach_source.clone());
 

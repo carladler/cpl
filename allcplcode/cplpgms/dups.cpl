@@ -1,48 +1,97 @@
 entry dup(args){
-	if Length(args) < 1 {
+	if #args < 1 {
 		println "Usage: dups <ls output file>";
 		return 1;
 	}
 	// open the file
 	ls_file = Fopen(args[0],"<");
-	directory_line_capture = Regex("^(?i)(/Users/Carl/McTreeHouse.*):");
+
+	//	If there is a "skip" file present (args[2]) then read it into memory
+	//	and build the regex's for it
+	skips_match_list=[];
+	if #args > 2{
+		skip_file = Fopen(args[2], "<");
+		while !Feof(skip_file){
+			skips_match_list += Regex(Freadln(skip_file));
+		}
+	}
+
+	// build the directory/file descrimination regex's
+	directory_regex = "^(?i)(".args[1].".*):";
+	directory_line_capture = Regex(directory_regex);
 	file_line_capture = Regex("^([-])([-\\w@]+)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(\\d+)\\s+(\\w+)\\s+(\\d+)\\s+(\\d+:\\d+:\\d+)\\s+(\\d{4})\\s+(.*)");
 
-	//	read the file into memory
+	//	read the "ls" file into memory
 	directory_lines = [];
 	Fread(ls_file, directory_lines);
 	output=[];
 
+
 	count=0;
 	dir_count = 0;
 	file_count = 0;
+	
+	eprintln "read count: ".#directory_lines;
+
+	current_directory = "";
+
+	process_count = 0;
+	analyze_count = 0;
 	foreach line directory_lines{
-		count += 1;
-		if count & 8191 == 0 {eprintln count."\r";}
-		if Length(line) > 0{
-			dir_capture = Capture(line, directory_line_capture, 0);
-			if Length(dir_capture) > 1{
-				dir_count += 1;
-				Push(output,dir_capture[1]);
-			}else{
-				file_capture = Capture(line, file_line_capture, 0);
-				if Length(file_capture) > 1{
-					Push(output,file_capture[11]);
-					file_count += 1;
-				}
-			}
-			count += 1;
+		process_count += 1;
+		//if process_count & 8191 == 0 {eprint process_count."\r";}
+
+		if #line == 0{
+			continue;
 		}
+
+		analyze_count += 1;
+		dir_capture = Capture(line, directory_line_capture, 0);
+		if #dir_capture > 1{
+			dir_count += 1;
+			current_directory = line;
+			continue;
+		}
+		
+		file_capture = Capture(line, file_line_capture, 0);
+
+		//  If no skip patterns were specified, count the file and continue
+		if #skips_match_list == 0{
+			file_count += 1;
+			continue;
+		}
+
+		//	skip patterns may include both file names and directories
+		skip_haystack = line.current_directory;
+
+		//  try to find a match from any of the skip patterns
+		regex_num = 0;
+		while regex_num < #skips_match_list {
+			//	attempt a match on the next regex		
+			m = Match(skip_haystack, skips_match_list[regex_num], 0);
+
+			//	if there was a match then m contains something
+			if #m > 0{
+				regex_num += 1;
+				continue;
+			}
+
+			regex_num += 1;
+		}
+
+		//	if the foreach loop didn't find any skips
+		file_count += 1;
 	}
 
-	eprintln "\ntotal entries=".count;
+	eprintln "\ntotal entries processed=".process_count;
+	eprintln "total entries analyzed=".analyze_count;
 
-	foreach o output{
-		println o;
-	}
+	// foreach o output{
+	// 	println o;
+	// }
 
 
 	eprintln "directories=".dir_count;
 	eprintln "files=".file_count;
-	//eprintln "total written=".write_count;
+	// eprintln "total written=".write_count;
 }

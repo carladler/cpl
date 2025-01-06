@@ -1,7 +1,7 @@
 entry foo(){
 	array = [1,2,3];
 	i=0;
-	end = Length(array);
+	end = #array;
 	println "....".end;
 	while i<end {
 		println "array[i]=".array[i];

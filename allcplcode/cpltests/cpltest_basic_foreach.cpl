@@ -1,6 +1,61 @@
 entry foo(){
-	array = ["one","two","three"];
-	foreach target array{
-		println target;
+	array1 = ["one","two","three"];
+	array2 = ["four2","Done2","More2"];
+
+	println "===========  Originals ==========";
+	println "array1=".array1;
+	println "array2=".array2;
+
+
+	println "===========  push test ==========";
+	println "Pushing four1, Done1, More1";
+	array1 += "four1";
+	array1 += "Done1";
+	array1 += "More1";
+
+	foreach target1 array1{
+		println "target1=".target1;
 	}
+
+	println "===========  Pop test ==========";
+	popped = Pop(array1);
+	println "popped=".popped;
+
+	foreach target1 array1{
+		println "target1=".target1;
+	}
+
+	println "===========  continue test ==========";
+	foreach target1 array1{
+		if target1== "two"{
+			continue;
+		}
+		foreach target2 array2{
+			if target2 == "Done"{
+				//println "continue2 at Done";
+				continue;
+			}
+			println "target2=".target2;
+		}
+		println "target1=".target1;
+	}
+	println "Done";
+
+
+	println "===========  break test ==========";
+	foreach target1 array1{
+		// if target1== "three"{
+		// 	break;
+		// }
+		foreach target2 array2{
+			if target2 == "Done2"{
+				//println "continue2 at Done";
+				break;
+			}
+			println "target2=".target2;
+		}
+		println "target1=".target1;
+	}
+	println "Done";
 }
+

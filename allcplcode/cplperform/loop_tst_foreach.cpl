@@ -1,0 +1,47 @@
+entry dup(args){
+	if #args < 1 {
+		print "Usage: dups <ls output file>";
+		return 1;
+	}
+
+	// open the file
+	ls_file = Fopen(args[0],"<");
+
+	//	read the file into memory
+	lines = [];
+	Fread(ls_file, lines);
+
+	//  visit every line using while;
+
+	foreach line lines{
+	}
+
+	eprintln "\ntotal entries=".#lines;
+}
+
+/*
+new foreach opcode:
+	block 
+	index = exit index
+	qual[0] = block to execute
+
+	;these are the address of the foreach instruction which
+	;means that the same foreach instruction is executed for
+	;for every element of the array
+
+	qual[1] = bl return block
+	qual[2] = bl return address (top of foreach loop)
+
+
+	qual[3] = local address of index (synthetic, not known to CPL)
+
+	;this is essentially a VarRef to the collection
+	qual[4] = ref_frame_collection
+	qual[5] = ref_block_collection
+	qual[6] = ref_address_collection
+
+compare index to length collection
+if index < length of collection increment index and bl to block (with return to bl return)
+else jmp to exit
+
+*/

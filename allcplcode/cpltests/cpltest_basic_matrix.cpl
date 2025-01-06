@@ -5,7 +5,7 @@ entry foo{
 	array[2] = ["one","two","three"];
 
 	i=0;
-	while i<Length(array){
+	while i<#array{
 		j=0;
 		while j< Length(array[i]){
 			fun (array, i, j);

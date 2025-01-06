@@ -1,6 +1,7 @@
 entry foo{
 	a = 129;
 	b = 27;
+
 	println a+b;
 	println a*b;
 	println a-b;

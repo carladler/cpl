@@ -4,7 +4,7 @@ entry foo(){
 	Append(a,b);
 
 	i=0;
-	while i<Length(a){
+	while i<#a{
 		println a[i];
 		i+=1;
 	}

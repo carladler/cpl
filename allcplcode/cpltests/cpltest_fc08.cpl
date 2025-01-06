@@ -6,7 +6,7 @@ entry foo(){
 
 fn bar(a){
 	i=0;
-	while i<Length(a){
+	while i<#a{
 		a[i] += 100;
 		i+=1;
 	}

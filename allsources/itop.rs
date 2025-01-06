@@ -80,7 +80,9 @@ impl <'a> InfixToPostfix<'a>{
 					(TokenType::PP,UNARY_OP_PRECEDENCE),
 					(TokenType::MM,UNARY_OP_PRECEDENCE),
 					(TokenType::UMINUS,UNARY_OP_PRECEDENCE),
-					(TokenType::UPLUS,UNARY_OP_PRECEDENCE),
+					(TokenType::UPLUS,UNARY_OP_PRECEDENCE),				
+					(TokenType::DAMNIT,UNARY_OP_PRECEDENCE),
+					(TokenType::LENGTH_OF,UNARY_OP_PRECEDENCE),
 
 				
 					(TokenType::ADD,ADD_OP_PRECEDENCE),
@@ -121,8 +123,6 @@ impl <'a> InfixToPostfix<'a>{
 					(TokenType::INDEXED_ID,INDEXED_ID_PRECEDENCE),
 					
 					(TokenType::FUNCTION_CALL(0),FUNCTION_CALL_PRECEDENCE),
-				
-					(TokenType::DAMNIT,UNARY_OP_PRECEDENCE),
 				]
 			),
 		}

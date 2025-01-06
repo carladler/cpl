@@ -196,6 +196,7 @@ pub enum TokenType{
 
 	UMINUS,				// negation
 	UPLUS,				// make positive
+	LENGTH_OF,			// returns the length of something
 
 	//	Assigment operators
 	ASG_ADD_EQ,			// '+='
@@ -319,6 +320,7 @@ impl fmt::Display for TokenType {
 
 			TokenType::UMINUS  => write!(f, "UMINUS"),
 			TokenType::UPLUS  => write!(f, "UPLUS"),
+			TokenType::LENGTH_OF  => write!(f, "LENGTH_OF"),
 		
 			TokenType::ASG_ADD_EQ  => write!(f, "ASG_ADD_EQ"),
 			TokenType::ASG_SUB_EQ  => write!(f, "ASG_SUB_EQ"),
@@ -585,6 +587,7 @@ impl<'a> Tokenizer<'_>{
 
 					(TokenType::UMINUS,TokenCategory::UnaryOp),
 					(TokenType::UPLUS,TokenCategory::UnaryOp),
+					(TokenType::LENGTH_OF,TokenCategory::UnaryOp),
 					(TokenType::DAMNIT,TokenCategory::UnaryOp),
 
 					(TokenType::ADD,TokenCategory::BinaryOp),
@@ -1106,6 +1109,7 @@ impl<'a> Tokenizer<'_>{
 			']'		=> self.token.token_type= TokenType::RBRACKET,
 			';'		=> self.token.token_type= TokenType::SEMI,
 			','		=> self.token.token_type= TokenType::COMMA,
+			'#'		=> self.token.token_type= TokenType::LENGTH_OF,
 			_		=> {println!("Tokenizer state_OPERATOR unknown character: <{}>",c);}       
         }
 

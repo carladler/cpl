@@ -21,6 +21,7 @@ pub const DUMP_SYMBOL_TABLE : u32 = 23;
 pub const DUMP_OPERANDS : u32 = 24;
 pub const DUMP_OPERANDS_DISPATCH : u32 = 25;
 pub const DUMP_STRUCTS : u32 = 26;
+pub const DUMP_PERFORMANCE_STATS : u32 = 27;
 
 pub const SET_BACKTRACE : u32 = 30;
 pub const INSERT_DIAG_COMMENTS : u32 = 31;
@@ -48,6 +49,8 @@ fn usage_d_swiches(){
 	eprintln!("            DUMP_OPERANDS_DISPATCH = {}",DUMP_OPERANDS_DISPATCH);
 	eprintln!("            DUMP_STRUCTS = {}",DUMP_STRUCTS);
 	eprintln!("");
+	eprintln!("            DUMP_PERFORMANCE_STATS = {}",DUMP_PERFORMANCE_STATS);
+	eprintln!("");
 	eprintln!("            SET_BACKTRACE = {}",SET_BACKTRACE);
 	eprintln!("            INSERT_DIAG_COMMENTS = {}",INSERT_DIAG_COMMENTS);
 }
@@ -61,6 +64,7 @@ fn usage_all(){
 	eprintln!("                   | 'w' (Warn runtime errors)");
 	eprintln!("                   | 'h' (help/usage))");
 	eprintln!("                   | 'o'<file> (output file)");
+	eprintln!("                   | 'p'<file> (performance stats csv file)");
 	eprintln!("   <arguments>    ::= a space separated list of arguments passed to ENTRY function");
 	
 	usage_d_swiches();
@@ -120,6 +124,7 @@ impl<'a> CLI<'a>{
 					'h' | 'H' => {usage_all();return None;},
 					'o' | 'O' => {let ls = cli.get_switch_parameter(false); cli.switch_insert('o',&ls)},
 					'w' | 'W' => cli.runtime_warnings += 1,
+					'p' | 'P' => {let ls = cli.get_switch_parameter(false); cli.switch_insert('p',&ls)}
 					'-' => {},
 					_   =>	{
 								eprintln!("Switch {} ignored",cl[cli.cl_index].as_bytes()[1] as char);
@@ -241,5 +246,14 @@ impl<'a> CLI<'a>{
 			return true;
 		}
 		return false;
+	}
+
+	pub fn get_performance_output_file (&self) -> Option<&str>{
+		let c : char = 'p';
+		if self.switches.contains_key (&c){
+			return Some(self.switches.get(&c).unwrap());
+		}else{
+			return None;
+		}
 	}
 }

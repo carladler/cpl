@@ -16,9 +16,8 @@ builtin = { path = "builtin" }
 cplvar = { path = "cplvar" }
 exec = { path = "exec" }
 macrolib = { path = "macrolib" }
-
-
-
+opcode = { path = "opcode" }
+machineinstruction = { path = "machineinstruction" }
 
 [[bin]]
 name = "main"

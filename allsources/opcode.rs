@@ -3,7 +3,7 @@ use std::fmt;
 /****************************************
 ****	Opcode
 *****************************************/
-#[derive(PartialEq, Copy, Clone, Eq, Hash)]
+#[derive(PartialEq, Copy, Clone, Eq, Hash, Ord, PartialOrd)]
 pub enum Opcode{
 	Nop,
 	Push,
@@ -65,6 +65,7 @@ pub enum Opcode{
 
 	//	Unary operators
 	Damnit,
+	LengthOf,
 
 	//	Special purpose
 	Diag,
@@ -132,6 +133,7 @@ impl fmt::Display for Opcode{
 			Opcode::Eq						=> write!(f,"=="),
 
 			Opcode::Damnit					=> write!(f,"!"),
+			Opcode::LengthOf				=> write!(f,"LengthOf"),
 
 			Opcode::Diag					=> write!(f,"Diag"),
 	   }
@@ -141,14 +143,14 @@ impl fmt::Display for Opcode{
 /****************************************
 ****	OpcodeMode
 *****************************************/
-#[derive(PartialEq, Copy, Clone, Eq, Hash)]
+#[derive(PartialEq, Copy, Clone, Eq, Hash, Ord, PartialOrd)]
 pub enum OpcodeMode{
 	Lit,
 	Var,
 	VarRef,
 	Arg,
 	Function,
-	Extern,						// for now, this is just builtin functions
+	Builtin,					// Builtin functions
 	Jump,						// Absolute Jump target address
 	//JumpRel,					// Relative Jump target address (i.e. jump location +/- address)
 	Bl,							// Branch and Link (light weight function call)
@@ -174,10 +176,10 @@ impl fmt::Display for OpcodeMode{
 			OpcodeMode::Arg							=> write!(f,"Arg"),
 
 			OpcodeMode::Function					=> write!(f,"Function"),
-			OpcodeMode::Extern						=> write!(f,"Extern"),
+			OpcodeMode::Builtin						=> write!(f,"Builtin"),
 			OpcodeMode::Jump						=> write!(f,"Jump"),
-			// OpcodeMode::JumpRel						=> write!(f,"JumpRel"),
-			OpcodeMode::Bl							=> write!(f,"Branch And Link"),
+			// OpcodeMode::JumpRel					=> write!(f,"JumpRel"),
+			OpcodeMode::Bl							=> write!(f,"Bl"),
 		
 			//	These modes indicate to update a variable in situ
 			OpcodeMode::Update						=> write!(f,"Update"),

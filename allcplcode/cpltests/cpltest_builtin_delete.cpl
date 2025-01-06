@@ -5,7 +5,7 @@ entry foo(){
 	Sort(keys);
 
 	i=0;
-	while i<Length(keys){
+	while i<#keys{
 		println keys[i];
 		i+=1;
 	}
