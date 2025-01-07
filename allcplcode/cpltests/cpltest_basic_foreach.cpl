@@ -24,38 +24,5 @@ entry foo(){
 	foreach target1 array1{
 		println "target1=".target1;
 	}
-
-	println "===========  continue test ==========";
-	foreach target1 array1{
-		if target1== "two"{
-			continue;
-		}
-		foreach target2 array2{
-			if target2 == "Done"{
-				//println "continue2 at Done";
-				continue;
-			}
-			println "target2=".target2;
-		}
-		println "target1=".target1;
-	}
-	println "Done";
-
-
-	println "===========  break test ==========";
-	foreach target1 array1{
-		// if target1== "three"{
-		// 	break;
-		// }
-		foreach target2 array2{
-			if target2 == "Done2"{
-				//println "continue2 at Done";
-				break;
-			}
-			println "target2=".target2;
-		}
-		println "target1=".target1;
-	}
-	println "Done";
 }
 

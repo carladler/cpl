@@ -593,10 +593,14 @@ impl OperandStack{
 		//	get the current block
 		let block = frame.operand_blocks.get_mut(block_num).unwrap();
 
+		//println!("================ first {} {}",address, block.operand_block.len());
+
 		//	create a new uninitialized variable at the top of the block
 		block.operand_block.push(CplVar::new(CplDataType::CplUninitialized(CplUninitialized::new())));
 
-		//	Another sanity check.  We expect address of this new var to be the
+		//println!("================ second {} {}",address, block.operand_block.len() - 1 );
+
+			//	Another sanity check.  We expect address of this new var to be the
 		//  address requested
 		if address != block.operand_block.len() - 1{
 			panic!("from CplVar.alloc:  address of the new variable is not what was requested {} != {}", address, block.operand_block.len() - 1);

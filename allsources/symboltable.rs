@@ -159,6 +159,13 @@ impl SymbolTableBlock{
 		}
 	}
 
+	// fn remove_symbol(&mut self, symbol : &str){
+	// 	if table.contains.key(symbol){
+	// 		table.delete(symbol);
+	// 		current_index -= 1;
+	// 	}
+	// }
+
 	fn dump_table(&self){
 		if self.table.keys().len() > 0{
 			for symbol in self.table.keys(){
@@ -196,6 +203,11 @@ impl SymbolTableFrame{
 	fn pop_block(&mut self){
 		self.table.pop();
 	}
+
+	// fn remove_symbol(&mut self, symbol : &str){
+	// 	let table = self.table.last_mut().unwrap();
+	// 	table.remove_symbol(symbol);
+	// }
 
 	fn dump_table(&self){
 		println!("Function: {}", self.function_name);
@@ -455,6 +467,17 @@ impl <'a> SymbolTable <'a>{
 		//	get the element of the function symbol list
 		let frame : &mut SymbolTableFrame = self.tables.last_mut().unwrap(); 
 		frame.pop_block();
+	}
+
+	//	In some cases we need to remove an entry from the current frame
+	pub fn remove_symbol(&mut self, symbol : &str){
+		let frame : &mut SymbolTableFrame = self.tables.last_mut().unwrap();
+		let table = frame.table.last_mut().unwrap();
+		//let block = table.table.last_mut().unwrap();
+		if table.table.contains_key(symbol){
+			table.table.remove(symbol);
+			table.current_index -= 1;
+		}
 	}
 
 	//	For debugging:  println the entry type of a symbol

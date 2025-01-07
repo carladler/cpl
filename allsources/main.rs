@@ -26,12 +26,12 @@ fn main() {
 			if cli.is_debug_bit(SET_BACKTRACE){
 				env::set_var("RUST_BACKTRACE", "1");
 			}
-			parse(&cli);
+			parse_and_run(&cli);
 		}
 	};
 }
 
-fn parse(cli : &CLI){
+fn parse_and_run(cli : &CLI){
 	let start_time = SystemTime::now();
 
 	let parse_result : (bool, Option<FrameMap>);

@@ -2164,6 +2164,9 @@ impl<'a> CodeGen<'a>{
 		//	add the symbol for the iteration index and return its detail
 		foreach_data.foreach_iter_counter_detail = self.symbol_table.add_normal_symbol(&iter_counter_name);
 		
+
+		//println!("================== codegen.gen_foreach iter counter {} {:?}", iter_counter_name, foreach_data.foreach_iter_counter_detail);
+
 		//	Generate the alloc for the new symbol
 		self.gen_alloc(&foreach_data.foreach_iter_counter, foreach_data.foreach_iter_counter_detail.block_num, foreach_data.foreach_iter_counter_detail.index , function_num);
 		current_code_address += 1;
@@ -2387,7 +2390,23 @@ impl<'a> CodeGen<'a>{
 		);
 		current_code_address += 1;
 
-		self.break_address.push((return_block_num, current_code_address));
+		//	Pop the index off the stack
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Pop
+				, OpcodeMode::NONE
+				, self.symbol_table.current_frame()
+				, 0
+				, 0
+				, Vec::new()
+				, Token::new()
+			),function_num
+		);
+
+		//  And remove it from the symbol table
+		self.symbol_table.remove_symbol(&iter_counter_name);
+
+		self.break_address.push((return_block_num, current_code_address+1));
 		
 		//	start adding instructions to the new foreach block
 		self.make_block_current(foreach_block_num, function_num);

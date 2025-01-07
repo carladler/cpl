@@ -19,6 +19,7 @@ cargo run allcplcode/cpltests/cpltest_basic_struct.cpl
 cargo run allcplcode/cpltests/cpltest_basic_unary.cpl
 cargo run allcplcode/cpltests/cpltest_basic_while00.cpl
 cargo run allcplcode/cpltests/cpltest_basic_while01.cpl
+cargo run allcplcode/cpltests/cpltest_break_continue.cpl
 cargo run allcplcode/cpltests/cpltest_builtin_append_sort.cpl
 cargo run allcplcode/cpltests/cpltest_builtin_delete.cpl
 cargo run allcplcode/cpltests/cpltest_builtin_insert.cpl

@@ -1000,6 +1000,7 @@ impl<'a> Executor<'a>{
 	}
 
 	fn inc_dec_in_situ(&mut self, opcode : Opcode, frame_num : usize, block_num : usize, address : usize){
+
 		if let CplDataType::CplNumber(ref mut n) = self.operand_stack.operand_frames
 					.get_mut(frame_num).unwrap()
 					.operand_blocks.get_mut(block_num).unwrap()
@@ -1162,9 +1163,11 @@ impl<'a> Executor<'a>{
 	fn exec_alloc(&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_alloc: {}", self.code_block_num, self.instruction_counter, instruction)}
 		if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("at exec_alloc");}
+		//self.dump_operands("at exec_alloc");
 
 		//let block_num = self.operand_stack.current_block_num();
 
+		//println!("================ exec_alloc {}",instruction);
 		self.operand_stack.alloc(instruction.block_num, instruction.address);
 	}
 
@@ -1247,10 +1250,15 @@ impl<'a> Executor<'a>{
 	fn exec_break (&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_break: {}", self.code_block_num, self.instruction_counter, instruction)}
 		
-		//println!("=============== {}",instruction);
-
 		while ! self.block_end_return_address.is_empty(){
 			let temp = self.block_end_return_address.pop();
+
+			//	reduce the block count by the number of items we pop from the return address stack
+			self.block_counter -= 1;
+
+			//	pop the operand stack block
+			self.operand_stack.pop_block();			
+
 			if let Some(addr) = temp{
 				//println!("=============== {:?}",addr);				
 				if addr.0 == instruction.block_num{
@@ -1259,43 +1267,37 @@ impl<'a> Executor<'a>{
 			}
 		}
 
+		//self.dump_operands("at exec_break");
+
 		self.code_block_num = instruction.block_num;
 		self.instruction_counter = instruction.address;
 
-
-
-		self.block_counter -= 1;
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{} : exec_break:  return to {} block {}", self.instruction_counter, self.code_block_num, self.block_counter);}
-
-		//	pop the operand stack block
-		self.operand_stack.pop_block();			
-		
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{} : exec_break:  return to {} block {}", self.instruction_counter, self.code_block_num, self.block_counter);}		
 	}
 
 	fn exec_continue (&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_continue: {}", self.code_block_num, self.instruction_counter, instruction)}
 
-		//println!("==================={}",instruction);
-
+		//	First, get rid of items on the return address stack that were
+		//	added to it by Bl (branch and link) instruction until we see one that matches
+		//	the jump address in the continue instruction.
 		while !self.block_end_return_address.is_empty(){
 			let temp = self.block_end_return_address.pop().unwrap();
+
+			//	reduce the block count by the number of items we pop from the return address stack
+			self.block_counter -= 1;
+
+			self.operand_stack.pop_block();
+
 			if temp.0 == instruction.block_num && temp.1 == instruction.address{
 				break;
 			}
-			//println!("================== {:?}",temp)
 		}
 
+		//	next set the next instruction address from the block and address
+		//	numbers in the continue instruction
 		self.code_block_num = instruction.block_num;
 		self.instruction_counter = instruction.address;
-
-		self.block_counter -= 1;
-
-		let mut pop_count = self.operand_stack.variable_count();
-		while pop_count > 1{
-			//	pop the operand stack frame
-			self.operand_stack.pop();
-			pop_count -= 1;
-		}
 	}
 
 	/******************************************************************
