@@ -12,7 +12,7 @@ entry break_test{
 		foreach target2 array2{
 			if target2 == "Done2"{
 				println "Breaking inner on ".target2;
-				break 1;
+				break 10;
 			}
 			println "target2=".target2;
 		}

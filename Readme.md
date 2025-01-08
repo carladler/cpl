@@ -61,8 +61,97 @@ target/release:
 In a Windows environment you will have to futz with test scripts to
 use the Windows shell rather than zsh.
 
-## Help
+## Basic Syntax
 
+CPL has the following grammatical constructs:
+
+### Statements
+
+Assignment
+	target = <expression>
+	target <op> <expression> (where <op> is, for example, +=)
+
+If/Else
+	if <condition> {...}else{...}
+
+Eval/When/Otherwise
+	eval <object>
+		when <expression1> {...}  (when expression1 evaluates to <object> execute {...})
+		when <expression2> {...}
+		otherwise {...} (when none of the when expressions evaluate to <object>)
+
+While
+	while <condition>{...}
+
+Loop
+	loop{...}
+
+Foreach
+	foreach <target> <array> {...}
+
+Break
+	break
+	break <depth expression>
+
+Continue
+Return
+	return <expression>
+
+Function Call
+
+### Operators
+
+"+", "-", "*", "/", "%", ".", ">", "<", "<=", ">=", "!=", "=="
+
+"%" means modulo
+"." means concat
+
+### Assignment Operators
+
+"+=", "-=", "*=", "/=", "%=", ".="
+
+### Data Types
+
+string: "this is a string"
+number: 100, 100.10
+bool: true, false
+array = [1,2,3];
+dictionary = {{"one",1},"two",2}}  
+
+### Builtin Functions
+
+I/O Functions:
+	Fopen
+	Fread/Freadln
+	Freadln
+	Fwrite / Fwriteln
+	Feof
+
+Collections
+	Push
+	Pop
+	Contains
+	Insert
+	Delete
+	Append
+	Keys
+	Sort
+
+Strings
+	Locate
+	Substr
+	Regex
+	Match
+	Capture
+	Split
+	Replace
+
+Miscellaneous
+	Length (depricated in favor of #<id>)
+	GetType
+
+
+## Help
 
 I'm more than happy to help.  Send me a description of your issue,
 any output from the compiler occurs and the CPL program you trying
