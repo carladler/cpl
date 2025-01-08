@@ -48,8 +48,18 @@ impl MachineInstruction{
 impl fmt::Display for MachineInstruction{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self.opcode{
-			Opcode::Break => write!(f,"{} frame: {} block:{} address:{}", self.opcode, self.function_num, self.block_num, self.address),
-			Opcode::Continue => write!(f,"{} frame: {} block:{} address:{}", self.opcode, self.function_num, self.block_num, self.address),
+			Opcode::Break => if self.qualifier[0] > 0{
+				write!(f,"{} frame: {} block:{} address:{} depth:{}", self.opcode, self.function_num, self.block_num, self.address, self.qualifier[0])
+			}else{
+				write!(f,"{} frame: {} block:{} address:{}", self.opcode, self.function_num, self.block_num, self.address)
+			},
+
+			Opcode::Continue => if self.qualifier[0] > 0{
+				write!(f,"{} frame: {} block:{} address:{} depth:{}", self.opcode, self.function_num, self.block_num, self.address, self.qualifier[0])
+			}else{
+				write!(f,"{} frame: {} block:{} address:{}", self.opcode, self.function_num, self.block_num, self.address)
+			},
+
 			Opcode::FunctionCall =>  write!(f,"{} ({}) arg count={} is_statement={}", self.opcode, self.literal.token_value, self.qualifier[0], self.qualifier[1]),
 			Opcode::Diag => write!(f,"{} {}",self.opcode, self.literal.token_value),
 			Opcode::FetchIndexed => {
@@ -70,8 +80,7 @@ impl fmt::Display for MachineInstruction{
 					OpcodeMode::Lit 		=> write!(f,"{}(lit) \"{}\"",self.opcode, self.display_literal()),
 					OpcodeMode::Builtin		=> write!(f,"{} '{}'",self.opcode, self.display_literal()),
 					OpcodeMode::Jump		=> write!(f,"{} *{}",self.opcode, self.address),
-					//OpcodeMode::JumpRel		=> write!(f,"{} **{}",self.opcode, self.address),
-					OpcodeMode::Bl			=> write!(f,"{} rtn={}:{} targ={}", self.opcode, self.block_num, self.address, self.qualifier[0]),
+					OpcodeMode::Bl			=> write!(f,"{} rtn={}:{} qual={:?}", self.opcode, self.block_num, self.address, self.qualifier),
 					OpcodeMode::Update		=> write!(f,"{}(update) {},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
 					OpcodeMode::UpdateIndexed => write!(f,"{}(update indexed) {},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),
 					OpcodeMode::UpdateStructElement => write!(f,"{} #:{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal()),

@@ -103,7 +103,11 @@ pub struct Executor<'a>{
 
 	//	This is a return address. It contains both the block number and offset.  It is
 	//	where the BlockEnd instruction jumps to
-	block_end_return_address : Vec<(usize, usize)>,
+	block_end_return_info : Vec<(bool, usize, usize)>,
+
+	//	This is the address to transfer control when breaking.  Entries with
+	//	.0 = false are ignored (except that their variables are removed)
+	break_info : Vec<(bool, usize, usize)>,
 
 	//	All the currently active variables and the frame numbers
 	//	An operand frame is created whenever the executor is
@@ -155,8 +159,8 @@ impl<'a> Executor<'a>{
 			code_frames : &frame_map.frames_list,
 			code_frame_num : frame_map.get_entry_frame_number(),
 			code_block_num : 0,				// always start at the first code block
-			block_end_return_address : Vec::new(),
-			//return_address : Vec::new(),
+			block_end_return_info : Vec::new(),
+			break_info : Vec::new(),
 			operand_stack : operand_stack,
 			builtin_functions : &mut frame_map.builtin_function_table,
 			arguments : arguments,
@@ -188,8 +192,8 @@ impl<'a> Executor<'a>{
 			code_frames : code_frames,
 			code_frame_num : code_frame_num,
 			code_block_num : 0,				// always start at the first code block
-			block_end_return_address : Vec::new(),
-			//return_address : Vec::new(),
+			block_end_return_info : Vec::new(),
+			break_info : Vec::new(),
 			operand_stack : operand_stack,
 			builtin_functions : builtin_functions,
 			arguments : arguments,
@@ -204,6 +208,25 @@ impl<'a> Executor<'a>{
 		}
 	}
 
+	//	When we know we need a number from the operand stack, get it and return it
+	//  here.
+	fn pop_to_number (&mut self, instruction : &MachineInstruction) -> f64{
+		let tos= self.operand_stack.pop();
+		match tos.var{
+			CplDataType::CplNumber(n) => n.cpl_number,
+			CplDataType::CplString(ref s) => {
+				match s.cpl_string.parse::<f64>(){
+					Ok(n) => n as f64,
+					Err(_) => panic!("ERROR: operation \"{}\" can only be performed on numbers! Operand is \"{}\"", instruction.opcode, s.cpl_string),
+				}
+			},
+			_ => {
+				panic! ("Operation {} can't be performed on {}!", instruction.opcode,tos.var);
+			},
+		}
+	}
+
+	
 	fn dump_operands(&self, title : &str){
 		eprintln!("{}", title);
 		self.operand_stack.dump_operands();
@@ -377,21 +400,25 @@ impl<'a> Executor<'a>{
 	//	increment the instruction counter and be done
 	fn exec_block_end(&mut self, instruction : &MachineInstruction){
 
-		if self.block_end_return_address.is_empty(){
+		if self.block_end_return_info.is_empty(){
 			if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_block_end: {} block_len {}", self.code_block_num,self.instruction_counter, instruction, self.operand_stack.variable_count())}
 			self.instruction_counter += 1;
 			return;
 		}
 
-		let block_end_return_address = self.block_end_return_address.pop().unwrap();
+		//	get the return block_num, address
+		let block_end_return_info = self.block_end_return_info.pop().unwrap();
+
+		//	and get rid of the break_info
+		self.break_info.pop();
 
 		if self.cli.is_debug_bit(TRACE_EXEC){
 			eprintln!("{}:{} : exec_block_end: {} returning to: {}:{}", 
-				self.code_block_num, self.instruction_counter, self.code_block_num, block_end_return_address.0, block_end_return_address.1);
+				self.code_block_num, self.instruction_counter, self.code_block_num, block_end_return_info.1, block_end_return_info.2);
 		}
 
-		self.code_block_num = block_end_return_address.0;
-		self.instruction_counter = block_end_return_address.1;
+		self.code_block_num = block_end_return_info.1;
+		self.instruction_counter = block_end_return_info.2;
 
 
 		self.block_counter -= 1;
@@ -399,6 +426,7 @@ impl<'a> Executor<'a>{
 
 		//	pop the operand stack frame
 		self.operand_stack.pop_block();
+
 	}
 
 	//	Fetch a value from an array or dictionary using indices.  The stack is expected
@@ -1224,80 +1252,123 @@ impl<'a> Executor<'a>{
 		if self.cli.is_debug_bit(DUMP_OPERANDS){self.dump_operands("at exec_jf");}
 	}
 
-	//	Branch and Link is a lightweight subroutine call:
+	//	Branch and Link is a lightweight subroutine call.  Blocks are created
+	//	whenever the CPL code starts a new block (e.g. if cond {...}).  The Bl
+	//	opcode contains the following information:
 	//
-	//		push the return address onto a stack.  The return address is
-	//		the instruction frame number and the instruction address	
-	//		transfer control to the address 0 of a new block.  The new
-	//		block is always the return block + 1
+	//		-	instruction.address			block end/continue return address
+	//		-	instruction.block_num		block end/continue return block number
+	//		-	qualifier[0]				if 1 block is breakable else not breakable
+	//		-	qualifier[1]				target block number
+	//		-	qualifier[2]				break address
+	//		-	qualifier[3]				break block number
+	//
+	//	exec_bl pushes the block/end return info onto the block_end_return_info vector
+	//	exec_bl if breakable pushes the break info onto the break_info vector
+	//	exec_bl transfers control to block:block_num, address 0
+	//
 	fn exec_bl(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_bl: {}", self.code_block_num, self.instruction_counter, instruction)}
-		
 		//	This is where the BlockEnd instruction jumps to
-		self.block_end_return_address.push((instruction.block_num, instruction.address));
+		self.block_end_return_info.push((if instruction.qualifier[0]>0{true}else{false}, instruction.block_num, instruction.address));
+
+		//	push the break info onto its stack.  Note that the first item in the
+		//  tuple indicates whether or not the block is breakable or not.
+		self.break_info.push((if instruction.qualifier[0]>0{true}else{false}, instruction.qualifier[2], instruction.qualifier[3]));
 
 		//  set the new block number from the qualifier in the instruction
-		self.code_block_num = instruction.qualifier[0];
+		self.code_block_num = instruction.qualifier[1];
 
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_bl: {}", self.code_block_num, self.instruction_counter, instruction)}
+		
 		//	start at the first instruction (the instruction counter is incremented
 		//	after each instruction so we start at -1 so the next instruction will
 		//	be at 0)
 		self.instruction_counter = 0;
 	}
 
-
-
+	//	qualifier[0] of the break instruction contains the number of tokens in
+	//	the express following the "break" verb.  If 0 then the default depth
+	//	of 1 is used.  If > 0 then the depth is at the tos of the operand stack.
+	//	A depth of 0 means pop 1 item from the break_info stack.  1 means pop 2,
+	//	and so on.
+	//
+	//	recall that the Bl instruction contains both return info and break info and
+	//	the exec_bl function pushes those data onto their respective stacks.
 	fn exec_break (&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_break: {}", self.code_block_num, self.instruction_counter, instruction)}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_break: depth_flag={}", self.code_block_num, self.instruction_counter, if instruction.qualifier[0]>0{true}else{false})}
 		
-		while ! self.block_end_return_address.is_empty(){
-			let temp = self.block_end_return_address.pop();
+		let mut depth : usize = 0;
+		if instruction.qualifier[0] > 0{
+			depth = self.pop_to_number(instruction) as usize;
+		}
+
+		let mut depth_counter = depth + 1;
+		let mut break_info : (bool,usize,usize) = (false,0,0);
+
+
+		//	Now pop as many as we need or until we run out
+		while ! self.break_info.is_empty() && depth_counter > 0{
+			//	get the break info at the top of the break info stack
+			break_info = self.break_info.pop().unwrap();
+
+			//	we won't need the return info
+			self.block_end_return_info.pop();
 
 			//	reduce the block count by the number of items we pop from the return address stack
 			self.block_counter -= 1;
 
-			//	pop the operand stack block
-			self.operand_stack.pop_block();			
+			//	prune the operand stack
+			self.operand_stack.pop_block();
 
-			if let Some(addr) = temp{
-				//println!("=============== {:?}",addr);				
-				if addr.0 == instruction.block_num{
-					break;
-				}
+			// decrement the loop counter if this is a breakable block
+			if break_info.0 {
+				depth_counter -= 1;
 			}
+
 		}
+
 
 		//self.dump_operands("at exec_break");
 
-		self.code_block_num = instruction.block_num;
-		self.instruction_counter = instruction.address;
+		self.code_block_num = break_info.1;
+		self.instruction_counter = break_info.2;
 
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{} : exec_break:  return to {} block {}", self.instruction_counter, self.code_block_num, self.block_counter);}		
+		//if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{} : exec_break:  return to {} block {}", self.instruction_counter, self.code_block_num);}
 	}
 
+	//	similar to break, except instead of using "break_info" use block_end_return_info
 	fn exec_continue (&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_continue: {}", self.code_block_num, self.instruction_counter, instruction)}
+
+		let mut depth : usize = 0;
+		if instruction.qualifier[0] > 0{
+			depth = self.pop_to_number(instruction) as usize;
+		}
 
 		//	First, get rid of items on the return address stack that were
 		//	added to it by Bl (branch and link) instruction until we see one that matches
 		//	the jump address in the continue instruction.
-		while !self.block_end_return_address.is_empty(){
-			let temp = self.block_end_return_address.pop().unwrap();
+		let mut depth_counter = depth + 1;
+		let mut block_end_return_info : (bool, usize,usize) = (false,0,0);
+		while !self.block_end_return_info.is_empty() && depth_counter > 0{
+			block_end_return_info = self.block_end_return_info.pop().unwrap();
+
+			//	don't need this one anymore
+			self.break_info.pop();
 
 			//	reduce the block count by the number of items we pop from the return address stack
 			self.block_counter -= 1;
 
 			self.operand_stack.pop_block();
-
-			if temp.0 == instruction.block_num && temp.1 == instruction.address{
-				break;
+			if block_end_return_info.0{
+				depth_counter -= 1;
 			}
 		}
 
 		//	next set the next instruction address from the block and address
 		//	numbers in the continue instruction
-		self.code_block_num = instruction.block_num;
-		self.instruction_counter = instruction.address;
+		self.code_block_num = block_end_return_info.1;
+		self.instruction_counter = block_end_return_info.2;
 	}
 
 	/******************************************************************

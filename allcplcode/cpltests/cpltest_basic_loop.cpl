@@ -5,6 +5,7 @@ entry foo(){
 		println "i=".i;
 		i+=1;
 		if i>=end{
+			println "Trying to break on ".i;
 			break;
 		}
 	}

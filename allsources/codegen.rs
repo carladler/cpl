@@ -1027,12 +1027,12 @@ impl<'a> CodeGen<'a>{
 		let return_block_num = self.get_current_block_num(function_num);
 
 		//	this is the target block for the while block
-		let while_block_num = self.add_code_block(true, function_num);
+		let loop_block_num = self.add_code_block(true, function_num);
 
 		//	Mark the current address
 		let pre_condition_address = self.get_current_address(function_num);
 
-		self.break_address.push ((return_block_num, pre_condition_address + 2));
+		// self.break_address.push ((return_block_num, pre_condition_address + 2));
 		self.continue_address.push ((return_block_num, pre_condition_address + 1));
 
 		//	post_condition_address + 1 call the while loop, return to the next location
@@ -1043,7 +1043,7 @@ impl<'a> CodeGen<'a>{
 				, self.symbol_table.current_frame()
 				, return_block_num
 				, pre_condition_address + 1		// at this offset
-				, vec!(while_block_num)			// bl target
+				, vec!(1,loop_block_num, return_block_num, pre_condition_address + 2)
 				, Token::new()
 			),function_num
 		);
@@ -1061,7 +1061,7 @@ impl<'a> CodeGen<'a>{
 			),function_num
 		);
 
-		self.make_block_current(while_block_num, function_num);
+		self.make_block_current(loop_block_num, function_num);
 	}
 	
 	//	The operand of a simple opcode is an expression:  compute it, operate on it, and pop it when
@@ -1109,31 +1109,29 @@ impl<'a> CodeGen<'a>{
 
 		match token.token_type {
 			TokenType::BREAK => {
-				let break_address = self.break_address.last().unwrap();
-
 				self.add_machine_instruction(
 					MachineInstruction::new(
 						  Opcode::Break
 						, OpcodeMode::NONE
 						, self.symbol_table.current_frame()
-						, break_address.0
-						, break_address.1
-						, Vec::new()
+						, 0
+						, 0
+						, vec!(expression_list.len())
 						, token.clone()
 					),function_num
 				);	
 			},
 
 			TokenType::CONTINUE => {
-				let continue_address = self.continue_address.last().unwrap();
+				//let continue_address = self.continue_address.last().unwrap();
 				self.add_machine_instruction(
 					MachineInstruction::new(
 						  Opcode::Continue
 						, OpcodeMode::NONE
 						, self.symbol_table.current_frame()
-						, continue_address.0
-						, continue_address.1
-						, Vec::new()
+						, 0 //continue_address.0
+						, 0 //continue_address.1
+						, vec!(expression_list.len())
 						, token.clone()
 					),function_num
 				);	
@@ -1644,6 +1642,7 @@ impl<'a> CodeGen<'a>{
 
 		//	branch and link to the eval block
 		//	current address + 1:  call the if block return to the next instruction
+		//	current address + 2:  break return
 		self.add_machine_instruction(
 			MachineInstruction::new(
 				Opcode::Bl
@@ -1651,7 +1650,7 @@ impl<'a> CodeGen<'a>{
 				, self.symbol_table.current_frame()
 				, current_block_num
 				, current_code_address + 1
-				, vec!(eval_block_num)
+				, vec!(0,eval_block_num, 0,0)	// not breakable
 				, Token::new()
 			),function_num
 		);
@@ -1751,7 +1750,7 @@ impl<'a> CodeGen<'a>{
 				, self.symbol_table.current_frame()
 				, current_block_num
 				, current_code_address + 2
-				, vec!(when_block_num)
+				, vec!(0, when_block_num, 0, 0)	// don't break out of when
 				, Token::new()
 			),function_num
 		);
@@ -1791,7 +1790,7 @@ impl<'a> CodeGen<'a>{
 						, self.symbol_table.current_frame()
 						, current_block_num
 						, current_code_address + 2
-						, vec!(self.eval_data[eval_data_index].otherwise_block_num)
+						, vec!(0,self.eval_data[eval_data_index].otherwise_block_num,0,0) // dont' break out of when
 						, Token::new()
 					),function_num
 				);	
@@ -1840,7 +1839,7 @@ impl<'a> CodeGen<'a>{
 				, self.symbol_table.current_frame()
 				, current_block_num
 				, current_code_address + 1
-				, vec!(otherwise_block_num)
+				, vec!(0,otherwise_block_num, 0, 0)	// don't break out of otherwise
 				, Token::new()
 			),function_num
 		);
@@ -1946,7 +1945,7 @@ impl<'a> CodeGen<'a>{
 				, self.symbol_table.current_frame()
 				, current_block_num
 				, current_code_address + 2
-				, vec!(if_block_num)
+				, vec!(0,if_block_num, 0, 0)
 				, Token::new()
 			),function_num
 		);
@@ -1990,7 +1989,7 @@ impl<'a> CodeGen<'a>{
 					, self.symbol_table.current_frame()
 					, current_block_num
 					, current_code_address + 4
-					, vec!(else_block_num)
+					, vec!(0,else_block_num, 0, 0) // don't break out of if block
 					, Token::new()
 				),function_num
 			);
@@ -2050,8 +2049,8 @@ impl<'a> CodeGen<'a>{
 			),function_num
 		);
 
-		self.break_address.push ((return_block_num, post_condition_address + 3));
-		self.continue_address.push ((return_block_num, post_condition_address + 2));
+		// self.break_address.push ((return_block_num, post_condition_address + 3));
+		// self.continue_address.push ((return_block_num, post_condition_address + 2));
 
 		//	post_condition_address + 1 call the while loop, return to the next location
 		self.add_machine_instruction(
@@ -2061,7 +2060,7 @@ impl<'a> CodeGen<'a>{
 				, self.symbol_table.current_frame()
 				, return_block_num
 				, post_condition_address + 2	// at this offset
-				, vec!(while_block_num)			// bl target
+				, vec!(1,while_block_num, return_block_num, post_condition_address + 3)
 				, Token::new()
 			),function_num
 		);
@@ -2351,7 +2350,7 @@ impl<'a> CodeGen<'a>{
 				, self.symbol_table.current_frame()
 				, return_block_num
 				, current_code_address + 1
-				, vec!(foreach_block_num)			// bl target
+				, vec!(1, foreach_block_num, return_block_num, current_code_address + 3)	// bl target and break info
 				, Token::new()
 			),function_num
 		);
@@ -2359,7 +2358,7 @@ impl<'a> CodeGen<'a>{
 		current_code_address += 1;
 
 		//	if anybody continues return to here
-		self.continue_address.push ((return_block_num, current_code_address));
+		// self.continue_address.push ((return_block_num, current_code_address));
 
 
 		//	Increment the index

@@ -1,28 +1,38 @@
 entry foo(){
-	array1 = ["one","two","three"];
-	array2 = ["four2","Done2","More2"];
+	array = ["one","two","three"];
 
-	println "===========  Originals ==========";
-	println "array1=".array1;
-	println "array2=".array2;
+	println "===========  Original ==========";
+	println "array=".array;
 
 
 	println "===========  push test ==========";
-	println "Pushing four1, Done1, More1";
-	array1 += "four1";
-	array1 += "Done1";
-	array1 += "More1";
+	println "Pushing four, Done, More";
+	array += "four";
+	array += "Done";
+	array += "More";
 
-	foreach target1 array1{
-		println "target1=".target1;
+	foreach target array{
+		println "target=".target;
 	}
 
 	println "===========  Pop test ==========";
-	popped = Pop(array1);
-	println "popped=".popped;
+	popped = Pop(array);
+	println "popped(should be 'More')=".popped;
 
-	foreach target1 array1{
-		println "target1=".target1;
+	foreach target array{
+		println "target=".target;
 	}
+
+	println "===========  Break test ==========";
+	foreach target array{
+		if target != "four"{
+			println "continuing: ".target;
+			continue;
+		}else{
+			println "breaking: ".target;
+			break;
+		}
+	}
+	println "end: ".target;
 }
 

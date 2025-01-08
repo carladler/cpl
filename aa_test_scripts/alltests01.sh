@@ -1,7 +1,9 @@
 cargo run allcplcode/cpltests/cpltest_assign_update.cpl
-cargo run allcplcode/cpltests/cpltest_basic_array.cpl
 cargo run allcplcode/cpltests/cpltest_basic_arithmetic.cpl
+cargo run allcplcode/cpltests/cpltest_basic_array.cpl
 cargo run allcplcode/cpltests/cpltest_basic_assign.cpl
+cargo run allcplcode/cpltests/cpltest_basic_break.cpl
+cargo run allcplcode/cpltests/cpltest_basic_continue.cpl
 cargo run allcplcode/cpltests/cpltest_basic_dict.cpl
 cargo run allcplcode/cpltests/cpltest_basic_eq_ne.cpl -w
 cargo run allcplcode/cpltests/cpltest_basic_eval.cpl
@@ -17,9 +19,12 @@ cargo run allcplcode/cpltests/cpltest_basic_return.cpl
 cargo run allcplcode/cpltests/cpltest_basic_string.cpl
 cargo run allcplcode/cpltests/cpltest_basic_struct.cpl
 cargo run allcplcode/cpltests/cpltest_basic_unary.cpl
+cargo run allcplcode/cpltests/cpltest_basic_while_break.cpl
+cargo run allcplcode/cpltests/cpltest_basic_while_continue.cpl
 cargo run allcplcode/cpltests/cpltest_basic_while00.cpl
 cargo run allcplcode/cpltests/cpltest_basic_while01.cpl
-cargo run allcplcode/cpltests/cpltest_break_continue.cpl
+cargo run allcplcode/cpltests/cpltest_break_continue_foreach.cpl
+cargo run allcplcode/cpltests/cpltest_break_continue_while.cpl
 cargo run allcplcode/cpltests/cpltest_builtin_append_sort.cpl
 cargo run allcplcode/cpltests/cpltest_builtin_delete.cpl
 cargo run allcplcode/cpltests/cpltest_builtin_insert.cpl
