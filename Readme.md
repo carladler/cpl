@@ -67,6 +67,7 @@ CPL has the following grammatical constructs:
 
 ### Statements
 
+```
 Assignment
 	target = <expression>
 	target <op> <expression> (where <op> is, for example, +=)
@@ -98,28 +99,38 @@ Return
 	return <expression>
 
 Function Call
+```
 
 ### Operators
 
+```
 "+", "-", "*", "/", "%", ".", ">", "<", "<=", ">=", "!=", "=="
+```
 
+```
 "%" means modulo
 "." means concat
+```
 
 ### Assignment Operators
 
+```
 "+=", "-=", "*=", "/=", "%=", ".="
+```
 
 ### Data Types
 
+```
 string: "this is a string"
 number: 100, 100.10
 bool: true, false
 array = [1,2,3];
 dictionary = {{"one",1},"two",2}}  
+```
 
 ### Builtin Functions
 
+```
 I/O Functions:
 	Fopen
 	Fread/Freadln
@@ -149,6 +160,7 @@ Strings
 Miscellaneous
 	Length (depricated in favor of #<id>)
 	GetType
+```
 
 
 ## Help
