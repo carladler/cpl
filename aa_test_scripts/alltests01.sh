@@ -7,6 +7,7 @@ cargo run allcplcode/cpltests/cpltest_basic_continue.cpl
 cargo run allcplcode/cpltests/cpltest_basic_dict.cpl
 cargo run allcplcode/cpltests/cpltest_basic_eq_ne.cpl -w
 cargo run allcplcode/cpltests/cpltest_basic_eval.cpl
+cargo run allcplcode/cpltests/cpltest_basic_exit.cpl
 cargo run allcplcode/cpltests/cpltest_basic_exp.cpl
 cargo run allcplcode/cpltests/cpltest_basic_fc.cpl
 cargo run allcplcode/cpltests/cpltest_basic_foreach.cpl

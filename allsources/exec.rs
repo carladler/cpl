@@ -10,7 +10,9 @@ use machineinstruction::*;
 use codeframe::*;
 use macrolib::*;
 use std::time::SystemTime;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+use std::collections::HashMap;
+
 
 //	These enums indicate the data types of two operands
 enum OperandAnalysis{
@@ -43,6 +45,7 @@ enum OperandType{
 	OtArray,
 }
 
+#[derive(Clone)]
 pub struct Event{
 	pub elapsed : Duration,
 	pub machine_instruction : MachineInstruction,
@@ -59,28 +62,96 @@ impl Event{
 	}
 }
 
+#[derive(Clone)]
 pub struct RuntimeData{
-	pub mark : SystemTime,
+	pub mark : Instant,
 	pub events : Vec<Event>,
 }
 
 impl RuntimeData{
 	pub fn new() -> RuntimeData{
 		RuntimeData{
-			mark : SystemTime::now(),
+			mark : Instant::now(),
 			events : Vec::new(),
 		}
 	}
 
 	pub fn mark_begin (&mut self){
-		self.mark = SystemTime::now();
+		self.mark = Instant::now();
 	}
 
 	pub fn mark_end (&mut self, machine_instruction : &MachineInstruction, runtime_data_qual : String){
-		let elapsed = self.mark.elapsed().expect("SystemTime::elapsed failed");
+		let elapsed = self.mark.elapsed();
 		self.events.push(Event::new(elapsed, machine_instruction, runtime_data_qual));
 	}
 }
+
+
+#[derive(PartialOrd, Ord, PartialEq, Clone, Eq)]
+pub struct ReducedData{
+	pub opcode : Opcode,
+	pub opcode_mode : OpcodeMode,
+	pub qual : String,
+	pub accum_duration : Duration,
+	pub accum_execution_count : u32,
+	pub accum_average_duration : Duration,
+}
+
+impl ReducedData{
+	pub fn new(instruction_key : &InstructionKey, reduced_event : &Accumulator) -> ReducedData{
+		ReducedData{
+			opcode : instruction_key.opcode,
+			opcode_mode : instruction_key.opcode_mode,
+			qual : instruction_key.qual.clone(),
+			accum_duration : reduced_event.accum_duration,
+			accum_execution_count : reduced_event.accum_execution_count,
+			accum_average_duration : reduced_event.accum_average_duration,
+		}
+	} 
+}
+
+#[derive(Clone)]
+pub struct Accumulator{
+	accum_duration : Duration,
+	accum_execution_count : u32,
+	accum_average_duration : Duration,
+}
+
+impl Accumulator{
+	pub fn new(accum_duration : Duration, accum_execution_count : u32, accum_average_duration : Duration) -> Accumulator{
+		Accumulator{
+			accum_duration : accum_duration,
+			accum_execution_count : accum_execution_count,
+			accum_average_duration : accum_average_duration,
+		}
+	}
+}
+
+#[derive(Hash, Eq, PartialEq, Clone, Ord, PartialOrd)]
+pub struct InstructionKey{
+	pub opcode : Opcode,
+	pub opcode_mode : OpcodeMode,
+	pub qual : String,
+}
+
+impl InstructionKey{
+	pub fn to_key (instruction : &MachineInstruction, qual : String) -> InstructionKey{
+		InstructionKey{
+			opcode : instruction.opcode,
+			opcode_mode : instruction.opcode_mode,
+			qual : qual,
+		}
+	}
+
+	pub fn to_key2 (opcode : Opcode, opcode_mode : OpcodeMode, qual : String) -> InstructionKey{
+		InstructionKey{
+			opcode : opcode,
+			opcode_mode : opcode_mode,
+			qual : qual,
+		}
+	}
+}
+
 
 //	An Executor contains all of the code, operands and processing data
 //	for the execution of a single function.  There is no communication
@@ -208,6 +279,62 @@ impl<'a> Executor<'a>{
 		}
 	}
 
+	//	Scan the event data in runtime_data and produce a hash table of accumulated
+	//	events:
+	//
+	//		opcode, opcode_mode, qual ===> duration, execution count
+	pub fn reduce_event_data(&mut self, total_duration_time : &mut u64) -> Vec<ReducedData>{
+		let mut event_accumulator : HashMap<InstructionKey, Accumulator> = HashMap::new();
+
+		//	iterate through all of the events an accumulate information for each unique
+		//	InstructionKey
+		for event in &self.runtime_data.events{
+			//	Fetch the instruction record
+			let accum_event = event_accumulator.get(&InstructionKey::to_key(&event.machine_instruction, event.qual.clone()));
+			match accum_event {
+				//	If this is the first one we've seen for this Instruction Key then create one
+				None => {
+					event_accumulator.insert(InstructionKey::to_key(&event.machine_instruction, event.qual.clone()), Accumulator::new(event.elapsed,1,event.elapsed));
+				}
+
+				//	Otherwise accumulate and compute new average
+				Some(e) =>{
+					//	accumulate the duration of this event
+					let accum_nanos = e.accum_duration.as_nanos() + event.elapsed.as_nanos();
+					let accumulated_duration = Duration::from_nanos(accum_nanos as u64);
+
+					//	accumulate the number events for this opcode
+					let opcode_count = e.accum_execution_count + 1;
+
+					//	recompute the average
+					let average_nanos = accum_nanos as f64 / opcode_count as f64;
+
+					//let average_nanos = (average_micros * 1000.0) as u64;
+					let average_duration = Duration::from_nanos(average_nanos as u64);
+
+					//	And, while we're at it, accumute the total duration time
+					*total_duration_time += event.elapsed.as_micros() as u64;
+
+					//	And update the accumulator record
+					event_accumulator.insert(InstructionKey::to_key(&event.machine_instruction, event.qual.clone()), Accumulator::new(accumulated_duration, opcode_count, average_duration));
+				}
+			}
+		}
+
+		//	Now we've got a hash table with the reduced information.  We want to return it as a simple
+		//	vector.  It shouldn't be more than 100 entries so cloning it would be a big eal
+		
+		let mut reduced_data : Vec<ReducedData> = Vec::new();
+		let instruction_keys = event_accumulator.keys();
+		for instruction_key in instruction_keys{
+			reduced_data.push(ReducedData::new(&instruction_key, event_accumulator.get(instruction_key).unwrap()));
+		}
+
+		return reduced_data.clone();
+	}
+
+
+
 	//	When we know we need a number from the operand stack, get it and return it
 	//  here.
 	fn pop_to_number (&mut self, instruction : &MachineInstruction) -> f64{
@@ -230,6 +357,25 @@ impl<'a> Executor<'a>{
 	fn dump_operands(&self, title : &str){
 		eprintln!("{}", title);
 		self.operand_stack.dump_operands();
+	}
+
+	pub fn exit(&mut self, exit_code : &CplVar){
+		match exit_code.var{
+			CplDataType::CplNumber(ref n) => if n.cpl_number as i32 != 0{
+				eprintln!("Program exiting with: {}", n.cpl_number);
+				std::process::exit(n.cpl_number as i32); 
+			},
+
+			CplDataType::CplString(ref s) => {
+				if s.cpl_string != "$$Synthetic$$"{
+					eprintln!("Program exit with: {}", s.cpl_string);
+				}
+			},
+
+			CplDataType::CplUninitialized(_)=> {},
+			
+			_ => eprintln!("Program exit with: {}", exit_code),
+		}
 	}
 
 
@@ -332,6 +478,7 @@ impl<'a> Executor<'a>{
 
 				Opcode::IncArgCount 			=> self.arg_count += 1,
 				Opcode::Return					=> self.exec_return(instruction),
+				Opcode::Exit					=> self.exec_exit(instruction),
 
 				Opcode::Alloc					=> self.exec_alloc(instruction),
 
@@ -340,8 +487,10 @@ impl<'a> Executor<'a>{
 				_ => abend!(format!("{} Not Implemented Yet", instruction.opcode)),
 			}
 
-			self.runtime_data.mark_end(instruction, self.runtime_data_qual.clone());
-			self.runtime_data_qual.clear();
+			if self.cli.is_runtime_stats_enabled(){
+				self.runtime_data.mark_end(instruction, self.runtime_data_qual.clone());
+				self.runtime_data_qual.clear();	
+			}
 
 			if self.cli.is_debug_bit(DUMP_OPERANDS_DISPATCH){
 				eprintln! ("instruction: {}", instruction);
@@ -366,6 +515,8 @@ impl<'a> Executor<'a>{
 				//	because we're done with the function.  Recall that an active
 				//	function is an instantiation of the executor object
 				Opcode::Return			=> break,
+
+				Opcode::Exit			=> break,
 
 				_						=> self.instruction_counter += 1,
 			}
@@ -1121,7 +1272,6 @@ impl<'a> Executor<'a>{
 	fn exec_function_call(&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_function_call: {}", self.code_block_num, self.instruction_counter, instruction)}
 
-		self.runtime_data_qual = instruction.literal.token_value.clone();
 
 		//	We don't need this from now on so reset it
 		self.arg_count = 0;
@@ -1140,6 +1290,9 @@ impl<'a> Executor<'a>{
 		//	Now, if the called function is a builtin function, call it directly (somehow),
 		//	otherwise we launch a new executor
 		if instruction.opcode_mode == OpcodeMode::Builtin{
+			//	Write the name of the built-in function being called to the runtime stats
+			//	qualifier
+			self.runtime_data_qual = instruction.literal.token_value.clone();
 			let rslt = (self.builtin_functions.builtin_function_list.get_mut(instruction.block_num).unwrap().target)(&mut self.builtin_functions, &arguments, &mut self.operand_stack);
 			if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      return from Builtin \"{}\" rslt={}", instruction.literal.token_value, rslt)}
 			self.operand_stack.push(&rslt);
@@ -1369,6 +1522,19 @@ impl<'a> Executor<'a>{
 		//	numbers in the continue instruction
 		self.code_block_num = block_end_return_info.1;
 		self.instruction_counter = block_end_return_info.2;
+	}
+
+	//	The CPL program level interface to exit.  It no expression was supplied, the default
+	//	exit code is 0.  Otherwise it's whatever the expression evaluates to.
+	fn exec_exit (&mut self, instruction : &MachineInstruction){
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_exit: {}", self.code_block_num, self.instruction_counter, instruction)}
+
+		let mut exit_code : CplVar = CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Int, 1.0)));
+		if instruction.qualifier[0] > 0{
+			exit_code = self.operand_stack.dereference_tos();
+		}
+
+		self.exit(&exit_code);
 	}
 
 	/******************************************************************

@@ -12,4 +12,10 @@ entry foo(){
 	index=1;
 	array[index] = c;
 	println array[index];
+
+	array2=["ww","xx","yy"];
+	array += array2[1];
+	println array;
+	array += array2;
+	println array;
 }

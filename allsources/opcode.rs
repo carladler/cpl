@@ -27,6 +27,8 @@ pub enum Opcode{
 	Eprint,
 	Println,
 	Eprintln,
+
+	Exit,
 	
 	BwAnd,
 	BwOr,
@@ -96,7 +98,9 @@ impl fmt::Display for Opcode{
 			Opcode::Eprint					=> write!(f,"Eprint"),
 			Opcode::Println					=> write!(f,"Println"),
 			Opcode::Eprintln				=> write!(f,"Eprintln"),
-			
+
+			Opcode::Exit					=> write!(f,"Exit"),
+
 			Opcode::BwAnd					=> write!(f,"Bitwise And"),
 			Opcode::BwOr					=> write!(f,"Bitwise Or"),
 			Opcode::IncArgCount				=> write!(f,"IncArgCount"),

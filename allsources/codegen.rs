@@ -1081,8 +1081,9 @@ impl<'a> CodeGen<'a>{
 		//	If the expression list is empty then the statement better be either BREAK or CONTINUE
 		if expression_list.is_empty() 
 			&& token.token_type != TokenType::BREAK
-			&& token.token_type != TokenType::CONTINUE {
-			abend!(format!("From gen_simple: expected BREAK or CONTINUE but got: {}", token.token_type));
+			&& token.token_type != TokenType::CONTINUE
+			&& token.token_type != TokenType::EXIT {
+			abend!(format!("From gen_simple: expected BREAK, CONTINUE or EXIT but got: {}", token.token_type));
 		} else {
 			self.gen_expression(expression_list, function_num);
 		}
@@ -1127,6 +1128,21 @@ impl<'a> CodeGen<'a>{
 				self.add_machine_instruction(
 					MachineInstruction::new(
 						  Opcode::Continue
+						, OpcodeMode::NONE
+						, self.symbol_table.current_frame()
+						, 0 //continue_address.0
+						, 0 //continue_address.1
+						, vec!(expression_list.len())
+						, token.clone()
+					),function_num
+				);	
+			}
+
+			TokenType::EXIT => {
+				//let continue_address = self.continue_address.last().unwrap();
+				self.add_machine_instruction(
+					MachineInstruction::new(
+						  Opcode::Exit
 						, OpcodeMode::NONE
 						, self.symbol_table.current_frame()
 						, 0 //continue_address.0
@@ -1327,6 +1343,67 @@ impl<'a> CodeGen<'a>{
 		);
 	}
 
+	fn _gen_inc_dec_collection(&mut self, _target : &Token, _op : &Token, _target_index_expression : &Vec<Token>, _expression_list : &Vec<Token>, _function_num : usize){
+		panic!("Conversion of collection[index] += 1 to inc not implemented yet")
+	}
+
+	fn get_address_scalar(&mut self, target : &Token) -> (usize,usize){
+		let detail = self.symbol_table.get_normal_address(&target.token_value);
+		return (detail.block_num,detail.index);
+	}
+	
+	//	Here we are converting the x+=1 to inc and x-=1 to dec.  We'll return false if we haven't implemented
+	//	this conversion for a particular target type (i.e. we'll implement it first for scalars as
+	//	this is probably the most highly used statement).
+	fn gen_inc_dec(&mut self, target : &Token, op : &Token, target_index_expression : &Vec<Token>, _expresssion_list : &Vec<Token>, function_num : usize) -> bool{		
+		//	I hope this actually improves performance for While index<value{...} loops because
+		//	it's ugly
+
+		let block_num : usize;
+		let index : usize;
+
+		//	And, if this is an assignment to a struct member or scalar, get the target's
+		//	address.  But if it's an assignment to a collection member it's not
+		//	as simple as getting the address of the target because the address of the
+		//	target will be determined by what's at the top of the stack (i.e. the index
+		//	expression)
+		if target.token_type == TokenType::QUALIFIED_ID{
+			return false;
+		}else if target_index_expression.len() == 0{
+			(block_num, index) = self.get_address_scalar(target);
+		}else{
+			return false;
+		}
+
+		if op.token_type == TokenType::ASG_ADD_EQ{
+			self.add_machine_instruction(
+				MachineInstruction::new(
+					Opcode::Inc
+					, OpcodeMode::Var
+					, self.symbol_table.current_frame()
+					, block_num		// block num
+					, index 			// address in block
+					, Vec::new()
+					, target.clone()
+				),function_num
+			);
+		}else{
+			self.add_machine_instruction(
+				MachineInstruction::new(
+					Opcode::Dec
+					, OpcodeMode::Var
+					, self.symbol_table.current_frame()
+					, block_num		// block num
+					, index 			// address in block
+					, Vec::new()
+					, target.clone()
+				),function_num
+			);
+		}
+
+		return true;
+	}
+
 	//	Assignment to a struct member has to look like assignment to an
 	//	an element of the array.  We'll need:  the address of the instantiated struct,
 	//	an index token that we have to create and an expression vector whose first element
@@ -1387,7 +1464,7 @@ impl<'a> CodeGen<'a>{
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen:GEN_ASSIGNMENT_TO_STRUCT_MEMBER target={}", target.token_value);}
 	}
 
-	fn gen_assignment_to_scalar(&mut self, target : &Token, op : &Token, expression_list : &Vec<Token>, function_num : usize){
+	fn gen_assignment_to_scalar(&mut self, target : &Token, op : &Token, expression_list : &Vec<Token>, function_num : usize){		
 		let detail : NormalSymbolEntry;
 		
 		match self.symbol_table.get_symbol_entry(&target.token_value){
@@ -1466,6 +1543,17 @@ impl<'a> CodeGen<'a>{
 	}
 
 	pub fn gen_assignment(&mut self, target : &Token, op : &Token, target_index_expression : &Vec<Token>,expression_list : &Vec<Token>, function_num : usize){		
+		//	Here we test for x+=1 or x-=1 which we convert to x++ or x-- respectively
+		if op.token_type == TokenType::ASG_ADD_EQ || op.token_type == TokenType::ASG_SUB_EQ{
+			if expression_list.len() == 1 {
+				if expression_list[0].token_type == TokenType::INTEGER && expression_list[0].token_value == "1"{
+					if self.gen_inc_dec(target, op, target_index_expression, expression_list, function_num){
+						return;
+					};
+				}
+			}
+		}
+
 		//	And, if this is an assignment to a struct member got more hacking
 		//	to do.
 		if target.token_type == TokenType::QUALIFIED_ID{
@@ -2163,9 +2251,6 @@ impl<'a> CodeGen<'a>{
 		//	add the symbol for the iteration index and return its detail
 		foreach_data.foreach_iter_counter_detail = self.symbol_table.add_normal_symbol(&iter_counter_name);
 		
-
-		//println!("================== codegen.gen_foreach iter counter {} {:?}", iter_counter_name, foreach_data.foreach_iter_counter_detail);
-
 		//	Generate the alloc for the new symbol
 		self.gen_alloc(&foreach_data.foreach_iter_counter, foreach_data.foreach_iter_counter_detail.block_num, foreach_data.foreach_iter_counter_detail.index , function_num);
 		current_code_address += 1;

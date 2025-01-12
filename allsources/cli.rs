@@ -248,6 +248,10 @@ impl<'a> CLI<'a>{
 		return false;
 	}
 
+	pub fn is_runtime_stats_enabled(&self) -> bool{
+		self.is_debug_bit(DUMP_PERFORMANCE_STATS) || self.get_performance_output_file() != None
+	}
+
 	pub fn get_performance_output_file (&self) -> Option<&str>{
 		let c : char = 'p';
 		if self.switches.contains_key (&c){

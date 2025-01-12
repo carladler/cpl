@@ -135,6 +135,7 @@ pub fn token_type_to_opcode(t : TokenType) -> Opcode{
 		TokenType::BREAK			=> Opcode::Break,
 		TokenType::CONTINUE			=> Opcode::Continue,
 		TokenType::RETURN			=> Opcode::Return,
+		TokenType::EXIT				=> Opcode::Exit,
 
 		TokenType::LT 				=> Opcode::Lt,
 		TokenType::GT				=> Opcode::Gt,

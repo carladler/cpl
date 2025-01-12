@@ -1,0 +1,12 @@
+//	The exit statement causes a cpl program to end completely
+//
+entry exit_test{
+	i=0;
+	while i<10{
+		if i==5{
+			exit "Done with exit_test at ".i;
+		}
+		println i;
+		i+=1; 
+	}
+}

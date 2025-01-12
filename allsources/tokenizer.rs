@@ -178,6 +178,8 @@ pub enum TokenType{
 	PRINTLN,		//  println to stdout
 	EPRINTLN,		//  println to stderr
 
+	EXIT,			//  exit a program back to OS
+
 	EQ,
 	GE,
 	LE,
@@ -292,6 +294,7 @@ impl fmt::Display for TokenType {
 			TokenType::EPRINT => write!(f, "EPRINT"),
 			TokenType::PRINTLN => write!(f, "PRINT"),
 			TokenType::EPRINTLN => write!(f, "EPRINT"),
+			TokenType::EXIT => write!(f, "EXIT"),
 
 			TokenType::ENTRY  => write!(f, "ENTRY"),
 			TokenType::INCLUDE  => write!(f, "INCLUDE"),
@@ -536,6 +539,8 @@ impl<'a> Tokenizer<'_>{
 					(TokenType::PRINTLN, TokenCategory::Verb),
 					(TokenType::EPRINTLN, TokenCategory::Verb),
 
+					(TokenType::EXIT, TokenCategory::Verb),
+
 					(TokenType::RETURN,TokenCategory::Verb),
 					(TokenType::INCLUDE,TokenCategory::Verb),
 
@@ -714,6 +719,7 @@ impl<'a> Tokenizer<'_>{
 			"eprint"		=> TokenType::EPRINT,
 			"println"		=> TokenType::PRINTLN,
 			"eprintln"		=> TokenType::EPRINTLN,
+			"exit"			=> TokenType::EXIT,
 
 			//	Nope, it's an ID.  It might be a qualified ID (e.g. foo:bar)
 			_ 				=> 	if self.is_qualified_id(){

@@ -1204,7 +1204,7 @@ impl <'a> Parser<'a>{
 				self.parser_context.push(ParserContext::Simple);
 				self.simple = self.token.clone();
 			},
-			TokenType::BREAK | TokenType::CONTINUE => {
+			TokenType::BREAK | TokenType::CONTINUE | TokenType::EXIT=> {
 				self.parser_context.push(ParserContext::Simple);
 				self.simple = self.token.clone();
 				if self.look_ahead_test_token (TokenType::SEMI){

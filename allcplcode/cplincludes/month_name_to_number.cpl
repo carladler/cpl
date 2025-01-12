@@ -1,0 +1,13 @@
+	month_name_to_number = {};
+	Insert(month_name_to_number, "Jan","01",false);
+	Insert(month_name_to_number, "Feb","02",false);
+	Insert(month_name_to_number, "Mar","03",false);
+	Insert(month_name_to_number, "Apr","04",false);
+	Insert(month_name_to_number, "May","05",false);
+	Insert(month_name_to_number, "Jun","06",false);
+	Insert(month_name_to_number, "Jul","07",false);
+	Insert(month_name_to_number, "Aug","08",false);
+	Insert(month_name_to_number, "Sep","09",false);
+	Insert(month_name_to_number, "Oct","10",false);
+	Insert(month_name_to_number, "Nov","11",false);
+	Insert(month_name_to_number, "Dec","12",false);

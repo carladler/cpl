@@ -58,4 +58,11 @@ entry foo{
 	if nn1 < nn2{
 		println "123 < 124";
 	}
+
+	s3 = "this is s3";
+	s3 .= " with 4";
+	println s3;
+
+	s3 += " with 5";
+	println s3;
 }
