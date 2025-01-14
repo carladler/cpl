@@ -1,0 +1,14 @@
+[package]
+name = "runtimestats"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+opcode = { path = "../opcode" }
+machineinstruction = { path = "../machineinstruction" }
+
+
+
+[lib]
+name="runtimestats"
+path="../allsources/runtimestats.rs"

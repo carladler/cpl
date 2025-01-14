@@ -10,7 +10,8 @@ use codeframe::*;
 //use machineinstruction::*;
 use std::time::SystemTime;
 use std::time::Duration;
-
+use runtimestats::*;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
@@ -32,7 +33,6 @@ fn main() {
 }
 
 fn parse_and_run(cli : &CLI){
-	let start_time = SystemTime::now();
 
 	let parse_result : (bool, Option<FrameMap>);
 	{
@@ -45,59 +45,125 @@ fn parse_and_run(cli : &CLI){
 	}
 
 	match parse_result.1{
-		Some(mut f) => {
+		Some(mut frame_map) => {
 			let mut arguments : Vec<CplVar> = Vec::new();
 			let mut operand_stack = OperandStack::new(cli.is_runtime_warnings());
 			let mut runtime_data = RuntimeData::new();
-			let mut e = Executor::new(cli, &mut f, &mut arguments, &mut operand_stack, 0, &mut runtime_data);
-			let rtn = e.exec();
+			
+			// if cli.is_runtime_stats_enabled(){
+			// 	runtime_data.events.reserve(50_500_000);
+			// }
+
+			let start_time = SystemTime::now();
+
+			let mut executor = Executor::new(cli, &mut frame_map, &mut arguments, &mut operand_stack, 0, &mut runtime_data);
+			let rtn = executor.exec();
 
 			//	if neither the -d27 switch or the -p switch is present then we're done
 			if cli.is_runtime_stats_enabled(){
-				eprintln!("\n========= Preparing Runtime Data for Display");
-				let mut total_accumulated_time : u64 = 0;
-				let accumulated_data : Vec<ReducedData> = e.reduce_event_data(&mut total_accumulated_time);
-				display_stats(cli, &accumulated_data,start_time, total_accumulated_time);
-				eprintln!("\n========= Cleaning up Runtime Data Repository");
+				eprintln!("\nRuntime: {}", format_duration(start_time.elapsed().unwrap()));
+				let total_accumulated_time : u64 = 0;
+				let mut _event_count : usize = 0;
+				display_stats(cli, executor.get_runtime_data(), total_accumulated_time);
+			}else if cli.is_debug_bit(DISPLAY_RUNTIME){
+				eprintln!("\nRuntime: {}", format_duration(start_time.elapsed().unwrap()));
 			}
 
-			e.exit(&rtn);
+			executor.exit(&rtn);
 		},
 		None => {},
 	}
 }
 
-fn dump_stats_to_csv(csv_file: &str, reduced_data : &Vec<ReducedData>){
+fn display_stats(cli : &CLI, runtime_data: HashMap<InstructionKey,EventPayload>, _total_accumulated_time : u64){
 
-	let mut writer = BufWriter::new(File::create(csv_file).expect(&format!("--Unable to open {}--\n",csv_file)));
-	// write header records
-	writer.write_all(format!("OPCODE,").as_bytes()).expect("Unable to write data");
-	writer.write_all(format!("MODE,").as_bytes()).expect("Unable to write data");
-	writer.write_all(format!("QUAL,").as_bytes()).expect("Unable to write data");
-
-	writer.write_all(format!("TOTAL ELAPSED,").as_bytes()).expect("Unable to write data");
-	writer.write_all(format!("CALLS,").as_bytes()).expect("Unable to write data");
-	writer.write_all(format!("\n").as_bytes()).expect("Unable to write data");
-
-	for rd in reduced_data{
-		writer.write_all(format!("{},",rd.opcode).as_bytes()).expect("Unable to write data");
-		writer.write_all(format!("{},",rd.opcode_mode).as_bytes()).expect("Unable to write data");
-		writer.write_all(format!("{},",rd.qual).as_bytes()).expect("Unable to write data");
-
-		writer.write_all(format!("{},",rd.accum_duration.as_micros()).as_bytes()).expect("Unable to write data");
-		writer.write_all(format!("{},",rd.accum_execution_count).as_bytes()).expect("Unable to write data");
-		writer.write_all(format!("\n").as_bytes()).expect("Unable to write data");
+	//	If the -p switch is specified then write the raw performance data to a
+	//	csv file
+	let performance_csv_file = cli.get_performance_output_file();
+	match performance_csv_file{
+		None => {}
+		Some(ref f) => dump_stats_to_csv(f, &runtime_data),
 	}
-}
 
+	//	if user only wanted the csv file then we're done
+	if !cli.is_debug_bit(DUMP_PERFORMANCE_STATS){return};
 
-//	pass2 computes the percentage of the whole for each opcode and sorts it
-//	by highest to lowest usage
+	let mut total_instruction_count = 0;
+	let mut total_accumulated_time : Duration = Default::default();
 
-fn pass2(reduced_data : &Vec<ReducedData>, total_accum_elapsed : u64, duration_list : &mut Vec<(ReducedData, f64)>){
-	for rd in reduced_data{
-		let percent = ((rd.accum_duration.as_micros() * 100) as f64) / total_accum_elapsed as f64;
-		duration_list.push((rd.clone(), percent));
+	let mut event_summaries : Vec<EventSummary> = Vec::new();
+
+	//	Get all of the InstructionKey data from the runtime data hash
+	let keys = runtime_data.keys();
+	for key in keys.clone().into_iter(){
+		let rd = runtime_data.get(key).unwrap();
+
+		//	accumulate the number of instructions executed and the accumulated
+		//	time for all of the different instructions that were executed
+		total_instruction_count += rd.event_count;
+		total_accumulated_time += rd.event_accum_duration;
+
+		//	Compute the averate execution time for each of the instructions
+		//	executed
+
+		let avg = rd.event_accum_duration.as_nanos() as u64 / rd.event_count;
+		let avg_execution_time = Duration::from_nanos(avg as u64);
+		// eprintln!("============ qual {} duration {} count {} avg {} avg duration {:?}",key.qual, rd.event_accum_duration.as_nanos(), rd.event_count, avg, Duration::from_nanos(avg));
+
+		//	add all of this to an event summary record
+		let event_summary = EventSummary::new(&key, rd.event_accum_duration, rd.event_count, avg_execution_time);
+		event_summaries.push(event_summary);
+	}
+
+	//	Now we have to do some more stuff
+	let mut cooked_summaries: Vec<(u64, EventSummary)> = Vec::new();
+
+	//	compute the percent of the accumulated time accrued by each of the
+	//	instructions
+	for raw_summary in event_summaries{
+		let ratio_as_u64 = ((raw_summary.accum_duration.as_nanos() * 1000) / total_accumulated_time.as_nanos()) as u64;
+		// let ratio : f64 = raw_summary.accum_duration.as_nanos() as f64 / total_accumulated_time.as_nanos() as f64;
+		cooked_summaries.push((ratio_as_u64, raw_summary));
+	}
+
+	//	We want to display the stats by percent of total in descending order
+	cooked_summaries.sort();
+	cooked_summaries.reverse();
+
+	eprintln!("\n*** Internal Runtime Statistics ***\n");
+
+	eprintln!("Instruction Count: {:3.2}M", total_instruction_count as f64/1_000_000.0);
+	eprintln!("Total Accumulated Time: {}", format_duration(total_accumulated_time));
+
+	let rate_divisor = total_accumulated_time.as_nanos()/1_000_000_000;
+	if rate_divisor > 0{
+		let rate : f64 = (total_instruction_count / rate_divisor as u64) as f64;
+		eprintln!("Execution Rate: {:3.2}M instructions/sec", rate/1_000_000.0);
+	}
+
+	eprintln!("{0: <20} | {1: <8} | {2: <8} | {3: <12} | {4: <9} | {5: <9} | {6: <9} ","opcode", "mode", "qual", "elapsed", "calls", "average", "percent");
+	eprintln!("{0: <20} | {1: <8} | {2: <8} | {3: <12} | {4: <9} | {5: <9} | {6: <9} ","------", "----", "----", "-------", "-----", "-------", "-------");
+
+	for cooked_summary in cooked_summaries{
+		let opcode_txt 						= format!("{}"		,cooked_summary.1.opcode);
+		let opcode_mode_txt					= format!("{}"		,cooked_summary.1.opcode_mode);
+		let qual_txt						= format!("{}"		,cooked_summary.1.qual);
+		let accum_duration_txt				= format!("{}"		,format_duration(cooked_summary.1.accum_duration));
+		let accum_execution_count_txt		= format!("{}"		,cooked_summary.1.accum_execution_count);
+		//let avg = Duration::from_nanos(cooked_summary.1.accum_execution_count * 1_000_000 / cooked_summary.1.accum_duration.as_nanos() as u64);
+		let accum_average_duration_txt		= format!("{}"		,format_duration(cooked_summary.1.accum_average_duration));
+		let percent_txt						= format!("{:3.1}%"	,cooked_summary.0 as f64 / 10.0);
+	
+		// eprintln!("{0: <20} | {1: <8} | {2: <8} | {3: <12} | {4: <9} | {5: <9} | {6: <9}"
+		eprintln!("{0: <20} | {1: <8} | {2: <8} | {3: <12} | {4: <9} | {5: <9} | {6: <9}"
+				,opcode_txt
+				,opcode_mode_txt
+				,qual_txt
+				,accum_duration_txt
+				,accum_execution_count_txt
+				,accum_average_duration_txt
+				,percent_txt
+		);		
 	}
 }
 
@@ -113,76 +179,34 @@ fn format_duration(duration : Duration) -> String{
 	}else if nano > ONE_SECOND{
 		return format!("{:3.2}s", nano as f64 / ONE_SECOND as f64);
 	}else if nano > ONE_MILISECOND{
-		return format!("{:3.1}ms", nano as f64 / ONE_MILISECOND as f64);
+		return format!("{:3.2}ms", nano as f64 / ONE_MILISECOND as f64);
 	}else{
-		return format!("{:3.1}µs", nano as f64 / ONE_MICROSECOND as f64);
+		return format!("{:3.2}µs", nano as f64 / ONE_MICROSECOND as f64);
 	}
 }
 
-fn display_stats(cli : &CLI, reduced_data: &Vec<ReducedData>, start_time : SystemTime, total_accumulated_time : u64){
-	let total_run_time = start_time.elapsed().unwrap();
+fn dump_stats_to_csv(csv_file: &str, runtime_data : &HashMap<InstructionKey, EventPayload>){
 
-	let performance_csv_file = cli.get_performance_output_file();
-	match performance_csv_file{
-		None => {}
-		Some(ref f) => dump_stats_to_csv(f, &reduced_data),
-	}
+	let keys = runtime_data.keys();
 
-	//	if user only wanted the csv file then we're done
-	if !cli.is_debug_bit(DUMP_PERFORMANCE_STATS){return};
+	let mut writer = BufWriter::new(File::create(csv_file).expect(&format!("--Unable to open {}--\n",csv_file)));
+	// write header records
+	writer.write_all(format!("OPCODE,").as_bytes()).expect("Unable to write data");
+	writer.write_all(format!("MODE,").as_bytes()).expect("Unable to write data");
+	writer.write_all(format!("QUAL,").as_bytes()).expect("Unable to write data");
 
-	let mut duration_list : Vec<(ReducedData, f64)> = Vec::new();
-	pass2(reduced_data, total_accumulated_time, &mut duration_list);
+	writer.write_all(format!("TOTAL ELAPSED,").as_bytes()).expect("Unable to write data");
+	writer.write_all(format!("CALLS,").as_bytes()).expect("Unable to write data");
+	writer.write_all(format!("\n").as_bytes()).expect("Unable to write data");
 
-	//	Now we need to create an inversion:
-	let mut percent_list : Vec<(u64, ReducedData)> = Vec::new();
+	for key in keys{
+		let rd = runtime_data.get(&key).unwrap();
+		writer.write_all(format!("{},",key.opcode).as_bytes()).expect("Unable to write data");
+		writer.write_all(format!("{},",key.opcode_mode).as_bytes()).expect("Unable to write data");
+		writer.write_all(format!("{},",key.qual).as_bytes()).expect("Unable to write data");
 
-	for duration in &duration_list{
-		let percent = (duration.1*100000.0) as u64;
-		percent_list.push((percent, duration.0.clone()));
-	}
-
-	percent_list.sort();
-	percent_list.reverse();
-	
-	eprintln!("\n*** Internal Runtime Statistics ***");
-	//eprintln!("Total run time: {:?}", start_time.elapsed().unwrap());
-	eprintln!("Total run time: {}", format_duration(total_run_time));
-	//eprintln!("Total accumulated Elapsed time: {:?}",total_accumulated_time);
-	eprintln!("Total accumulated Elapsed time: {}",format_duration(Duration::from_micros(total_accumulated_time)));
-	eprintln!("{0: <20} | {1: <8} | {2: <8} | {3: <12} | {4: <9} | {5: <9} | {6: <9} ","opcode", "mode", "qual", "elapsed", "calls", "average", "percent");
-	eprintln!("{0: <20} | {1: <8} | {2: <8} | {3: <12} | {4: <9} | {5: <9} | {6: <9} ","------", "----", "----", "-------", "-----", "-------", "-------");
-
-	for percent in percent_list{
-		let opcode_txt 						= format!("{}"		,percent.1.opcode);
-		let opcode_mode_txt					= format!("{}"		,percent.1.opcode_mode);
-		let qual_txt						= format!("{}"		,percent.1.qual);
-
-		
-		let accum_duration_txt : String;
-		if percent.1.accum_duration.as_micros() < 1{
-			accum_duration_txt 				= format!("<1µs");
-		}else{
-			accum_duration_txt = format_duration(percent.1.accum_duration);
-			// accum_duration_txt 				= format!("{:?}"	,percent.1.accum_duration);
-		}
-		
-		
-		let accum_execution_count_txt 		= format!("{}"		,percent.1.accum_execution_count);
-		let accum_average_duration_txt 		= format!("{}"		,format_duration(percent.1.accum_average_duration));
-
-		let actual_percent = percent.0 as f64 / 100000.0;
-
-		let percent_txt 					= format!("{:2.1}%"	,actual_percent);
-
-		eprintln!("{0: <20} | {1: <8} | {2: <8} | {3: <12} | {4: <9} | {5: <9} | {6: <9}"
-				,opcode_txt
-				,opcode_mode_txt
-				,qual_txt
-				,accum_duration_txt
-				,accum_execution_count_txt
-				,accum_average_duration_txt
-				,percent_txt
-		);
+		writer.write_all(format!("{},",rd.event_accum_duration.as_nanos()).as_bytes()).expect("Unable to write data");
+		writer.write_all(format!("{},",rd.event_count).as_bytes()).expect("Unable to write data");
+		writer.write_all(format!("\n").as_bytes()).expect("Unable to write data");
 	}
 }

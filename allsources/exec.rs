@@ -9,6 +9,7 @@ use opcode::*;
 use machineinstruction::*;
 use codeframe::*;
 use macrolib::*;
+use runtimestats::*;
 use std::time::SystemTime;
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
@@ -45,112 +46,6 @@ enum OperandType{
 	OtArray,
 }
 
-#[derive(Clone)]
-pub struct Event{
-	pub elapsed : Duration,
-	pub machine_instruction : MachineInstruction,
-	pub qual : String,
-}
-
-impl Event{
-	pub fn new(elapsed : Duration, machine_instruction : &MachineInstruction, qual : String) -> Event{
-		Event{
-			elapsed : elapsed,
-			machine_instruction : machine_instruction.clone(),
-			qual : qual
-		}
-	}
-}
-
-#[derive(Clone)]
-pub struct RuntimeData{
-	pub mark : Instant,
-	pub events : Vec<Event>,
-}
-
-impl RuntimeData{
-	pub fn new() -> RuntimeData{
-		RuntimeData{
-			mark : Instant::now(),
-			events : Vec::new(),
-		}
-	}
-
-	pub fn mark_begin (&mut self){
-		self.mark = Instant::now();
-	}
-
-	pub fn mark_end (&mut self, machine_instruction : &MachineInstruction, runtime_data_qual : String){
-		let elapsed = self.mark.elapsed();
-		self.events.push(Event::new(elapsed, machine_instruction, runtime_data_qual));
-	}
-}
-
-
-#[derive(PartialOrd, Ord, PartialEq, Clone, Eq)]
-pub struct ReducedData{
-	pub opcode : Opcode,
-	pub opcode_mode : OpcodeMode,
-	pub qual : String,
-	pub accum_duration : Duration,
-	pub accum_execution_count : u32,
-	pub accum_average_duration : Duration,
-}
-
-impl ReducedData{
-	pub fn new(instruction_key : &InstructionKey, reduced_event : &Accumulator) -> ReducedData{
-		ReducedData{
-			opcode : instruction_key.opcode,
-			opcode_mode : instruction_key.opcode_mode,
-			qual : instruction_key.qual.clone(),
-			accum_duration : reduced_event.accum_duration,
-			accum_execution_count : reduced_event.accum_execution_count,
-			accum_average_duration : reduced_event.accum_average_duration,
-		}
-	} 
-}
-
-#[derive(Clone)]
-pub struct Accumulator{
-	accum_duration : Duration,
-	accum_execution_count : u32,
-	accum_average_duration : Duration,
-}
-
-impl Accumulator{
-	pub fn new(accum_duration : Duration, accum_execution_count : u32, accum_average_duration : Duration) -> Accumulator{
-		Accumulator{
-			accum_duration : accum_duration,
-			accum_execution_count : accum_execution_count,
-			accum_average_duration : accum_average_duration,
-		}
-	}
-}
-
-#[derive(Hash, Eq, PartialEq, Clone, Ord, PartialOrd)]
-pub struct InstructionKey{
-	pub opcode : Opcode,
-	pub opcode_mode : OpcodeMode,
-	pub qual : String,
-}
-
-impl InstructionKey{
-	pub fn to_key (instruction : &MachineInstruction, qual : String) -> InstructionKey{
-		InstructionKey{
-			opcode : instruction.opcode,
-			opcode_mode : instruction.opcode_mode,
-			qual : qual,
-		}
-	}
-
-	pub fn to_key2 (opcode : Opcode, opcode_mode : OpcodeMode, qual : String) -> InstructionKey{
-		InstructionKey{
-			opcode : opcode,
-			opcode_mode : opcode_mode,
-			qual : qual,
-		}
-	}
-}
 
 
 //	An Executor contains all of the code, operands and processing data
@@ -279,61 +174,9 @@ impl<'a> Executor<'a>{
 		}
 	}
 
-	//	Scan the event data in runtime_data and produce a hash table of accumulated
-	//	events:
-	//
-	//		opcode, opcode_mode, qual ===> duration, execution count
-	pub fn reduce_event_data(&mut self, total_duration_time : &mut u64) -> Vec<ReducedData>{
-		let mut event_accumulator : HashMap<InstructionKey, Accumulator> = HashMap::new();
-
-		//	iterate through all of the events an accumulate information for each unique
-		//	InstructionKey
-		for event in &self.runtime_data.events{
-			//	Fetch the instruction record
-			let accum_event = event_accumulator.get(&InstructionKey::to_key(&event.machine_instruction, event.qual.clone()));
-			match accum_event {
-				//	If this is the first one we've seen for this Instruction Key then create one
-				None => {
-					event_accumulator.insert(InstructionKey::to_key(&event.machine_instruction, event.qual.clone()), Accumulator::new(event.elapsed,1,event.elapsed));
-				}
-
-				//	Otherwise accumulate and compute new average
-				Some(e) =>{
-					//	accumulate the duration of this event
-					let accum_nanos = e.accum_duration.as_nanos() + event.elapsed.as_nanos();
-					let accumulated_duration = Duration::from_nanos(accum_nanos as u64);
-
-					//	accumulate the number events for this opcode
-					let opcode_count = e.accum_execution_count + 1;
-
-					//	recompute the average
-					let average_nanos = accum_nanos as f64 / opcode_count as f64;
-
-					//let average_nanos = (average_micros * 1000.0) as u64;
-					let average_duration = Duration::from_nanos(average_nanos as u64);
-
-					//	And, while we're at it, accumute the total duration time
-					*total_duration_time += event.elapsed.as_micros() as u64;
-
-					//	And update the accumulator record
-					event_accumulator.insert(InstructionKey::to_key(&event.machine_instruction, event.qual.clone()), Accumulator::new(accumulated_duration, opcode_count, average_duration));
-				}
-			}
-		}
-
-		//	Now we've got a hash table with the reduced information.  We want to return it as a simple
-		//	vector.  It shouldn't be more than 100 entries so cloning it would be a big eal
-		
-		let mut reduced_data : Vec<ReducedData> = Vec::new();
-		let instruction_keys = event_accumulator.keys();
-		for instruction_key in instruction_keys{
-			reduced_data.push(ReducedData::new(&instruction_key, event_accumulator.get(instruction_key).unwrap()));
-		}
-
-		return reduced_data.clone();
+	pub fn get_runtime_data(&self) -> HashMap<InstructionKey,EventPayload>{
+		return self.runtime_data.accumulated_events.clone();
 	}
-
-
 
 	//	When we know we need a number from the operand stack, get it and return it
 	//  here.
@@ -489,7 +332,7 @@ impl<'a> Executor<'a>{
 
 			if self.cli.is_runtime_stats_enabled(){
 				self.runtime_data.mark_end(instruction, self.runtime_data_qual.clone());
-				self.runtime_data_qual.clear();	
+				self.runtime_data_qual.clear();
 			}
 
 			if self.cli.is_debug_bit(DUMP_OPERANDS_DISPATCH){

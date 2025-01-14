@@ -1,4 +1,4 @@
-workspace = { members = ["cli", "tokenizer", "parser", "model", "symboltable", "builtin", "itop", "opcode", "machineinstruction", "codeframe", "structmodel", "macrolib", "csvparser"] }
+workspace = { members = ["cli", "tokenizer", "parser", "model", "symboltable", "builtin", "itop", "opcode", "machineinstruction", "codeframe", "structmodel", "macrolib", "csvparser", "runtimestats"] }
 [package]
 name = "cpl"
 version = "0.1.0"
@@ -18,6 +18,8 @@ exec = { path = "exec" }
 macrolib = { path = "macrolib" }
 opcode = { path = "opcode" }
 machineinstruction = { path = "machineinstruction" }
+runtimestats = { path = "runtimestats" }
+
 
 [[bin]]
 name = "main"

@@ -13,6 +13,7 @@ pub const TRACE_CODE_GEN_ADD_INSTRUCTION : u32 = 8;
 pub const TRACE_EXEC : u32 = 9;
 pub const TRACE_EXEC_DISPATCHER : u32 = 10;
 pub const TRACE_STATEMENT_ADD : u32 = 11;
+pub const DISPLAY_RUNTIME : u32 = 12;
 
 pub const DUMP_POSTFIX_EXPRESSION : u32 = 20;
 pub const DUMP_OPERATOR_STACK : u32 = 21;
@@ -40,6 +41,8 @@ fn usage_d_swiches(){
 	eprintln!("            TRACE_EXEC = {}", TRACE_EXEC);
 	eprintln!("            TRACE_EXEC_DISPATCHER= {}", TRACE_EXEC_DISPATCHER);
 	eprintln!("            TRACE_STATEMENT_ADD = {}", TRACE_STATEMENT_ADD);
+	eprintln!("");
+	eprintln!("            DISPLAY_RUNTIME = {}", DISPLAY_RUNTIME);
 	eprintln!("");
 	eprintln!("            DUMP_POSTFIX_EXPRESSION = {}",DUMP_POSTFIX_EXPRESSION);
 	eprintln!("            DUMP_OPERATOR_STACK = {}", DUMP_OPERATOR_STACK);
