@@ -69,6 +69,18 @@ impl fmt::Display for MachineInstruction{
 					write!(f,"{} @{},{},{} ({})",self.opcode, self.function_num, self.block_num, self.address, self.display_literal())
 				}
 			}
+			Opcode::Foreach => {
+				write!(f,"{} target: {},{} collection: {},{} index: {},{} exit: {}"
+						, self.opcode
+						, self.block_num
+						, self.address
+						, self.qualifier[3]
+						, self.qualifier[4]
+						, self.qualifier[1]
+						, self.qualifier[2]
+						, self.qualifier[0]					
+					)				
+			}
 
 			_=>{
 				match self.opcode_mode{

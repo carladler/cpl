@@ -2169,21 +2169,15 @@ impl<'a> CodeGen<'a>{
 		self.make_block_current(while_block_num, function_num);
 	}
 
-	/*
-		n
-				<condition eval>
-		n+i     jt to end			target: n+i+3  (if result of nextiter is undefined)
-		n+i+1:   call while			return to n+i+2
-		n+i+2:   j (loop)			target: n
-
-		where i = number of instructions generated for eval.
-	*/	
-	pub fn gen_foreach(&mut self, target : &Token, source_type : &TokenType, source : &Vec<Token>, function_num : usize){
+	
+	//	We've added a foreach pseudo machine instruction which encodes all of the relative infomration
+	//	required for the foreach header to work
+	pub fn gen_foreach (&mut self, target : &Token, source_type : &TokenType, source : &Vec<Token>, function_num : usize){
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_FOREACH target: {} source type: {} source: {}",target, source_type, source[0]);}
-		
+	
 		//	get the current address in code space
 		let mut current_code_address = self.get_current_address(function_num);
-
+	
 		//	Create a place for the foreach data in this foreach statement
 		let mut foreach_data = ForeachData::new();
 		
@@ -2225,7 +2219,6 @@ impl<'a> CodeGen<'a>{
 				}
 			}
 		}
-
 		// Create a token representing the iteration counter.  It has a random
 		// name and it is a "normal" var
 		let iter_counter_name = self.get_random_id();
@@ -2294,138 +2287,24 @@ impl<'a> CodeGen<'a>{
 		//	this is where we jump when looping
 		let top_of_loop = current_code_address;
 
-		//	get the index
+		//	this is the foreach instruction
 		self.add_machine_instruction(
 			MachineInstruction::new(
-				Opcode::Push
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, foreach_data.foreach_iter_counter_detail.block_num		// block num
-				, foreach_data.foreach_iter_counter_detail.index 			// address in block
-				, Vec::new()
-				, foreach_data.foreach_iter_counter.clone()
-			),function_num
-		);
-		current_code_address += 1;
-
-		//	fetch a reference to the source
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Push
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, foreach_data.foreach_source_block_num
-				, foreach_data.foreach_source_address
-				, Vec::new()
-				, foreach_data.foreach_source.clone()
-			),function_num
-		);
-
-		current_code_address += 1;
-		
-		//	Get the length of the of the source
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::LengthOf
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, 0
-				, 0
-				, Vec::new()
-				, Token::new()
-			),function_num
-		);
-		current_code_address += 1;
-
-	
-		//	Compare the current index at tos - 1 with the length of the source
-		//	at tos.  If the index is greater than or equal to length then jump
-		//	out of loop
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Lt
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, 0
-				, 0
-				, Vec::new()
-				, Token::new()
-			),function_num
-		);
-		current_code_address += 1;
-		
-		//	if the indx is >= length then exit the loop
-		//	jumping to current + whatever to get past the last insruction
-		//	of the foreach statements
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Jf
-				, OpcodeMode::Jump
-				, self.symbol_table.current_frame()
-				, 0
-				, current_code_address + 8	// this is jump ahead (if new instructions are added after increment this number)
-				, Vec::new()
-				, Token::new()
-			),function_num
-		);
-		current_code_address += 1;
-
-		//	fetch a reference to the source
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Push
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, foreach_data.foreach_source_block_num
-				, foreach_data.foreach_source_address
-				, Vec::new()
-				, foreach_data.foreach_source.clone()
-			),function_num
-		);
-		current_code_address += 1;
-
-		//	get the index
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Push
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, foreach_data.foreach_iter_counter_detail.block_num		// block num
-				, foreach_data.foreach_iter_counter_detail.index 			// address in block
-				, Vec::new()
-				, foreach_data.foreach_iter_counter.clone()
-			),function_num
-		);
-		current_code_address += 1;
-
-		//	get the value from the source at index
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::FetchIndexed
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, foreach_data.foreach_iter_counter_detail.block_num		// block num
-				, foreach_data.foreach_iter_counter_detail.index 			// address in block
-				, Vec::new()
-				, foreach_data.foreach_iter_counter.clone()
-			),function_num
-		);
-		current_code_address += 1;
-
-		//	Update the target
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Update
-				, OpcodeMode::Update
+				Opcode::Foreach
+				, OpcodeMode::NONE
 				, self.symbol_table.current_frame()
 				, foreach_data.foreach_target_detail.block_num
 				, foreach_data.foreach_target_detail.index
-				, Vec::new()
-				, foreach_data.foreach_target.clone()
+				, vec!(
+						 current_code_address + 3
+						,foreach_data.foreach_iter_counter_detail.block_num
+						,foreach_data.foreach_iter_counter_detail.index
+						,foreach_data.foreach_source_block_num
+						,foreach_data.foreach_source_address
+				 ),Token::new()
 			),function_num
 		);
 		current_code_address += 1;
-
 		//	we are in the loop now, call the foreach block and return to the
 		//	the next instruction
 		self.add_machine_instruction(
@@ -2440,24 +2319,6 @@ impl<'a> CodeGen<'a>{
 			),function_num
 		);
 
-		current_code_address += 1;
-
-		//	if anybody continues return to here
-		// self.continue_address.push ((return_block_num, current_code_address));
-
-
-		//	Increment the index
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Inc
-				, OpcodeMode::Var
-				, self.symbol_table.current_frame()
-				, foreach_data.foreach_iter_counter_detail.block_num		// block num
-				, foreach_data.foreach_iter_counter_detail.index 			// address in block
-				, Vec::new()
-				, foreach_data.foreach_iter_counter.clone()
-			),function_num
-		);
 		current_code_address += 1;
 
 		// jump to the top of the loop

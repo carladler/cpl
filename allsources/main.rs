@@ -150,7 +150,6 @@ fn display_stats(cli : &CLI, runtime_data: HashMap<InstructionKey,EventPayload>,
 		let qual_txt						= format!("{}"		,cooked_summary.1.qual);
 		let accum_duration_txt				= format!("{}"		,format_duration(cooked_summary.1.accum_duration));
 		let accum_execution_count_txt		= format!("{}"		,cooked_summary.1.accum_execution_count);
-		//let avg = Duration::from_nanos(cooked_summary.1.accum_execution_count * 1_000_000 / cooked_summary.1.accum_duration.as_nanos() as u64);
 		let accum_average_duration_txt		= format!("{}"		,format_duration(cooked_summary.1.accum_average_duration));
 		let percent_txt						= format!("{:3.1}%"	,cooked_summary.0 as f64 / 10.0);
 	

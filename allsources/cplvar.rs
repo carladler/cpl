@@ -371,7 +371,7 @@ impl OperandStack{
 
 			//	If the index is out of bounds, return undefined
 			let element = match array_ref.cpl_array.get(index){
-				None => return CplVar::new(CplDataType::CplUndefined(CplUndefined::new())),
+				None => return undefined!(),//return self.undefined(),
 				Some(e) => e,
 			};
 			let element_type = self.get_type(element);
@@ -392,7 +392,7 @@ impl OperandStack{
 			}
 		}
 
-		CplVar::new(CplDataType::CplUndefined(CplUndefined::new()))
+		undefined!()
 	}
 
 
@@ -476,7 +476,7 @@ impl OperandStack{
 			//	If the index is out of bounds, return undefined
 			let element = match dict_ref.cpl_dict.get(&CplKey::new(index)){
 				None => {
-					return CplVar::new(CplDataType::CplUndefined(CplUndefined::new()));
+					return undefined!();
 				}
 				Some(e) => e,
 			};
@@ -502,7 +502,7 @@ impl OperandStack{
 			}
 		}
 
-		CplVar::new(CplDataType::CplUndefined(CplUndefined::new()))
+		undefined!()
 	}
 
 	pub fn fetch_dict_indexed_from_operand_stack(&mut self, index_count : usize) -> CplVar{
@@ -531,6 +531,23 @@ impl OperandStack{
 
 		fetched.clone()
 	}
+
+	//	Return an element of an array
+	pub fn fetch_indexed (&mut self, index : usize, block_num : usize, address : usize) -> CplVar{
+		let var = self.fetch_local_var(block_num, address);
+		if let CplDataType::CplVarRef(ref varref) = var.var{
+			let array_var = self.operand_frames.get_mut(varref.frame_num).unwrap().operand_blocks.get(varref.block_num).unwrap().operand_block.get(varref.address).unwrap();
+
+			if let CplDataType::CplArray(ref array) = array_var.var{
+				return array.cpl_array[index].clone();
+			}else{
+				panic!("from OperandStack.fetch_indexed: expecting a VarRef pointing at array, Got:{}", array_var);
+			}
+		}else{
+			panic!("from OperandStack.fetch_indexed: expecting a VarRef, Got:{}", var);
+		}
+
+	}
 	
 
 	//	Returns a reference to the top of the stack
@@ -550,18 +567,38 @@ impl OperandStack{
 		self.operand_frames.get_mut(frame_num).unwrap().operand_blocks.get_mut(block_num).unwrap().operand_block.get_mut(address).unwrap()
 	}
 
+	pub fn fetch_local_ref(&self, block_num : usize, address : usize) -> &CplVar{
+		let frame_num = self.current_frame();
+		self.operand_frames.get(frame_num).unwrap().operand_blocks.get(block_num).unwrap().operand_block.get(address).unwrap()
+	}
 
-	pub fn update_local(&mut self, target_block_num:usize, target_address:usize){
+	pub fn fetch_local_mutable_ref (&mut self, block_num : usize, address : usize) -> &mut CplVar{
+		let frame_num = self.current_frame();
+		self.operand_frames.get_mut(frame_num).unwrap().operand_blocks.get_mut(block_num).unwrap().operand_block.get_mut(address).unwrap()
+	}
+
+	pub fn update_local(&mut self, var : &CplVar, target_block_num:usize, target_address:usize){
 		let target_frame_num = self.operand_frames.len()-1;
-		self.update(target_frame_num, target_block_num, target_address);
+		self.update_from_val(var, target_frame_num, target_block_num, target_address);
+	}
+
+	pub fn update_local_from_tos(&mut self, target_block_num:usize, target_address:usize){
+		let target_frame_num = self.operand_frames.len()-1;
+		self.update_from_tos(target_frame_num, target_block_num, target_address);
 	}
 
 	//	update the value at the fully qualified address specified with the var at the top
 	//	of the stack and then remove it.  Assumes the current frame.
-	pub fn update (&mut self, target_frame_num:usize, target_block_num:usize, target_address:usize){
+	pub fn update_from_tos (&mut self, target_frame_num:usize, target_block_num:usize, target_address:usize){
 		//self.dump_operands_with_message("AT UPDATE...");
 		let tos = self.pop();
+		self.update_from_val(&tos, target_frame_num, target_block_num, target_address);
+	}
 
+
+	//	update the value at the fully qualified address specified with the var at the top
+	//	of the stack and then remove it.  Assumes the current frame.
+	fn update_from_val (&mut self, var : &CplVar, target_frame_num:usize, target_block_num:usize, target_address:usize){
 		//	get the frame of the target
 		let target_frame = self.operand_frames.get_mut(target_frame_num).unwrap();
 
@@ -569,7 +606,7 @@ impl OperandStack{
 		let target_block = target_frame.operand_blocks.get_mut(target_block_num).unwrap();
 
 		//	and update the value at target_frame.target_block.target_address
-		target_block.operand_block[target_address] = tos.clone();
+		target_block.operand_block[target_address] = var.clone();
 	}
 
 	
@@ -798,6 +835,20 @@ impl OperandStack{
 			_=> return 1,
 		};
 	}
+
+	// pub fn local_len(&mut self, block_num : usize, address : usize) -> usize{
+	// 	let local_var = self.fetch_local_ref(block_num, address);
+	// 	if let CplDataType::CplVarRef(_) = local_var.var{
+	// 		return self.varref_len(local_var);
+	// 	}else{
+	// 		match local_var.var {
+	// 			CplDataType::CplArray(ref a)	=> return a.len(),
+	// 			CplDataType::CplString(ref s)	=> return s.len(),
+	// 			CplDataType::CplDict(ref d)		=> return d.len(),
+	// 			_=> return 1,
+	// 		};
+	// 	}
+	// }
 
 	pub fn dump_operands_with_message(&self, msg : &str){
 		eprintln!("OPERAND STACK DUMP : {}", msg);
@@ -1258,7 +1309,7 @@ impl CplArray{
 
 	pub fn get (&mut self, index : usize) -> CplVar{
 		if index >= self.cpl_array.len() {
-			return CplVar::new(CplDataType::CplUndefined(CplUndefined::new()));
+			return undefined!();
 		}
 		self.cpl_array.get(index).unwrap().clone()
 	}
@@ -1444,7 +1495,7 @@ impl Clone for CplArray{
 				CplDataType::CplBool(n)					=> cpl_array.push(&CplVar::new(CplDataType::CplBool(CplBool::new(n.cpl_bool)))),
 				CplDataType::CplArray(a)				=> cpl_array.push(&CplVar::new(CplDataType::CplArray(a.clone()))),
 				CplDataType::CplUninitialized(_) 		=> cpl_array.push(&CplVar::new(CplDataType::CplUninitialized(CplUninitialized::new()))),
-				CplDataType::CplUndefined(_) 			=> cpl_array.push(&CplVar::new(CplDataType::CplUndefined(CplUndefined::new()))),
+				CplDataType::CplUndefined(_) 			=> cpl_array.push(&undefined!()),
 				CplDataType::CplDict(d) 				=> cpl_array.push(&CplVar::new(CplDataType::CplDict(d.clone()))),
 				_ 										=> abend!(format!("Unable to clone an array with a {} object in it", var.var)),
 			};
@@ -2047,7 +2098,7 @@ impl CplDict{
 
 	pub fn get(&self, key : &CplKey) -> CplVar{
 		if !self.contains_key(key){
-			return CplVar::new(CplDataType::CplUndefined(CplUndefined::new()));
+			return undefined!();
 		}
 		return self.cpl_dict.get(key).unwrap().clone();
 	}
@@ -2057,7 +2108,7 @@ impl CplDict{
 		if self.cpl_dict.contains_key(&key){
 			return self.get(&key);
 		}else{
-			return CplVar::new(CplDataType::CplUndefined(CplUndefined::new()));
+			return undefined!();
 		}
 	}
 

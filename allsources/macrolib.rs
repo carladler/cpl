@@ -11,10 +11,11 @@ macro_rules! abend{
 	};
  }
 
-//  macro_rules! dbg{
-// 	($x:expr) => {
-// 		{
-			
-// 		}
-// 	};	
-//  }
+ #[macro_export]
+ macro_rules! undefined{
+	() =>{
+		{
+			CplVar::new(CplDataType::CplUndefined(CplUndefined::new()))
+		}
+	}
+}

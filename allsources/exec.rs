@@ -327,6 +327,8 @@ impl<'a> Executor<'a>{
 
 				Opcode::Diag					=> self.exec_diag(instruction),
 
+				Opcode::Foreach					=> self.exec_foreach(instruction),
+
 				_ => abend!(format!("{} Not Implemented Yet", instruction.opcode)),
 			}
 
@@ -340,11 +342,12 @@ impl<'a> Executor<'a>{
 				self.dump_operands("After instruction Execution");
 			}
 
-			//	Don't increment if the instruction counter was set by Retrun, Bl, Break or a jump of some kind
+			//	Don't increment if the instruction counter was set by the following
 			//	because those opcodes set the next address to get the instruction from rather than
 			//	the next opcode in the instruction stream.  Return is kind of a special case because
 			//	if we're in the entry function, we break out of the execution loop.
 			match instruction.opcode{
+				Opcode::Foreach |
 				Opcode::Bl |
 				Opcode::J  |
 				Opcode::Jt |
@@ -777,13 +780,10 @@ impl<'a> Executor<'a>{
 
 
 	//	This updates a local operand in situ via the address in the instruction
-	fn update_scalar(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar(start): {}", instruction)}
-
-		self.operand_stack.update_local(instruction.block_num, instruction.address);
-		self.runtime_data_qual = "Scalar".to_string();
-
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar(end): {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
+	fn update_scalar_tos(&mut self, block_num : usize, address : usize){
+		// if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar_tos(start): {},{}", block_num, address)}
+		self.operand_stack.update_local_from_tos(block_num, address);
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar_tos: {},{} {}", block_num, address, self.operand_stack.fetch_local_var(block_num, address))}
 	}
 
 	//	if the mode is UpdateIndexed and the target is an actual colletion
@@ -884,8 +884,14 @@ impl<'a> Executor<'a>{
 		//self.dump_operands("begin exec_update");
 
 		match instruction.opcode_mode{
-			OpcodeMode::Update => self.update_scalar(instruction),
-			OpcodeMode::UpdateIndexed => self.update_indexed(instruction),
+			OpcodeMode::Update => {
+				self.update_scalar_tos(instruction.block_num, instruction.address);
+				self.runtime_data_qual = "Scalar".to_string();
+			}
+			OpcodeMode::UpdateIndexed => {
+				self.update_indexed(instruction);
+				self.runtime_data_qual = "Indexed".to_string();
+			}
 			_=> abend!(format!("From exec_update:  I don't know what this means: {}", instruction.opcode_mode)),
 		}
 
@@ -1883,5 +1889,88 @@ impl<'a> Executor<'a>{
 				}
 			}
 		}
+	}
+
+	fn foreach_index (&self, index_block_num : usize, index_address :usize) -> usize{
+		let index : usize;
+		//	fetch the index and increment it
+		let index_var = self.operand_stack.fetch_local_ref(index_block_num, index_address);
+		if let CplDataType::CplNumber(ref n) = index_var.var{
+			index = n.cpl_number as usize;
+			return index;
+		}else{
+			return 0;
+		}
+	}
+
+	fn foreach_index_check(&self, index : usize, collection_block_num : usize, collection_address : usize) -> bool{
+		let collection_ref = self.operand_stack.fetch_local_ref(collection_block_num, collection_address);
+		if let CplDataType::CplArray(ref collection) = collection_ref.var{
+			if index >= collection.cpl_array.len(){
+				return false;
+			}else{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	fn foreach_index_increment (&mut self, index_block_num : usize, index_address : usize){
+		match self.operand_stack.fetch_local_mutable_ref(index_block_num, index_address).var{
+			CplDataType::CplNumber(ref mut n) => {
+				n.cpl_number += 1.0;
+			}
+			_ => {}
+		}
+	}
+
+	fn foreach_target_update (&mut self
+			, index : usize
+			, collection_block_num : usize
+			, collection_address : usize
+			, target_block_num : usize
+			, target_address : usize
+			)
+			{
+
+		let collection_element = self.operand_stack.fetch_indexed(index, collection_block_num, collection_address);
+		self.operand_stack.update_local(&collection_element, target_block_num, target_address);
+	}
+
+	//	Foreach:  Loop in a box
+	//
+	//	Taking some liberal advantage of the fields in an instruction:
+	//
+	//		Block_num = block number of target
+	// 		Address = address of target
+	// 		Qual[0] = Loop exit address when index >= length of array
+	// 		Qual[1] = block_num of index
+	// 		Qual[2] = address of index
+	// 		Qual[3] = block_num of array
+	// 		Qual[4] = address of array
+
+	fn exec_foreach(&mut self, instruction : &MachineInstruction){
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_foreach: {}", self.code_block_num, self.instruction_counter, instruction)}
+
+		let target_block_num = instruction.block_num;
+		let target_address = instruction.address;
+		let index_block_num = instruction.qualifier[1];
+		let index_address = instruction.qualifier[2];
+		let collection_block_num = instruction.qualifier[3];
+		let collection_address = instruction.qualifier[4];
+		let loop_exit_address = instruction.qualifier[0];
+
+		let index = self.foreach_index (index_block_num, index_address);
+		if !self.foreach_index_check(index, collection_block_num, collection_address){
+			self.instruction_counter = loop_exit_address;
+			return;
+		}
+
+		self.foreach_index_increment(index_block_num, index_address);
+
+		self.foreach_target_update(index, collection_block_num, collection_address, target_block_num, target_address);
+
+		//	since the executor won't do this for foreach instructinos
+		self.instruction_counter += 1;
 	}
 }

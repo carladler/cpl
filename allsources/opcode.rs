@@ -69,6 +69,9 @@ pub enum Opcode{
 	Damnit,
 	LengthOf,
 
+	//	Kitchen Sink Operators
+	Foreach,
+
 	//	Special purpose
 	Diag,
 }
@@ -140,6 +143,8 @@ impl fmt::Display for Opcode{
 			Opcode::LengthOf				=> write!(f,"LengthOf"),
 
 			Opcode::Diag					=> write!(f,"Diag"),
+
+			Opcode::Foreach					=> write!(f,"Foreach"),
 	   }
 	}
 }
