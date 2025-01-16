@@ -11,8 +11,8 @@ macro_rules! abend{
 	};
  }
 
- #[macro_export]
- macro_rules! undefined{
+#[macro_export]
+macro_rules! undefined{
 	() =>{
 		{
 			CplVar::new(CplDataType::CplUndefined(CplUndefined::new()))
