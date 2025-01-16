@@ -262,10 +262,10 @@ impl<'a> Executor<'a>{
 				Opcode::Push 					=> self.exec_push(instruction),
 				Opcode::PushNewCollection		=> self.exec_push_new_collection(instruction),
 
-				Opcode::Print 					=> self.exec_print(instruction.clone(),'s','n'),
-				Opcode::Eprint					=> self.exec_print(instruction.clone(),'e','n'),
-				Opcode::Println					=> self.exec_print(instruction.clone(),'s','l'),
-				Opcode::Eprintln				=> self.exec_print(instruction.clone(),'e','l'),
+				Opcode::Print 					=> self.exec_print(instruction.clone(),true, false),
+				Opcode::Eprint					=> self.exec_print(instruction.clone(),false, false),
+				Opcode::Println					=> self.exec_print(instruction.clone(),true, true),
+				Opcode::Eprintln				=> self.exec_print(instruction.clone(),false, true),
 
 				Opcode::Pop 					=> self.exec_pop(instruction),
 
@@ -669,11 +669,17 @@ impl<'a> Executor<'a>{
 		self.operand_stack.pop();
 	}
 
+	
+
 	//	println always uses whatever is at the top of the current frame.  If that var
 	//	is  VarRef then println whatever it's pointing at.  NOTE:  we only support
 	//	a single level of indirection.  If the thing that the VarRef is pointing at
 	//	is, itself, a VarRef, the println instruction fails.
-	fn exec_print(&mut self, instruction : MachineInstruction, s_or_e : char, ln_or_n : char){
+
+	//	the is_print parameter controls whether print(ln) or eprint(ln) is used (true -> print, false -> eprint)
+	//	the has_nl parameter controls whether or not a new new line is appened to the ouptut (true -> append new line)
+	fn exec_print(&mut self, instruction : MachineInstruction, is_print : bool, has_nl : bool){
+
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_print: {}", self.code_block_num, self.instruction_counter, instruction)}
 
 		let mut tos_ref = self.operand_stack.fetch_tos_ref();
@@ -682,97 +688,42 @@ impl<'a> Executor<'a>{
 			tos_ref = self.operand_stack.fetch_ref(vr.frame_num, vr.block_num, vr.address);
 		}
 
-		match tos_ref.var{
-			CplDataType::CplNumber(ref v) => {
-				//	and println the value
-				if s_or_e == 's'{
-					if ln_or_n == 'l' {
-						println!("{}", v.cpl_number);
-					}else{
-						print!("{}", v.cpl_number)
-					}
-				}else{
-					if ln_or_n == 'l' {
-						eprintln!("{}", v.cpl_number);
-					}else{
-						eprint!("{}", v.cpl_number)
+		#[macro_export]
+		macro_rules! exec_print{
+			($var:expr, $is_print:expr, $has_nl:expr) =>{
+				{
+					if $is_print && $has_nl{
+						print!("{}\n",$var);
+					}else if $is_print && !$has_nl{
+						print!("{}\n",$var);
+					}else if !$is_print && $has_nl{
+						eprint!("{}\n",$var);
+					}else if !$is_print && !$has_nl{
+						eprint!("{}",$var);
 					}
 				}
+			}
+		}
+
+		match tos_ref.var{
+			CplDataType::CplNumber(ref v) => {
+				exec_print!(v.cpl_number, is_print, has_nl);
 			}
 
 			CplDataType::CplString(ref v) => {
-				//	and println the value
-				if s_or_e == 's'{
-					if ln_or_n == 'l' {
-						println!("{}", v.cpl_string);
-					}else{
-						print!("{}", v.cpl_string)
-					}
-				}else{
-					if ln_or_n == 'l' {
-						eprintln!("{}", v.cpl_string);
-					}else{
-						eprint!("{}", v.cpl_string)
-					}
-				}
+				exec_print!(v.cpl_string, is_print, has_nl);
 			}
 
-			CplDataType::CplBool(ref b) => {
-				//	and println the value
-				if s_or_e == 's'{
-					if ln_or_n == 'l' {
-						println!("{}", b.cpl_bool);
-					}else{
-						print!("{}", b.cpl_bool)
-					}
-				}else{
-					if ln_or_n == 'l' {
-						eprintln!("{}", b.cpl_bool);
-					}else{
-						eprint!("{}", b.cpl_bool)
-					}
-				}
+			CplDataType::CplBool(ref v) => {
+				exec_print!(v.cpl_bool, is_print, has_nl);
 			}
 
-			CplDataType::CplArray(ref a) => {
-				if s_or_e == 's'{
-					if ln_or_n == 'l' {
-						println!("{}", a);
-					}else{
-						print!("{}", a)
-					}
-				}else{
-					if ln_or_n == 'l' {
-						eprintln!("{}", a);
-					}else{
-						eprint!("{}", a)
-					}
-				}
+			CplDataType::CplArray(ref v) => {
+				exec_print!(v, is_print, has_nl);
 			}
-
-			// 	if s_or_e == 's'{
-			// 		println!("[{}]",a);
-			// 	}else{
-			// 		eprintln!("[{}]",a);
-			// 	}
-
-			// 	if s_or_e == 's'{
-			// 		if ln_or_n == 'l' {
-			// 			println!("[{}]",a);
-			// 		}else{
-			// 			print!("[{}]",a)
-			// 		}
-			// 	}
-				
-			// 		if ln_or_n == 'l' {
-			// 			eprintln!("[{}]",a);
-			// 		}else{
-			// 			eprint!("[{}]",a)
-			// 		}
-			// }
-
 			_ => eprintln!("Can't print: {}", tos_ref.var),
 		}
+
 
 		//	When we're done printing, consume the top of stack
 		self.operand_stack.pop();
