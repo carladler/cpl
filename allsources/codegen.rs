@@ -158,7 +158,6 @@ impl<'a> CodeGen<'a>{
 			eval_data : Vec::new(),
 			struct_list : Vec::new(),
 			struct_map : HashMap::new(),
-
 		}
 	}
 
@@ -193,6 +192,32 @@ impl<'a> CodeGen<'a>{
 			self.struct_map.insert(s.name.clone(), index);
 			self.struct_list.push(s.clone());
 			index += 1;
+		}
+	}
+
+	pub fn add_global_literals(&mut self, global_literals : &Vec<LiteralStatement>){
+		for global_literal in global_literals{
+			let value_token = global_literal.literal_value[0].clone();
+
+			let entry : LiteralEntry;
+
+			match value_token.token_type{
+				TokenType::FLOAT | TokenType::INTEGER => {
+					entry = LiteralEntry::new(LiteralType::LiteralNumber(LiteralNumber::new(value_token.token_value.parse::<f64>().unwrap())));
+				}
+				TokenType::STRING => {
+					entry = LiteralEntry::new(LiteralType::LiteralString(LiteralString::new(&value_token.token_value)));
+				},
+				TokenType::BOOL => {
+					if value_token.token_value == "false"{
+						entry = LiteralEntry::new(LiteralType::LiteralBool(LiteralBool::new(false)));
+					}else{
+						entry = LiteralEntry::new(LiteralType::LiteralBool(LiteralBool::new(true)));
+					}
+				},
+				_=> panic!("from SymbolTable.add_literal:  {} is not supported", value_token),
+			}
+			self.symbol_table.add_global_symbol(&global_literal.literal_id.token_value, &SymbolTableEntryType::LiteralEntry(entry));
 		}
 	}
 

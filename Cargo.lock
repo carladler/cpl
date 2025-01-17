@@ -195,6 +195,7 @@ dependencies = [
  "cli",
  "codeframe",
  "modelstructs",
+ "structmodel",
  "tokenizer",
 ]
 

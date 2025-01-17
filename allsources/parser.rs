@@ -1251,6 +1251,7 @@ impl <'a> Parser<'a>{
 	fn literal_value(&mut self) -> Option<ParserState>{
 		self.literal_value.push(self.token.clone());
 
+
 		if self.current_state == ParserState::GlobalLiteralValue{
 			self.model.add_global_literal(self.literal_id.clone(), self.literal_value.clone());
 		}else if self.current_state == ParserState::LocalLiteralValue{

@@ -259,6 +259,17 @@ impl fmt::Display for LiteralEntry{
 ****	Symbol Table
 *****************************************/
 
+struct GlobalSymbols{
+	globals : HashMap<String, SymbolTableEntryType>,
+}
+
+impl GlobalSymbols{
+	fn new() -> GlobalSymbols{
+		GlobalSymbols{
+			globals : HashMap::new(),
+		}
+	}
+}
 
 struct SymbolTableBlock{
 	// For each block, this keeps track of the current index
@@ -364,7 +375,7 @@ impl SymbolTableFrame{
 	//	starts at the last block and moves up until it finds an entry.  This
 	//	ensures that the most "local" symbol is used first.  This will return either
 	//	a Normal Symbol or StructMemberEntry
-	pub fn get_symbol_entry(&self, symbol : &String) -> Option<SymbolTableEntryType>{
+	pub fn get_symbol_entry_from_frame(&self, symbol : &String) -> Option<SymbolTableEntryType>{
 		for block in self.table.iter().rev(){
 			let rtn = block.table.get(symbol);
 			match rtn{
@@ -376,7 +387,7 @@ impl SymbolTableFrame{
 	}
 
 	pub fn get_struct_member_entry(&self, symbol : &String) -> StructMemberEntry{
-		match self.get_symbol_entry(symbol){
+		match self.get_symbol_entry_from_frame(symbol){
 			None => abend!(format!("from get_struct_member_entry: {} Not found in Symbol Table", symbol)),
 			Some(entry) => match entry{
 				SymbolTableEntryType::StructMemberEntry(sm) => return sm,
@@ -387,7 +398,7 @@ impl SymbolTableFrame{
 
 	//	This will return only a normal symbol if there is one.  If not, crash.
 	pub fn get_normal_symbol_entry(&self, symbol : &String) -> NormalSymbolEntry{
-		match self.get_symbol_entry(symbol){
+		match self.get_symbol_entry_from_frame(symbol){
 			None => panic!("from get_normal_symbol_entry:  {} not found in symbol table at all", symbol),
 			Some(entry) => {
 				match entry {
@@ -540,7 +551,7 @@ impl SymbolTableFrame{
 		//println!("====================== get_normal_address_from_frame key={}",key);
 		//self.dump_table();
 
-		match self.get_symbol_entry(key){
+		match self.get_symbol_entry_from_frame(key){
 			None => return None,
 			Some(entry) => {
 				if let SymbolTableEntryType::NormalSymbolEntry(normal) = entry{
@@ -553,7 +564,7 @@ impl SymbolTableFrame{
 	}	
 	//  Fetch the address of an instantiated struct entry.
 	pub fn get_struct_address_from_frame(&self, key : &String) -> Option<StructEntry>{
-		match self.get_symbol_entry(key){
+		match self.get_symbol_entry_from_frame(key){
 			None => return None,
 			Some(entry) => {
 				if let SymbolTableEntryType::StructEntry(struct_entry) = entry{
@@ -571,6 +582,7 @@ pub struct SymbolTable <'a> {
 
 	//	The symbol table is a vector of symbol table blocks
 	tables : Vec<SymbolTableFrame>,
+	globals : GlobalSymbols,
 }
 
 impl <'a> SymbolTable <'a>{
@@ -578,6 +590,7 @@ impl <'a> SymbolTable <'a>{
 		SymbolTable{
 			cli : cli,
 			tables: Vec::new(),
+			globals : GlobalSymbols::new(),
 		}
 	}
 
@@ -640,8 +653,22 @@ impl <'a> SymbolTable <'a>{
 		//	get the element of the function symbol list
 		let frame : &mut SymbolTableFrame = self.tables.last_mut().unwrap(); 
 
-		//	and return the entry (or None)
-		frame.get_symbol_entry(symbol)
+		let rtn = frame.get_symbol_entry_from_frame(symbol);
+		if let None = rtn{
+			let global = self.globals.globals.get(symbol);
+			match global{
+				None => None,
+				Some(g) => Some(g.clone()),
+			}
+		}else{
+			rtn
+		}
+		// //	and return the entry (or None)
+		// if let None = frame.get_symbol_entry_from_frame(symbol){
+		// 	t
+		// }else{
+		// 	None
+		// }
 	}
 
 
@@ -739,5 +766,9 @@ impl <'a> SymbolTable <'a>{
 	pub fn symbol_table_dump(&self){
 		if !self.cli.is_debug_bit(DUMP_SYMBOL_TABLE){return}
 		self.symbol_table_dump_absolutely();
+	}
+
+	pub fn add_global_symbol(&mut self, symbol : &String, entry : &SymbolTableEntryType){
+		self.globals.globals.insert(symbol.clone(), entry.clone());
 	}
 }

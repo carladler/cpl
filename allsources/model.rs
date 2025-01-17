@@ -3,6 +3,7 @@ use cli::*;
 use modelstructs::*;
 use tokenizer::*;
 use codeframe::*;
+use structmodel::*;
 
 pub struct Model<'a>{
 	cli : & 'a CLI<'a>,
@@ -233,7 +234,7 @@ impl<'a> Model<'a>{
 		self.generator.add_structs_to_symbol_table(&self.program.structs);
 
 		//	Then add global literals, if there are any
-		self.generator.add_global_literals();
+		self.generator.add_global_literals(&self.program.global_literals);
 
 		//	Next, we need to know what where to start because
 		//	elsewhere we've added a bunch of builtin functions to

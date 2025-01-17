@@ -11,6 +11,7 @@ cli = { path = "../cli" }
 modelstructs = { path = "../modelstructs" }
 tokenizer = { path = "../tokenizer" }
 codeframe = { path = "../codeframe" }
+structmodel = { path = "../structmodel" }
 
 [lib]
 name="model"
