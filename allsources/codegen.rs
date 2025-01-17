@@ -158,6 +158,7 @@ impl<'a> CodeGen<'a>{
 			eval_data : Vec::new(),
 			struct_list : Vec::new(),
 			struct_map : HashMap::new(),
+
 		}
 	}
 
@@ -728,10 +729,54 @@ impl<'a> CodeGen<'a>{
 				SymbolTableEntryType::StructEntry(struct_detail) => {
 					// eprintln!("==================== gen_expression_id entry={}",e);
 					self.gen_expression_struct(token, struct_detail.block_num, struct_detail.index, function_num);
-				}
-			}
+				},
 
+				//	If it turns out the id is actually a literal, just push it's value onto
+				//	the stack
+				SymbolTableEntryType::LiteralEntry(literal_detail) => {
+					//eprintln!("==================== gen_expression_id entry={}",e);
+					self.gen_expression_literal(token, &literal_detail.literal_type, function_num);
+				},
+			}
 		}
+	}
+
+	fn gen_expression_literal(&mut self, token : &Token, literal_type : &LiteralType, function_num : usize){
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_expression_literal: {}:{}", token, literal_type);}
+
+		let mut lit_token = token.clone();
+		lit_token.token_category = TokenCategory::Factor;
+		
+
+		match literal_type{
+			LiteralType::LiteralNumber(ref v) 	=>{
+				lit_token.token_type = TokenType::FLOAT;
+				lit_token.token_value = v.literal_number.to_string();
+			}
+			LiteralType::LiteralString(ref v) 	=>{
+				lit_token.token_type = TokenType::STRING;
+				lit_token.token_value = v.literal_string.clone();
+			}
+			LiteralType::LiteralBool(ref v) 	=>{
+				lit_token.token_type = TokenType::BOOL;
+				lit_token.token_value = v.literal_bool.to_string();
+			}
+			_ => {
+				panic! ("from gen_expression_literal_detail: Array and Dictionary Literals not supported yet");
+			}
+		}
+
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				Opcode::Push
+				, OpcodeMode::Lit
+				, self.symbol_table.current_frame()
+				, 0
+				, 0
+				, Vec::new()
+				, lit_token.clone()
+			),function_num
+		);
 	}
 
 	fn gen_expression_scalar(&mut self, token : &Token, function_num : usize){
@@ -968,6 +1013,8 @@ impl<'a> CodeGen<'a>{
 				);
 				continue;
 			}else if t.token_type == TokenType::LENGTH_OF{
+				//	And this hack pushes the lengthof instruction on the
+				//	stack
 				self.add_machine_instruction(MachineInstruction::new(
 					Opcode::LengthOf
 					, OpcodeMode::Var
@@ -1152,6 +1199,22 @@ impl<'a> CodeGen<'a>{
 					),function_num
 				);	
 			}
+
+			// TokenType::LITERAL => {
+			// 	//let continue_address = self.continue_address.last().unwrap();
+			// 	self.add_machine_instruction(
+			// 		MachineInstruction::new(
+			// 			  Opcode::Push
+			// 			, OpcodeMode::NONE
+			// 			, self.symbol_table.current_frame()
+			// 			, 0 //continue_address.0
+			// 			, 0 //continue_address.1
+			// 			, vec!(expression_list.len())
+			// 			, token.clone()
+			// 		),function_num
+			// 	);	
+			// }
+
 
 			_=> self.add_machine_instruction(
 				MachineInstruction::new(
@@ -1541,6 +1604,26 @@ impl<'a> CodeGen<'a>{
 
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_assignment_to_collection target={} detail={}", target.token_value, detail);}
 	}
+
+	//	The syntax is:
+	//
+	//		literal <id> = <literal>
+	//
+	//	The scope of a literal depends on where it was encountered.  If it
+	//	encountered outside of a function then it's scope is global.  If encountered
+	//	inside a block, then it's scope is the block.
+	//
+	//	The "=" is sugar and can be omitted
+	//
+	//	<literal> may not be an Id:  it must be a number, string or bool (and possibly an array or dict literal)
+	//
+	//	target is the name of the literal
+	//	exoression_list is the value (note that if an array or dictionary literal is used all of the components must
+	//	be values (numbers, strings, etc))
+	//
+	//	if function_num == None then the literal is global
+	// pub fn gen_assignment_to_literal (&mut self, target : &Token, op : &Token, expression_list : &Vec<Token>, function_num : Option<usize>){
+	// }
 
 	pub fn gen_assignment(&mut self, target : &Token, op : &Token, target_index_expression : &Vec<Token>,expression_list : &Vec<Token>, function_num : usize){		
 		//	Here we test for x+=1 or x-=1 which we convert to x++ or x-- respectively
@@ -2168,7 +2251,6 @@ impl<'a> CodeGen<'a>{
 
 		self.make_block_current(while_block_num, function_num);
 	}
-
 	
 	//	We've added a foreach pseudo machine instruction which encodes all of the relative infomration
 	//	required for the foreach header to work
@@ -2355,5 +2437,34 @@ impl<'a> CodeGen<'a>{
 		
 		//	start adding instructions to the new foreach block
 		self.make_block_current(foreach_block_num, function_num);
+	}
+
+	//	This doesn't actually generate any code.  Instead, it adds the literal symbol and value
+	//	to the symbol table so that when an expression references that symbol, it'll find the
+	//	value and a Push-Lit can happen
+	pub fn gen_literal_statement(&mut self, literal_id : &Token, literal_value : &Vec<Token>){
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen::GEN_LITERAL {} = {}",literal_id.token_value, token_list_text(literal_value));}
+
+		let value_token = literal_value[0].clone();
+
+		match value_token.token_type{
+			TokenType::FLOAT | TokenType::INTEGER => {
+				self.symbol_table.add_literal(&literal_id.token_value, &LiteralType::LiteralNumber(LiteralNumber::new(value_token.token_value.parse::<f64>().unwrap())));
+			}
+
+			TokenType::STRING => {
+				self.symbol_table.add_literal(&literal_id.token_value, &LiteralType::LiteralString(LiteralString::new(&value_token.token_value)));
+			}
+
+			TokenType::BOOL => {
+				if value_token.token_value == "true"{
+					self.symbol_table.add_literal(&literal_id.token_value, &LiteralType::LiteralBool(LiteralBool::new(true)));
+				}else if value_token.token_value == "false"{
+					self.symbol_table.add_literal(&literal_id.token_value, &LiteralType::LiteralBool(LiteralBool::new(false)));
+				}
+			}
+
+			_=> panic!("from gen_literal_statement: {} not supported", value_token),
+		}
 	}
 }

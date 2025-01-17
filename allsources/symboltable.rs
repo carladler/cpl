@@ -17,8 +17,6 @@ use cli::*;
 use macrolib::*;
 
 
-//const STRUCT_BLOCK_NUM : usize = 0;	// STRUCTS are always at block 0
-
 /****************************************
 ****	EntryType
 *****************************************/
@@ -28,11 +26,12 @@ use macrolib::*;
 //	are not used to allocate space.  They are used to a) link the memer to
 //	the original structure definition; and b) to linke the member to its
 //	location in the array created to hold members.
-#[derive(Debug, PartialEq, Clone, Eq, Hash)]
+#[derive(Debug,Clone)]
 pub enum SymbolTableEntryType{
 	NormalSymbolEntry(NormalSymbolEntry),
 	StructMemberEntry(StructMemberEntry),
 	StructEntry(StructEntry),
+	LiteralEntry(LiteralEntry),
 }
 impl fmt::Display for SymbolTableEntryType{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -40,6 +39,7 @@ impl fmt::Display for SymbolTableEntryType{
 			SymbolTableEntryType::NormalSymbolEntry(_) => write!(f,"NormalSymbolEntry"),
 			SymbolTableEntryType::StructMemberEntry(_) => write!(f,"StructMemberEntry"),
 			SymbolTableEntryType::StructEntry(_) => write!(f,"StructEntry"),
+			SymbolTableEntryType::LiteralEntry(_) => write!(f,"LiteralEntry"),
 		}
 	}
 }
@@ -105,10 +105,6 @@ impl fmt::Display for StructEntry{
 }
 
 
-
-
-
-
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub struct StructMemberEntry{
 	pub struct_number : usize,
@@ -137,6 +133,127 @@ impl fmt::Display for StructMemberEntry{
 		write!(f, "struct number: {} index: {}", self.struct_number, self.member_index)
 	}
 }
+
+//	*********************************************************************
+//	******  Literals
+//	*********************************************************************
+
+//	A literal is declared as:
+//
+//		literal <value>
+//
+//	where <value> can be:
+//
+//		LiteralString ::= "<any text>"
+//		LiteralNumber ::= <any valid number>
+//		LiteralBool	::= true | false
+//
+//		I don't know if these will work, but will include them here for
+//		completeness
+//
+//		LiteralArray ::= <array literal>
+//		LiteralDict ::= <dictionary literal>
+
+#[derive(Debug,Clone)]
+pub enum LiteralType{
+	LiteralString(LiteralString),
+	LiteralNumber(LiteralNumber),
+	LiteralBool(LiteralBool),
+	LiteralArray(LiteralArray),
+	LiteralDict(LiteralDict),
+}
+
+impl fmt::Display for LiteralType{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match self{
+			LiteralType::LiteralString(v)		=> write!(f,"LiteralString: {}",v.literal_string),
+			LiteralType::LiteralNumber(v)		=> write!(f,"LiteralNumber: {}",v.literal_number),
+			LiteralType::LiteralBool(v)			=> write!(f,"LiteralBool: {}",v.literal_bool),
+			LiteralType::LiteralArray(_)		=> write!(f,"LiteralArray"),
+			LiteralType::LiteralDict(_)			=> write!(f,"LiteralDict"),
+		}
+	}
+}
+
+#[derive(Debug, PartialEq, Clone, Eq)]
+pub struct LiteralString{
+	pub literal_string : String,
+}
+
+impl LiteralString{
+	pub fn new(literal_string : &str) -> LiteralString{
+		LiteralString{
+			literal_string : literal_string.to_string(),
+		}
+	}
+}
+
+
+#[derive(Debug,Clone)]
+pub struct LiteralNumber{
+	pub literal_number : f64,
+}
+
+impl LiteralNumber{
+	pub fn new(literal_number : f64) -> LiteralNumber{
+		LiteralNumber{
+			literal_number : literal_number,
+		}
+	}
+}
+
+impl PartialEq for LiteralNumber{
+	fn eq (&self, _n:&LiteralNumber) -> bool{
+		false
+	}
+}
+
+
+#[derive(Debug,Clone)]
+pub struct LiteralBool{
+	pub literal_bool: bool,
+}
+
+impl LiteralBool{
+	pub fn new(literal_bool : bool) -> LiteralBool{
+		LiteralBool{
+			literal_bool : literal_bool,
+		}
+	}
+}
+
+
+
+#[derive(Debug,Clone)]
+pub struct LiteralArray{
+	pub liberal_array : Vec<LiteralType>,
+}
+#[derive(Debug,Clone)]
+pub struct LiteralDict{
+	pub literal_dict : HashMap<String,LiteralType>,
+}
+
+#[derive(Debug,Clone)]
+pub struct LiteralEntry{
+	pub literal_type : LiteralType,
+}
+
+impl LiteralEntry{
+	pub fn new(literal_type : LiteralType) -> LiteralEntry{
+		LiteralEntry{
+			literal_type : literal_type,
+		}
+	}
+}
+
+impl fmt::Display for LiteralEntry{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "LiteralEntry")
+	}
+}
+
+
+
 
 /****************************************
 ****	Symbol Table
@@ -170,9 +287,10 @@ impl SymbolTableBlock{
 		if self.table.keys().len() > 0{
 			for symbol in self.table.keys(){
 				match self.table.get(symbol).unwrap(){
-					SymbolTableEntryType::NormalSymbolEntry(n) => println!("{}:{}",symbol, n),
-					SymbolTableEntryType::StructMemberEntry(m) => println!("{}:{}",symbol, m),
-					SymbolTableEntryType::StructEntry(s) => println!("{}:{}",symbol,s),
+					SymbolTableEntryType::NormalSymbolEntry(n) => eprintln!("{}:{}",symbol, n),
+					SymbolTableEntryType::StructMemberEntry(m) => eprintln!("{}:{}",symbol, m),
+					SymbolTableEntryType::StructEntry(s) => eprintln!("{}:{}",symbol,s),
+					SymbolTableEntryType::LiteralEntry(l) => eprintln!("{}:{}",symbol,l),
 				}
 			}	
 		}
@@ -231,6 +349,7 @@ impl SymbolTableFrame{
 						SymbolTableEntryType::StructMemberEntry(_) => println!("======= {} is Struct Member",symbol),
 						SymbolTableEntryType::NormalSymbolEntry(_) => println!("======= {} is Normal",symbol),
 						SymbolTableEntryType::StructEntry(_) => println!("======= {} is Struct",symbol),
+						SymbolTableEntryType::LiteralEntry(_) => println!("======= {} is Literal",symbol),
 					}
 					return;
 				}
@@ -318,6 +437,33 @@ impl SymbolTableFrame{
 		//if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("SymbolTable:add_symbol \"{}\" block={} address={}", symbol.clone(), block_num, symbol_table_block.current_index);}
 
 		struct_entry
+	}
+
+	//	Add a literal
+	pub fn add_literal (&mut self, symbol : &str, value : &LiteralType){
+		let block_num = self.table.len() - 1;
+		let symbol_table_block = self.table.get_mut(block_num).unwrap();
+
+		if let Some(_) = symbol_table_block.table.get(symbol){
+			panic!("from SymbolTable.add_literal:  duplicates are not allowed.  Symbol={}",symbol);
+		}
+
+		let entry : LiteralEntry;
+
+		match value{
+			LiteralType::LiteralNumber (ref n) => {
+				entry = LiteralEntry::new(LiteralType::LiteralNumber(LiteralNumber::new(n.literal_number)));
+			}
+			LiteralType::LiteralString(ref s) => {
+				entry = LiteralEntry::new(LiteralType::LiteralString(LiteralString::new(&s.literal_string)))
+			},
+			LiteralType::LiteralBool(b) => {
+				entry = LiteralEntry::new(LiteralType::LiteralBool(LiteralBool::new(b.literal_bool)));
+			},
+			_=> panic!("from SymbolTable.add_literal:  {} is not supported", value),
+		}
+
+		symbol_table_block.table.insert(symbol.to_string(), SymbolTableEntryType::LiteralEntry(entry.clone()));
 	}
 
 	//	Add a normal symbol and return it's entry.  If it already exists, just
@@ -417,7 +563,7 @@ impl SymbolTableFrame{
 				}
 			}
 		}
-	}	
+	}
 }
 
 pub struct SymbolTable <'a> {
@@ -534,6 +680,13 @@ impl <'a> SymbolTable <'a>{
 
 		//	and return the entry (or None)
 		frame.add_normal_symbol(symbol)
+	}
+
+	//	Add a literal symbol (but we don't need it's entry here)
+	pub fn add_literal (&mut self, symbol : &String, literal_value : &LiteralType){
+		//	get the element of the function symbol list
+		let frame : &mut SymbolTableFrame = self.tables.last_mut().unwrap(); 
+		frame.add_literal(symbol, literal_value);
 	}
 
 	//	Add a struct member.  It doesn't return anything because we're using the symbol

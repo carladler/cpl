@@ -1,0 +1,5 @@
+entry bar{
+	lit x=10;
+	println x;
+	println x*2;
+}

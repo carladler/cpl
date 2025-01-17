@@ -215,9 +215,25 @@ impl<'a> Model<'a>{
 		f.set_else_flag(if_model_context, self.predicted_block_number);
 	}
 
+	pub fn add_global_literal(&mut self, literal_id : Token, literal_value : Vec<Token>){
+		if self.cli.is_debug_bit(TRACE_MODEL_ADD) {println!("Model.add_global_literal: {} literal_value: {}", literal_id, token_list_text(&literal_value));}
+		let s = LiteralStatement::new(literal_id, literal_value);
+		self.program.add_literal(s);
+	}
+
+	pub fn add_literal_statement(&mut self, literal_id : Token, literal_value : Vec<Token>){
+		if self.cli.is_debug_bit(TRACE_MODEL_ADD) {println!("Model.add_literal_statement: {} literal_value: {}", literal_id, token_list_text(&literal_value));}
+		let s = LiteralStatement::new(literal_id, literal_value);
+		let f = self.program.current_function();
+		f.add_statement(StatementType::LiteralStatement(s));		
+	}
+
 	pub fn generate_code_from_model (&mut self){
 		//  First, add the structs to the symbol table
 		self.generator.add_structs_to_symbol_table(&self.program.structs);
+
+		//	Then add global literals, if there are any
+		self.generator.add_global_literals();
 
 		//	Next, we need to know what where to start because
 		//	elsewhere we've added a bunch of builtin functions to

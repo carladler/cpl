@@ -47,6 +47,19 @@
 	StructBody			RBrace					Program				rbrace;
 	StructInit			RBrace					Program				do_nothing;
 
+	//	Literals can appear anywhere inside or outside of a function.  here they
+	//	are appearing outside which makes them global.
+	//
+	//	Syntax is:  literal id [=] value;
+	//
+	//	The '=' is sugar.
+	//
+	Program					Literal					GlobalLiteral			do_nothing;
+	GlobalLiteral			Factor					GlobalLiteralValue		literal_id;
+	GlobalLiteralValue		AssignmentOp			GlobalLiteralValue		do_nothing;
+	GlobalLiteralValue		Factor					GlobalLiteralValue		literal_value;
+	GlobalLiteralValue		Semi					Program					do_nothing;
+
 	Block				LBrace					Statement			begin_block;
 	
 	//	We start by assuming this is the beginning an assignment statement (e.g. "a = 10").
@@ -80,6 +93,13 @@
 	Statement			Loop					Block				keyword_loop;
 	Statement			Otherwise				Block				keyword_otherwise;
 	Statement			Semi					Statement			do_nothing;
+
+	//	If a literal appears in a block we recognize it here
+	Statement			Literal					LocalLiteral		do_nothing;
+	LocalLiteral		Factor					LocalLiteralValue	literal_id;
+	LocalLiteralValue	AssignmentOp			LocalLiteralValue	do_nothing;
+	LocalLiteralValue	Factor					LocalLiteralValue	literal_value;
+	LocalLiteralValue	Semi					Statement			do_nothing;
 	
 	//	foreach <target> <source>{...}.  The <targetr> must be an ID.  The <source> may be an ID or a collection literal
 	Statement			Foreach					ForeachTarget		foreach_init;

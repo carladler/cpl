@@ -31,6 +31,7 @@ pub enum TokenCategory{
 	StructDeclaration,		//  "struct"
 	FunctionDeclaration,	//  "fn" or "entry"
 	Factor,					// Id, Number, Boolean, String
+	Literal,				// Keyword Litreal
 	FunctionCall,
 	IndexedId,
 	IndexedQualifiedId,		// may not need this
@@ -81,6 +82,7 @@ impl fmt::Display for TokenCategory {
 			TokenCategory::FunctionDeclaration	=> write!(f, "FunctionDeclaration"),
 			TokenCategory::StructDeclaration	=> write!(f, "StructDeclaration"),
 			TokenCategory::Factor				=> write!(f, "Factor"),
+			TokenCategory::Literal				=> write!(f, "Literal"),
 			TokenCategory::FunctionCall			=> write!(f, "FunctionCall"),
 			TokenCategory::IndexedId			=> write!(f, "IndexedId"),
 			TokenCategory::IndexedQualifiedId	=> write!(f, "IndexedQualifiedId"),
@@ -144,7 +146,6 @@ pub enum TokenType{
 
 	ELSE, 
 	DO,
-	GLOBAL,
 
 	IF,
 	ELSEIF,
@@ -228,6 +229,8 @@ pub enum TokenType{
 	SEMI,
 	COMMA,
 
+	LITERAL,
+
 	//  Synthetic Tokens.  These are created by transforming a "normal" token
 	//	into a special token used in specific contexts
 	LBRACKET,
@@ -272,7 +275,6 @@ impl fmt::Display for TokenType {
 			TokenType::BLOCK_COMMENT  => write!(f, "BLOCK_COMMENT"),
 			TokenType::ELSE  => write!(f, "ELSE"), 
 			TokenType::DO  => write!(f, "DO"),
-			TokenType::GLOBAL  => write!(f, "GLOBAL"),	   
 			TokenType::IF  => write!(f, "IF"),
 			TokenType::ELSEIF  => write!(f, "ELSEIF"),
 			TokenType::UNTIL  => write!(f, "UNTIL"),
@@ -352,6 +354,8 @@ impl fmt::Display for TokenType {
 
 			TokenType::SEMI  => write!(f, "SEMI"),
 			TokenType::COMMA  => write!(f, "COMMA"),
+
+			TokenType::LITERAL  => write!(f, "LITERAL"),	   
 
 			TokenType::LBRACKET  => write!(f, "LBRACKET"),
 			TokenType::RBRACKET  => write!(f, "RBACKET"),
@@ -543,6 +547,7 @@ impl<'a> Tokenizer<'_>{
 
 					(TokenType::RETURN,TokenCategory::Verb),
 					(TokenType::INCLUDE,TokenCategory::Verb),
+					(TokenType::LITERAL,TokenCategory::Literal),
 
 					//	Need to recognize special case verbs
 					(TokenType::ELSE,TokenCategory::Else), 
@@ -566,7 +571,6 @@ impl<'a> Tokenizer<'_>{
 				
 					(TokenType::ASSIGNMENT,TokenCategory::Keyword),
 					
-					(TokenType::GLOBAL,TokenCategory::Keyword),
 					(TokenType::ELSEIF,TokenCategory::Keyword),
 					(TokenType::UNTIL,TokenCategory::Keyword),
 
@@ -620,7 +624,6 @@ impl<'a> Tokenizer<'_>{
 					(TokenType::RBRACKET,TokenCategory::RBracket),
 					(TokenType::LINDEX,TokenCategory::LIndex),
 					(TokenType::RINDEX,TokenCategory::RIndex),
-
 				
 					(TokenType::SEMI,TokenCategory::Semi),
 
@@ -691,7 +694,6 @@ impl<'a> Tokenizer<'_>{
 		match self.token.token_value.as_str(){
 			"else"			=> TokenType::ELSE, 
 			"do"			=> TokenType::DO,
-			"global"		=> TokenType::GLOBAL,
 			"if"			=> TokenType::IF,
 			"elseif"		=> TokenType::ELSEIF,
 			"until"			=> TokenType::UNTIL,
@@ -721,6 +723,9 @@ impl<'a> Tokenizer<'_>{
 			"eprintln"		=> TokenType::EPRINTLN,
 			"exit"			=> TokenType::EXIT,
 
+			"literal"		=> TokenType::LITERAL,
+			"lit"			=> TokenType::LITERAL,
+			
 			//	Nope, it's an ID.  It might be a qualified ID (e.g. foo:bar)
 			_ 				=> 	if self.is_qualified_id(){
 									TokenType::QUALIFIED_ID

@@ -23,6 +23,7 @@ pub enum StatementType<'a>{
 	EvalStatement(EvalStatement),
 	WhenStatement(WhenStatement),
 	OtherwiseStatement(OtherwiseStatement),
+	LiteralStatement(LiteralStatement),
 }
 
 impl<'a> fmt::Display for StatementType<'a>{
@@ -42,6 +43,7 @@ impl<'a> fmt::Display for StatementType<'a>{
 			StatementType::EvalStatement(_) => write!(f, "Eval"),
 			StatementType::WhenStatement(_) => write!(f, "When"),
 			StatementType::OtherwiseStatement(_) => write!(f, "Otherwise"),
+			StatementType::LiteralStatement(_) => write!(f, "LiteralStatement"),
 	   }
 	}
 }
@@ -96,6 +98,7 @@ pub struct Program<'a>{
 	cli : & 'a CLI<'a>,
 	pub functions : Vec<Function<'a>>,
 	pub structs : Vec<Struct>,
+	pub global_literals : Vec<LiteralStatement>,
 }
 
 impl<'a> Program<'a>{
@@ -104,6 +107,7 @@ impl<'a> Program<'a>{
 			cli : cli,
 			functions : Vec::new(),			// indexed by function_num
 			structs : Vec::new(),
+			global_literals : Vec::new(),
 		}
 	}
 
@@ -112,6 +116,10 @@ impl<'a> Program<'a>{
 	pub fn add_function (&mut self, name : String,  function_entry_flag : bool, function_parameters : Vec<String>, cl_args : & 'a Vec<String>){
 		let f : Function = Function::new(self.cli, name, function_entry_flag, function_parameters, cl_args);
 		self.functions.push(f);
+	}
+
+	pub fn add_literal(&mut self, literal_statement : LiteralStatement){
+		self.global_literals.push(literal_statement);
 	}
 
 	//	These two functions construct a list of Structs and their
@@ -566,6 +574,32 @@ impl fmt::Display for SimpleStatement{
 }
 
 /****************************************
+****	Literal Statement
+*****************************************/
+
+pub struct LiteralStatement{
+	// cli : & 'a CLI<'a>,
+	pub literal_id : Token,
+	pub literal_value : Vec<Token>,
+}
+
+impl LiteralStatement{
+	pub fn new(literal_id:Token, literal_value : Vec<Token>) -> LiteralStatement{
+		LiteralStatement{
+			//cli : cli,
+			literal_id : literal_id,
+			literal_value : literal_value.clone(),
+		}
+	}
+}
+
+impl fmt::Display for LiteralStatement{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f,"Literal: {} = {}",self.literal_id.token_value,token_list_text(&self.literal_value))
+	}
+}
+
+/****************************************
 ****	LoopStatement
 *****************************************/
 
@@ -635,6 +669,10 @@ impl<'a> Generator<'_>{
 		self.code_gen.add_structs_to_symbol_table(structs);
 	}
 
+	pub fn add_global_literals(&self){
+		eprintln!("add_global_literals....");
+	}
+
 	pub fn get_frames(&self) -> FrameMap{
 		self.code_gen.get_frames()
 	}
@@ -696,6 +734,7 @@ impl<'a> Generator<'_>{
 				StatementType::EvalStatement(t) => self.code_gen.gen_eval(&t.target.expression_list, t.when_list.len(), function_num),
 				StatementType::WhenStatement(t) => self.code_gen.gen_when(&t.when_expression.expression_list, function_num),
 				StatementType::OtherwiseStatement(_) => self.code_gen.gen_otherwise(function_num),
+				StatementType::LiteralStatement(t) => self.code_gen.gen_literal_statement(&t.literal_id, &t.literal_value),
 
 				//_ => abend!(format!("Unable to generate code for {}", statement_type)),
 			}
@@ -718,22 +757,4 @@ impl<'a> Generator<'_>{
 	pub fn get_frame_count(&self) -> usize{
 		return self.code_gen.get_frame_count();
 	}
-
-	// pub fn exec(&mut self){
-	// 	let entry_frame_num = match self.get_entry_frame_number(){
-	// 		None => abend!(format!("From Model.exec:  Unable to locate the entry function!")),
-	// 		Some(entry_num) => entry_num,
-	// 	};
-
-	// 	//cli : & 'a CLI<'a>, frames : & 'a FrameMap<'a>, function_num : usize, arguments : &Vec<CplVar>, return_address : (i32, usize)
-	// 	//let frame = &self.code_gen.frames.frames_list[entry_frame_num];
-	// 	//  for executing the entry function, arguments array is empty.  TODO add run arguments later
-	// 	let mut arguments : Vec<CplVar> = Vec::new();
-
-	// 	//	start executing at code_frame 0
-	// 	let frames_list = &self.code_gen.frames.frames_list;
-	// 	let built_ins = &mut self.code_gen.frames.builtin_function_table;
-	// 	Executor::new(self.cli, frames_list, entry_frame_num, &mut arguments, built_ins, 0);
-	// 	//executor.exec();
-	//}
 }

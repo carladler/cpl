@@ -42,6 +42,13 @@ pub enum ParserState{
 	StructMember,
 	StructInit,
 	StructInstantiate,		// used when <var> = new <struct>
+
+	Literal,
+	GlobalLiteral,
+	GlobalLiteralValue,
+	LocalLiteral,
+	LocalLiteralValue,
+
 }
 impl fmt::Display for ParserState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -78,6 +85,12 @@ impl fmt::Display for ParserState {
 			ParserState::StructMember				=> write!(f, "StructMember"),
 			ParserState::StructInit					=> write!(f, "StructInit"),
 			ParserState::StructInstantiate			=> write!(f, "StructInstantiate"),
+
+			ParserState::Literal					=> write!(f, "Literal"),
+			ParserState::GlobalLiteral				=> write!(f, "GlobalLiteral"),
+			ParserState::GlobalLiteralValue			=> write!(f, "GlobalLiteralValue"),
+			ParserState::LocalLiteral				=> write!(f, "LocalLiteral"),
+			ParserState::LocalLiteralValue			=> write!(f, "LocalLiteralValue"),
 		}
 	}
 }
@@ -90,6 +103,7 @@ pub enum ParserContext{
 	CollectionSource,
 	ArrayLiteral,
 	DictLiteral,
+	Literal,				// Literal <id> = <value>
 	Assignment,				// <factor> <assignment operator> <expression>;
 	IndexedTarget,			// <factor>[<index expression>] = <expression>;
 	Constant,				// const <id> <assignment operator> expression>;
@@ -115,6 +129,7 @@ impl fmt::Display for ParserContext {
 			ParserContext::CollectionSource			=> write!(f,"CollectionSource"),
 			ParserContext::ArrayLiteral				=> write!(f,"ArrayLiteral"),
 			ParserContext::DictLiteral				=> write!(f,"DictLiteral"),
+			ParserContext::Literal					=> write!(f,"Literal"),
 			ParserContext::Assignment				=> write!(f,"Assignment"),
 			ParserContext::IndexedTarget			=> write!(f,"IndexedTarget"),
 			ParserContext::Constant					=> write!(f,"Constant"),
@@ -232,7 +247,12 @@ pub struct Parser<'a>{
 	struct_model_context : Vec<usize>,
 	struct_member_name : String,
 
-	simple : Token,		// PRINT, EPRINT, RETURN, ETC.
+	simple : Token,				// PRINT, EPRINT, RETURN, ETC.
+
+	//	The value is a list because eventually we'll want to support
+	//	expressions, array literals, and dictionary literals.
+	literal_id : Token,			// literal <id>
+	literal_value : Vec<Token>,	// literal <id> = <literal expression>
 
 	//	When we see a function call in an expression, we save it's name and the parameter count
 	//expression_function_call_name: Vec<Token>,
@@ -290,7 +310,8 @@ impl <'a> Parser<'a>{
 
 			simple :Token::new(),
 
-			//expression_function_call_name : Vec::new(),
+			literal_id : Token::new(),			// literal <id>
+			literal_value : Vec::new(),			// litera <id> = <literal expression>
 
 			function_name : Token::new(),
 			function_parameters : Vec::new(),
@@ -357,6 +378,16 @@ impl <'a> Parser<'a>{
 				ParserStateTransitionContent::new(ParserState::Program, false, "rbrace", Parser::rbrace)),
 			(ParserStateTransitionKey::new(ParserState::StructInit,TokenCategory::RBrace),
 				ParserStateTransitionContent::new(ParserState::Program, true, "do_nothing", Parser::do_nothing)),
+			(ParserStateTransitionKey::new(ParserState::Program,TokenCategory::Literal),
+				ParserStateTransitionContent::new(ParserState::GlobalLiteral, true, "do_nothing", Parser::do_nothing)),
+			(ParserStateTransitionKey::new(ParserState::GlobalLiteral,TokenCategory::Factor),
+				ParserStateTransitionContent::new(ParserState::GlobalLiteralValue, false, "literal_id", Parser::literal_id)),
+			(ParserStateTransitionKey::new(ParserState::GlobalLiteralValue,TokenCategory::AssignmentOp),
+				ParserStateTransitionContent::new(ParserState::GlobalLiteralValue, true, "do_nothing", Parser::do_nothing)),
+			(ParserStateTransitionKey::new(ParserState::GlobalLiteralValue,TokenCategory::Factor),
+				ParserStateTransitionContent::new(ParserState::GlobalLiteralValue, false, "literal_value", Parser::literal_value)),
+			(ParserStateTransitionKey::new(ParserState::GlobalLiteralValue,TokenCategory::Semi),
+				ParserStateTransitionContent::new(ParserState::Program, true, "do_nothing", Parser::do_nothing)),
 			(ParserStateTransitionKey::new(ParserState::Block,TokenCategory::LBrace),
 				ParserStateTransitionContent::new(ParserState::Statement, false, "begin_block", Parser::begin_block)),
 			(ParserStateTransitionKey::new(ParserState::Statement,TokenCategory::Factor),
@@ -378,6 +409,16 @@ impl <'a> Parser<'a>{
 			(ParserStateTransitionKey::new(ParserState::Statement,TokenCategory::Otherwise),
 				ParserStateTransitionContent::new(ParserState::Block, false, "keyword_otherwise", Parser::keyword_otherwise)),
 			(ParserStateTransitionKey::new(ParserState::Statement,TokenCategory::Semi),
+				ParserStateTransitionContent::new(ParserState::Statement, true, "do_nothing", Parser::do_nothing)),
+			(ParserStateTransitionKey::new(ParserState::Statement,TokenCategory::Literal),
+				ParserStateTransitionContent::new(ParserState::LocalLiteral, true, "do_nothing", Parser::do_nothing)),
+			(ParserStateTransitionKey::new(ParserState::LocalLiteral,TokenCategory::Factor),
+				ParserStateTransitionContent::new(ParserState::LocalLiteralValue, false, "literal_id", Parser::literal_id)),
+			(ParserStateTransitionKey::new(ParserState::LocalLiteralValue,TokenCategory::AssignmentOp),
+				ParserStateTransitionContent::new(ParserState::LocalLiteralValue, true, "do_nothing", Parser::do_nothing)),
+			(ParserStateTransitionKey::new(ParserState::LocalLiteralValue,TokenCategory::Factor),
+				ParserStateTransitionContent::new(ParserState::LocalLiteralValue, false, "literal_value", Parser::literal_value)),
+			(ParserStateTransitionKey::new(ParserState::LocalLiteralValue,TokenCategory::Semi),
 				ParserStateTransitionContent::new(ParserState::Statement, true, "do_nothing", Parser::do_nothing)),
 			(ParserStateTransitionKey::new(ParserState::Statement,TokenCategory::Foreach),
 				ParserStateTransitionContent::new(ParserState::ForeachTarget, false, "foreach_init", Parser::foreach_init)),
@@ -1196,14 +1237,39 @@ impl <'a> Parser<'a>{
 		None
 	}
 
+
+	fn literal_id(&mut self) -> Option<ParserState>{
+		self.literal_id = self.token.clone();
+
+		//	this is temporary since eventually we'll want the value to
+		//	be a complete expression.  For now we're only interested in
+		//	the first token in the list.
+		self.literal_value.clear();
+		None
+	}
+
+	fn literal_value(&mut self) -> Option<ParserState>{
+		self.literal_value.push(self.token.clone());
+
+		if self.current_state == ParserState::GlobalLiteralValue{
+			self.model.add_global_literal(self.literal_id.clone(), self.literal_value.clone());
+		}else if self.current_state == ParserState::LocalLiteralValue{
+			self.model.add_literal_statement(self.literal_id.clone(), self.literal_value.clone());
+		}else{
+			panic!("from Parser.lieral_value: unknown parser state: {}", self.current_state);
+		}
+		None
+	}
+
 	fn verb (&mut self) -> Option<ParserState>{
 		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: verb \"{}\" context:{:?} braces={}", self.token.token_value, self.parser_context, self.brace_counter);}
 		self.infix_expression.clear();
 		match self.token.token_type{
-			TokenType::PRINT | TokenType::EPRINT | TokenType::PRINTLN | TokenType::EPRINTLN | TokenType::RETURN => {
+			TokenType::PRINT | TokenType::EPRINT | TokenType::PRINTLN | TokenType::EPRINTLN | TokenType::RETURN  =>  {
 				self.parser_context.push(ParserContext::Simple);
 				self.simple = self.token.clone();
 			},
+
 			TokenType::BREAK | TokenType::CONTINUE | TokenType::EXIT=> {
 				self.parser_context.push(ParserContext::Simple);
 				self.simple = self.token.clone();
@@ -1315,14 +1381,6 @@ impl <'a> Parser<'a>{
 	fn keyword_loop (&mut self) -> Option<ParserState>{
 		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: keyword_loop \"{}\"", self.token.token_value)}
 		self.model.add_loop_statement();
-
-		// if self.look_ahead_test_token(TokenType::LBRACE){
-		// 	self.brace_counter += 1;
-		// }else{
-		// 	let token = self.next_token();
-		// 	return Some(ParserState::Error(format!("Syntax error from keyword_loop, line {}: Missing '{}' following LOOP. Saw '{}' instead", line!(), '{', token.token_value)));
-		// }
-
 		None
 	}
 
@@ -1423,11 +1481,6 @@ impl <'a> Parser<'a>{
 		None
 	}
 
-	// fn dict_literal_kv (&mut self) -> Option<ParserState>{
-	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: dict_literal_kv \"{}\"", self.token.token_value)}
-	// 	self.infix_expression.push(self.token.clone());
-	// 	None
-	// }
 
 	fn dict_literal_kv_end (&mut self) -> Option<ParserState>{
 		if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Action: dict_literal_kv_end \"{}\"", self.token.token_value)}
@@ -1735,16 +1788,6 @@ impl <'a> Parser<'a>{
 		let count = self.comma_counters.pop().unwrap() + 1;
 		self.infix_expression[loc].token_type = TokenType::FUNCTION_CALL(count as usize);
 	}
-
-	// fn backpatch_statement_function_argument_count(&mut self){
-	// 	if self.cli.is_debug_bit(TRACE_PARSER_STATES) {eprintln!("    Sub-Action: backpatch_statement_function_argument_count")}
-	// 	//  this is just like backpatching a function call expression item except
-	// 	//	we know where the function call token is.
-	// 	let count = self.comma_counters.pop().unwrap() + 1;
-	// 	//let mut token = self.statement_factor.clone();
-	// 	self.statement_factor.token_type = TokenType::FUNCTION_CALL(count as usize);
-	// 	self.statement_factor.token_category = TokenCategory::FunctionCall;
-	// }
 
 
 	fn next_token(&mut self) -> Token{

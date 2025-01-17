@@ -41,6 +41,8 @@ entry dup(args){
 
 	include "allcplcode/cplincludes/month_name_to_number.cpl"
 
+	
+
 	foreach line directory_lines{
 		process_count += 1;
 		//if process_count & 8191 == 0 {eprint process_count."\r";}
@@ -74,6 +76,13 @@ entry dup(args){
 		//	-rw-r--r--@ 1 clairehesselholt  staff  768392 Dec 14 18:12:57 2021 IMG_3595-preview.ktx
 		//	12          3 4                 5      6      7   8  9        10   11
 
+		lit cap_file_name = 11;
+		lit cap_year = 10;
+		lit cap_month = 7;
+		lit cap_day = 8;
+		lit cap_time = 9;
+
+
 		// file_name = file_capture[11];
 		// if Locate(file_name,"^",0) > 0{
 		// 	eprintln file_name;
@@ -81,7 +90,7 @@ entry dup(args){
 
 		//	insert a ";" between each of element of the key so that we can split out these elements
 		//	for the csv file
-		dups_key = file_capture[11].";".file_capture[10].";".month_name_to_number[file_capture[7]].";".file_capture[8].";".file_capture[9];
+		dups_key = file_capture[cap_file_name].";".file_capture[cap_year].";".month_name_to_number[file_capture[cap_month]].";".file_capture[cap_day].";".file_capture[cap_time];
 		if Contains(dups_hash,dups_key){
 			dup = dups_hash[dups_key];
 			dup += current_directory;
