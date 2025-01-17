@@ -12,4 +12,14 @@ entry cpltest_literal00 {
 	eprintln array[p0];
 	eprintln array[p1];
 	eprintln array[p2];
+	fn2();
+	fn3(p0);
+}
+
+fn fn2(){
+	eprintln "in f2 ".p2;
+}
+
+fn fn3(x){
+	eprintln "in f3 ".x;
 }
