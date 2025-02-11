@@ -120,16 +120,20 @@ impl fmt::Display for StructEntry{
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub struct StructMemberEntry{
 	pub struct_number : usize,
-	pub member_index : Vec<usize>,			// the "index" is now a vector
+
+	//	In order to find a member of a struct for reading or updating we
+	//	have to follow this list.  It starts with the index into the underlying
+	//	array and then each sub-struct following.
+	pub index_list : Vec<usize>,
 	pub interner : usize,
 }
 
 impl StructMemberEntry{
 	//	used to create an empty detail structure
-	pub fn new(struct_number : usize, member_index : &Vec<usize>, interner : usize) -> StructMemberEntry{
+	pub fn new(struct_number : usize, index_list : &Vec<usize>, interner : usize) -> StructMemberEntry{
 		StructMemberEntry{
 			struct_number : struct_number,
-			member_index : member_index.clone(),
+			index_list : index_list.clone(),
 			interner : interner,
 		}
 	}	
@@ -137,7 +141,7 @@ impl StructMemberEntry{
 	pub fn initialize() -> StructMemberEntry{
 		StructMemberEntry{
 			struct_number : 0,
-			member_index: Vec::new(),
+			index_list: Vec::new(),
 			interner : 0,
 		}
 	}	
@@ -145,7 +149,7 @@ impl StructMemberEntry{
 
 impl fmt::Display for StructMemberEntry{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "struct number: {} index: {:?} interner: {}", self.struct_number, self.member_index, self.interner)
+		write!(f, "struct number: {} index: {:?} interner: {}", self.struct_number, self.index_list, self.interner)
 	}
 }
 

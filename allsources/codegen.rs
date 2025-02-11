@@ -403,50 +403,135 @@ impl<'a> CodeGen<'a>{
 		self.frames.add_new_frame(name.to_string(), CodeFrame::new(name, function_entry_flag, false, function_parameters.clone()));
 	}
 
-	//	Do a kind of instantiation except we're only adding the information to the
-	//	symbol table because the struct has already been built in the operand
-	//	stack.  This struct reference is a parameter to a function.  This
-	//	this is analagous to parameter_name = new struct_name.
+	/**
+	Do a kind of instantiation except we're only adding the information to the
+	symbol table because the struct has already been built in the operand
+	stack.  This struct reference is a parameter to a function.  This
+	this is analagous to parameter_name = new struct_name.
+	
+	A struct parameter looks like this:
+	
+		fun1(<var>:<struct>)
+	
+	where <var> will be the local variable name through which access to the
+	the struct will be managed.  And <struct> is the declared name of the struct
+	For example, suppose the program declared:
+	
+		struct foo{....}
+	
+	and a function wanted to receive a reference to this struct.  In the case the
+	parameter will be:
+	
+		fn fun1(local:foo){.....}
+	
+	where local will be the name of the instantiated variable and foo is the
+	struct.
+	
+	The program will access members like:
+	
+		a = local:member
+	
+	So the symbol table must have local:member in it containing the indices necessary
+	to locate the specific member in the underlying array
 
-	//	TODO:  this needs to be amended after we get indices working
-	fn add_struct_parameter_to_symbol_table(&mut self, parameter_name : &String, struct_name : &String){
+	TODO:  This code has a whole lot in common with gen_struct_instantiate and it
+	would be really nice to get ride of the duplicate code -- someday
+	**/
+	fn add_struct_parameter_to_symbol_table(&mut self, local_var : &str, struct_name : &str){
 
-		//eprintln!("=============== add_struct_parameter_to_symbol_table parameter_name={} struct_name={}",parameter_name,struct_name);
-		self.symbol_table.add_normal_symbol(parameter_name);
+		//	We need a local copy of the struct list.  Otherwise, we run into double immutable
+		//	access of self (arrrrgghhhhh!!!!)
+		let struct_list = self.struct_list.clone();
+		let mut member_stack : Vec<StructMemberStackEntry> = Vec::new();
 
-		//  Get the index of this struct in the struct map
-		let struct_index_option = self.struct_map.get(struct_name);
-		if struct_index_option == None{
-			abend!(format!("from add_struct_parameter_to_symbol_table:  Struct {} has not been defined", struct_name));
+		//	locate the struct in the struct list
+		let struct_index : usize = *self.struct_map.get(struct_name).unwrap();
+
+		//	start with the top level struct.  The initial entry is:
+		//
+		//		*  the top level struct
+		//		*  the first member
+		//		*  the name of the top_level struct
+		//
+		let mut member_stack_entry = StructMemberStackEntry::new(
+				  struct_list.get(struct_index).unwrap().clone()		// top struct
+				, 0														// first member
+				, local_var.to_string()									// initial prefix
+		);
+
+		//	This will be the member_indices vector.  Every time we move to a new level, we update the last
+		//	element of this vector with current_member.  Whenever we move up a level we pop the the last entry.
+		//	This vector is added to any field added to the symbol table
+		let mut member_indices : Vec<usize> = vec!(member_stack_entry.current_member);
+
+		loop{
+			while member_stack_entry.current_member < member_stack_entry.current_struct.members.members.len(){
+				match member_stack_entry.current_struct.members.members.get(member_stack_entry.current_member).unwrap(){
+					StructMemberType::Field (ref field) =>{
+
+						let member_ref = format!("{}:{}", member_stack_entry.current_name_prefix, field.name);
+						self.symbol_table.add_struct_member(member_ref.clone(),  member_stack_entry.current_member, &member_indices);
+
+
+						//eprintln!("======= Field: {}:{} member={} path={:?}",member_stack_entry.current_name_prefix, field.name, member_stack_entry.current_member, member_indices);
+
+						//	And increment the index at the top of this stack
+						member_stack_entry.current_member += 1;
+						member_indices.pop().unwrap();
+						member_indices.push(member_stack_entry.current_member);
+					}
+					StructMemberType::Substruct(substruct) => {
+						//eprintln!("======= {} {} path={:?}", substruct, member_stack_entry.current_member, member_indices);
+						//	save the struct we're working on (with the index pointing at the next one)
+						//	which actually might not be there, but that's okay because we test the member_stack_entry.current_member
+						//	against the length of this struct's member list
+
+						member_stack.push(StructMemberStackEntry::new(
+								  member_stack_entry.current_struct.clone()
+								, member_stack_entry.current_member + 1
+								, member_stack_entry.current_name_prefix.clone())
+						);
+						
+						//	Starting a new member list so the index at the top of the path list is 0
+						member_indices.push(0);
+
+						//	set the current_struct to where we think it is and the new prefix
+						member_stack_entry.current_struct = struct_list.get(substruct.id).unwrap().clone();
+						member_stack_entry.current_member = 0;
+						member_stack_entry.current_name_prefix = format!("{}:{}", member_stack_entry.current_name_prefix, member_stack_entry.current_struct.name);
+						//eprintln!("======= Now working on {}", member_stack_entry.current_struct.name);
+					}
+				}
+			}
+
+			//	When we fall out of the foreach loop, we're done with fields in the current
+			//	struct / substruct.
+
+			//	if we're done with the top-level struct then break
+			if member_stack.len() == 0{
+				break;
+			}
+
+
+			//	Now add the substruct whose members we just finished processing to the struct
+			//	just below it in the operand stack.  Note that the "path" list is the last
+			//	instance of it before we fell out of the loop.
+			let member_ref = member_stack_entry.current_name_prefix.clone();
+			self.symbol_table.add_struct_member(member_ref, struct_index, &member_indices);
+
+			//	Now get the struct at the top of the member_stack and
+			//	finish up its members
+			member_stack_entry = member_stack.pop().unwrap();
+			
+			//	And remove the entry in the path for the substruct we just finished
+			member_indices.pop();
+
+			//	And update the path entry at the top of the path stack
+			member_indices.pop();
+			member_indices.push(member_stack_entry.current_member);
+			
+			//eprintln!("======= Returning to: {} {:?}", member_stack_entry.current_struct.name, member_indices);
 		}
-		let struct_index : usize = *struct_index_option.unwrap();
-
-		//	The index field of this symbol_detail points us to an entry in
-		//	the struct_list attribute of codegen.
-		let local_struct = self.struct_list[struct_index].clone();
-		let _local_members = local_struct.members.clone();
-
-		//	************  NOTE THIS IS WRONG...  See TODO above
-		let mut _member_index = vec!(0);	
-
-		//	Cycle through the members adding them to the symbol table 
-		// for member in &local_members.members{
-		// 	match member {
-		// 		StructMemberType::Field(field) => {
-		// 			//	Add this local reference to the symbol table.
-		// 			let member_ref = format!("{}:{}", parameter_name, field.name);
-
-		// 			if self.cli.is_debug_bit(TRACE_CODE_GEN){
-		// 				eprintln!("    CodeGen:add_struct_parameter_to_symbol_table:adding {} ({},{}) to symbol table",member_ref, struct_index, member_index);
-		// 			}
-		// 			self.symbol_table.add_struct_member(member_ref, struct_index, member_index);
-		// 		}
-		// 		_=> {}
-		// 	}
-		// 	member_index += 1;
-		// }
-
-		//self.symbol_table.symbol_table_dump_diag("end of add_struct_parameter_to_symbol_table");
 	}
 
 
@@ -765,17 +850,17 @@ impl<'a> CodeGen<'a>{
 		//	Now build instructions to push the indices onto the stack.  Notice
 		//	the first index will end up at the top of the stack
 
-		//let mut i : i32 = (member_entry.member_index.len()-1) as i32;
+		//let mut i : i32 = (member_entry.index_list.len()-1) as i32;
 		let mut i=0;
-		while i < member_entry.member_index.len(){
-			index_token.token_value = member_entry.member_index[i as usize].to_string();
+		while i < member_entry.index_list.len(){
+			index_token.token_value = member_entry.index_list[i as usize].to_string();
 			//	Now push the index onto the stack
 			self.gen_expression_scalar(&index_token, function_num);
 			i+=1;
 		}
 
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){
-			eprintln!("    gen_expression_struct_member {} path length={} path={:?}", token.token_value, member_entry.member_index.len(), member_entry.member_index);
+			eprintln!("    gen_expression_struct_member {} path length={} path={:?}", token.token_value, member_entry.index_list.len(), member_entry.index_list);
 		}
 		//  Emit the fetch indexed instruction
 		self.add_machine_instruction(
@@ -785,7 +870,7 @@ impl<'a> CodeGen<'a>{
 				, self.symbol_table.current_frame()
 				, 0			
 				, 0
-				, vec!(member_entry.member_index.len())
+				, vec!(member_entry.index_list.len())
 				, 0
 				, token.clone()
 			),function_num
@@ -1743,57 +1828,76 @@ impl<'a> CodeGen<'a>{
 		return true;
 	}
 
-	//	Assignment to a struct member has to look like assignment to an
-	//	an element of the array.  We'll need:  the address of the instantiated struct,
-	//	an index token that we have to create and an expression vector whose first element
-	//	is the index token.  the update is in situ (i.e. at a specified location in the stack)
+	//	Compute an expression and then assign this value to a member of a struct.  
 	
 	//	TODO:  This code is remarkably similar to the gen_assignment_to_collection that we should be able
 	//	reduce the duplication.
 
 	//	TODO:  We need as generalized approach to updating an lvalue which is a n-dimensional array
-	//	to deal with both:  "foo:bar:zot:member = 5" and "foo[1,2,3] = 5".  At the moment this function
-	//	and gen_assignment_to_collection only support a single index.
-	fn gen_assignment_to_struct_member(&mut self, target : &Token, op : &Token, expression_list : &Vec<Token>, function_num : usize){
+	//	to deal with both:  "foo:bar:zot:member = 5" and "foo[1,2,3] = 5".
+	fn gen_assignment_to_struct_member(&mut self, target : &Token, op : &Token, expression_list : &Vec<Token>, function_num : usize){		
+		//	The first thing we  do is generate the instructions to compute the index
+		//	which will result in the value we are updating the member with
+		self.gen_expression(expression_list, function_num);
+
+		//	Next we'll need to push the indices onto the stack.  So that
+		//	when we execute the update_indexed the stack will be:
+		//
+		//		rvalue
+		//		index n
+		//		index n-1
+		//			:
+		//		index 0
+		//
+
 		let parts: Vec<&str> = target.token_value.split(':').collect();
 		let struct_name = parts[0].to_string();
-		//struct_name.push(':');
 
-		//	get the address of the instantiated struct which is really an array
-		let detail = self.symbol_table.get_normal_address(&struct_name);
+		eprintln!("====== CodGen.gen_assignment_to_struct_member {}",parts.len());
 
-		//	get the index of the member from the symbol table
-		let member_entry = self.symbol_table.get_struct_member_entry(&target.token_value);
-		//	and build a token that can be used in an expression that
-		//	creates the index
+		//	get the address of the instantiated struct which is the underlying array
+		let struct_detail = self.symbol_table.get_normal_address(&struct_name);
+		let member_detail = self.symbol_table.get_struct_member_entry(&target.token_value);
+
+		//	The payload of a member entry includes a "path" variable which is
+		//	a list of indices.  These indices need to be pushed onto the
+		//	operand stack.  Index 0 is the inner most dimension so it must
+		//	be the last item pushed (i.e. must be at the top of the stack when
+		//	update index runs) 
+		
+		//	build a token we can reuse for each index using the target as a template
 		let mut index_token = target.clone();
 		index_token.token_type = TokenType::INTEGER;
+		index_token.token_category = TokenCategory::Factor;
+		
+		let mut i : i32 = (member_detail.index_list.len() - 1) as i32;
+		while i >= 0{
+			index_token.token_value = member_detail.index_list[i as usize].to_string();
 
-		//	NOTE TODO above... for now we only use the index into the top
-		//  level struct
-		index_token.token_value = member_entry.member_index[0].to_string();
+			//	Add the instruction push the index on to the operand stack
+			self.add_machine_instruction(
+				MachineInstruction::new(
+					Opcode::Push
+					, OpcodeMode::Lit
+					, self.symbol_table.current_frame()
+					, 0
+					, 0
+					, Vec::new()
+					, 0
+					, index_token.clone()
+				),function_num
+			);
 
-		//	Add the instruction push the index on to the operand stack
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				Opcode::Push
-				, OpcodeMode::Lit
-				, self.symbol_table.current_frame()
-				, 0
-				, 0
-				, Vec::new()
-				, 0
-				, index_token.clone()
-			),function_num
-		);
+			i-=1;
+		}
+
+		//	Now, we've got the new value, followed by the path list we an
+		//	run the update indexed instruction
 			
 		//	set the local id type to INDEXED
 		let mut local_target = target.clone();
 		local_target.token_type = TokenType::INDEXED_ID;
 		local_target.token_category = TokenCategory::IndexedId;
-			
-		//	The new value is at the top of the operand stack
-		self.gen_expression(expression_list, function_num);
 
 		//	And we want to update the member element of the struct
 		self.add_machine_instruction(
@@ -1801,15 +1905,15 @@ impl<'a> CodeGen<'a>{
 				self.op_to_opcode(op)
 				, OpcodeMode::UpdateIndexed
 				, self.symbol_table.current_frame()
-				, detail.block_num
-				, detail.index
-				, Vec::new()
-				, detail.interner
+				, struct_detail.block_num
+				, struct_detail.index
+				, vec!(parts.len())			// the number of expected indices
+				, member_detail.interner
 				, target.clone()
 			),function_num
 		);
 	
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen:GEN_ASSIGNMENT_TO_STRUCT_MEMBER target={}", target.token_value);}
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen:gen_assignment_to_struct_member target={} indexes={:?}", target.token_value, member_detail.index_list);}
 	}
 
 	fn gen_assignment_to_scalar(&mut self, target : &Token, op : &Token, expression_list : &Vec<Token>, function_num : usize){		

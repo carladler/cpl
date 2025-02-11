@@ -19,14 +19,15 @@ struct foo{
 
 entry struct00_test{
 	inst = new foo;
+	fun1(inst);
 }
 
 fn fun1(fun1_struct:foo){
 	println fun1_struct:foo_member_1;
-	// println fun1_struct:bar:bar_member_1;
-	// println fun1_struct:bar:zot:zot_member_1;
-	// println fun1_struct:bar:pook:pook_member_1;
-	// println fun1_struct:bar:pook:pook_member_2;
-	// println fun1_struct:baz:baz_member_1;
-	// println fun1_struct:foo_member_2;
+	println fun1_struct:bar:bar_member_1;
+	println fun1_struct:bar:zot:zot_member_1;
+	println fun1_struct:bar:pook:pook_member_1;
+	println fun1_struct:bar:pook:pook_member_2;
+	println fun1_struct:baz:baz_member_1;
+	println fun1_struct:foo_member_2;
 }
