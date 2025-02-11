@@ -1,0 +1,49 @@
+entry op_overload{
+	array1 = ["one","two","three"];
+	array2 = ["four","five","six"];
+
+	println "==========  Testing += ==========";
+
+	println array1;
+	println array2;
+
+	array1 += "three.1";
+	println array1;
+	array1 += array2;
+	println array1;
+
+	foreach a array1{
+		println Type(a);
+	}
+
+	println "=========== Testing . (cat) =========";
+
+	s1 = "hello";
+	s2 = " world";
+	println s1.s2;
+
+	s3 = 49;
+	println s1.s2.s3;
+	println s3.s1.s2;
+
+	s1 .= s2;
+	println s1;
+
+	array1 = ["one","two","three"];
+	array2 = ["four","five","six"];
+
+
+	s4 = s1." ".array1;
+	Dump("append array1");
+
+	println s4;
+	println Type(s4);
+
+	s2 .= s3." ".array2;
+	println s2;
+	
+
+
+
+
+}

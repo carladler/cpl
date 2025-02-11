@@ -1,0 +1,28 @@
+entry Entry{
+	array = ["zot",100, 200, "three"];
+	add_1_to_1(array);
+
+	foreach a array{
+		println a;
+	}
+
+	dictionary = {{"key1",1},{"key2",2},{"key3",3},{"key4",4}};
+	add_1_to_1_dict(dictionary);
+	print_dictionary(dictionary);
+}
+
+fn add_1_to_1(a){
+	a[1] += 20;
+}
+
+fn add_1_to_1_dict(a){
+	a["key1"] += 1000;
+}
+
+fn print_dictionary(d){
+	keys = Keys(d);
+	Sort(keys);
+	foreach key keys{
+		println key."=".d[key];
+	}
+}

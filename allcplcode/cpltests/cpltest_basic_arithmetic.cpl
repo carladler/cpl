@@ -1,0 +1,14 @@
+entry foo{
+	a = 129;
+	b = 27;
+
+	println a+b;
+	println a*b;
+	println a-b;
+	println a/b;
+	println a%b;
+
+	x=8;
+	println x | 2;
+	println x & 10;
+}

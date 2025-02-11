@@ -1,0 +1,12 @@
+struct s_foo{
+	member_a="member_a";
+	member_b="member b";
+	member_c="member c";
+}
+
+entry ENTRY{
+	foo=new s_foo;
+	foo:member_a = [1,2,3];
+	b = foo:member_a;
+	println b[1];
+}

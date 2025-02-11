@@ -1,0 +1,16 @@
+entry cpltest_literal00 {
+	array = [1,2,3];
+
+	lit p0 = 0;
+	lit p1 = 1;
+	lit p2 = 2;
+
+	eprintln p0;
+	eprintln p1;
+	eprintln p2;
+
+	eprintln array[p0];
+	eprintln array[p1];
+	eprintln array[p2];
+	
+}

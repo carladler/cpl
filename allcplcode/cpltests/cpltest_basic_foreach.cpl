@@ -1,0 +1,38 @@
+entry foo(){
+	array = ["one","two","three"];
+
+	println "===========  Original ==========";
+	println "array=".array;
+
+
+	println "===========  push test ==========";
+	println "Pushing four, Done, More";
+	array += "four";
+	array += "Done";
+	array += "More";
+
+	foreach target array{
+		println "target=".target;
+	}
+
+	println "===========  Pop test ==========";
+	popped = Pop(array);
+	println "popped(should be 'More')=".popped;
+
+	foreach target array{
+		println "target=".target;
+	}
+
+	println "===========  Break test ==========";
+	foreach target array{
+		if target != "four"{
+			println "continuing: ".target;
+			continue;
+		}else{
+			println "breaking: ".target;
+			break;
+		}
+	}
+	println "end: ".target;
+}
+

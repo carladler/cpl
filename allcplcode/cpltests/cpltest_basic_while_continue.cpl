@@ -1,0 +1,11 @@
+entry foo(){
+	i=-1;
+	end=100;
+	while i<end{
+		i+=1;
+		if i>=10{
+			continue;
+		}
+		println "i=".i;
+	}
+}

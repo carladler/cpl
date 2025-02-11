@@ -1,0 +1,8 @@
+entry foobar(){
+	orig = "this is a foobar at 19:30";
+	replacement = "${1}bullshit${2}${3}40";
+	needle = "/(this is a )foobar( at )(\d\d:)\d\d/";
+	x = Replace(orig, needle, replacement, 0);
+	println "before=".orig." after=".x;
+}
+

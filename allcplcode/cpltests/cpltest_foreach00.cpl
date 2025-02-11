@@ -1,0 +1,22 @@
+entry fn ENTRY(args){
+	if #args == 0{
+		println "This test requires command line arguments";
+		return 0;
+	}
+	foreach x args{
+		println x;
+
+		more = [1,2,3];
+		foreach y more{
+			println y;
+		}
+		println "endforeach";
+		i=0;
+		println "i=".i;
+		while i<10{
+			println i;
+			i = i+1;
+		}
+	}
+}
+

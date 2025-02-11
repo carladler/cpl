@@ -1,0 +1,14 @@
+entry foo(){
+	a = 10;
+	if !(a==10) {				// NOTE:  ! binds more tightly than ==
+		println "a is not 10";		
+	}else{
+		println "a is 10";
+	}
+
+	if a!=10{
+		println "a not 10";
+	}else{
+		println "a is 10";
+	}
+}

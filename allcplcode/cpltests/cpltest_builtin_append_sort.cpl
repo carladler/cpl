@@ -1,0 +1,20 @@
+entry foo(){
+	a = [1,2,3];
+	b = [6, 5, 4];
+	Append(a,b);
+
+	i=0;
+	while i<#a{
+		println a[i];
+		i+=1;
+	}
+
+	c = 100;
+	Append(a,c);
+
+	Sort(a);
+	
+	foreach x a{
+		println x;
+	}
+}

@@ -1,0 +1,15 @@
+// struct foo{
+// 	mem1;
+// 	mem2 = 100;
+// }
+
+// struct bar{
+// 	mem1 = foo;
+// 	mem2 = 100;
+// }
+
+entry main(){
+	println "multi-level structs are not implemented yet and I don't know when or even if they will be";
+	// local = new bar;
+	// zot = new foo;
+}

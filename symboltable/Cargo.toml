@@ -1,0 +1,15 @@
+[package]
+name = "symboltable"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+cli = { path = "../cli" }
+tokenizer = { path = "../tokenizer" }
+macrolib = { path = "../macrolib" }
+names = { path = "../names" }
+
+[lib]
+name="symboltable"
+path="../allsources/symboltable.rs"

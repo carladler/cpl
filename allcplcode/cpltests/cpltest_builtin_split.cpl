@@ -1,0 +1,9 @@
+entry foo(){
+	a = "foo:bar";
+	b = Split(a,":");
+	i=0;
+	while i<#b{
+		println b[i];
+		i+=1;
+	}
+}

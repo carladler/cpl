@@ -1,0 +1,21 @@
+entry foo(){
+	dictionary = {{"key1","one"},{"key2","two"},{"key3","three"},{"key4","four"}};
+	array = [1,2,3,4];
+
+	array[0] = "bleeping fart";
+	foreach a array{
+		println a;
+	}
+
+	k="key1";
+	println dictionary[k];
+	dictionary[k] = "new one, ahah!";
+	println dictionary[k];
+
+	keys = Keys(&dictionary);
+	Sort(&keys);
+	foreach k keys{
+		println k."=".dictionary[k];
+	}
+
+}

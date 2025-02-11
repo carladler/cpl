@@ -1,0 +1,190 @@
+/*
+	Each row of this file provides the content required to produce
+	the parser_state_transition_table HashMap inserts.  There are
+	5 things to collect followed by semi-colon to terminate each row.
+	The semicolon is required.
+
+	the 5 things are:
+
+				Key
+				<parser_state>		::= the  current state
+				<trigger>			::= the category of the last token read
+	
+			Content
+				look_ahead			::= a look-ahead token call look_ahead_action if true (ignore if NONE)
+				new_parser_state	::= the new parser state after transition
+				action				::= name of the action function
+	
+	If the acion is "do_nothing", the "do_nothing_flat" emitted as false, else it is emitted as true
+
+	NOTE: CPL does not allow inc/dec (pre or post) in a statement context.  That is, "foo++;" is not not allowed.
+	For incrementing values in a statement, CPL programs should do:  "foo += 1";
+
+
+	NOTE ABOUT COMMENTS:  in this file, multi-line comments beginning with /<asterisk> and
+	ending with <astrisk>/ are supported.  However, lines with embedded /<asterisk> ... <asterisk/
+	is not supported.
+
+	Run from CPL crate:  ../parsergen/target/debug/main allsources/transitions.txt -pallsources/parser.rs
+*/
+//	----------------------------------------------------------------------------------------
+//  Start state			Trigger	(Category)		End State 			Action					
+//  -----------------	---------------------	-----------------	--------------------	
+	Program 			FunctionDeclaration		Function 			function_declaration;
+	Function 			Factor 					FunctionSignature	function_name;
+	FunctionSignature	LParen					FunctionParameter	do_nothing;
+	FunctionSignature	LBrace					Statement			function_no_parameters;	
+	FunctionParameter	Factor					FunctionParameter	function_parameter;
+	FunctionParameter	Comma					FunctionParameter	do_nothing;
+	FunctionParameter	RParen					Block				function_parameter;	
+
+	Program				StructDeclaration		Struct				struct_declaration;
+	Struct				Factor					Struct				struct_name;
+	Struct				LBrace					StructBody			do_nothing;
+	StructBody			Factor					StructMember		struct_member;
+	StructMember		Semi					StructBody			struct_member_add;
+	StructMember		AssignmentOp			Expression			struct_member_init;
+	StructBody			RBrace					Program				rbrace;
+	StructInit			RBrace					Program				do_nothing;
+	StructBody			StructDeclaration		Struct				struct_declaration;
+
+	//	Literals can appear anywhere inside or outside of a function.  here they
+	//	are appearing outside which makes them global.
+	//
+	//	Syntax is:  literal id [=] value;
+	//
+	//	The '=' is sugar.
+	//
+	Program					Literal					GlobalLiteral			do_nothing;
+	GlobalLiteral			Factor					GlobalLiteralValue		literal_id;
+	GlobalLiteralValue		AssignmentOp			GlobalLiteralValue		do_nothing;
+	GlobalLiteralValue		Factor					GlobalLiteralValue		literal_value;
+	GlobalLiteralValue		Semi					Program					do_nothing;
+
+	Block				LBrace					Statement			begin_block;
+	
+	//	We start by assuming this is the beginning an assignment statement (e.g. "a = 10").
+	//	It could be a function call statement.  We will discover this at the next input.
+	//	In any event, the factor is saved.
+	Statement			Factor					Assignment			statement_factor;
+
+	//  Now we know that it really is an assignment statement and the factor is the target
+	//	We could see either an expression (i.e. <factor> <op> <term>) or we might see
+	//	a keyword (e.g. new).  If we do see "new" then change the state to StructInstantiate
+	//	and change the type of statement_factor to STRUCT.  Op must be "=" if this is
+	//	the case.
+	Assignment			AssignmentOp			Expression			assignment_op;
+
+	//	if a ";' follows the factor then add the assignment and return to Statement
+	//  state else error
+	StructInstantiate	Factor					Statement			struct_instantiate;
+
+	//  It is an assignment but the target is an indexed expression rather than just a scalar
+	//	The assignment op is recognized after seening an RBracket.  indexed_target;
+	//	sets the context to IndexedTarget
+	Assignment			LBracket				Expression			indexed_target;
+
+	//	The previous token, which is a factor, is followed by a LParen so we know
+	//	that it's a function call statement.  The function call token is being saved
+	//	and everything that follows is an expression.
+	Assignment			LParen					Expression			function_call_statement;
+
+	Statement			Verb					Expression			verb;
+	Statement			Else					Block				keyword_else;
+	Statement			Loop					Block				keyword_loop;
+	Statement			Otherwise				Block				keyword_otherwise;
+	Statement			Semi					Statement			do_nothing;
+
+	//	If a literal appears in a block we recognize it here
+	Statement			Literal					LocalLiteral		do_nothing;
+	LocalLiteral		Factor					LocalLiteralValue	literal_id;
+	LocalLiteralValue	AssignmentOp			LocalLiteralValue	do_nothing;
+	LocalLiteralValue	Factor					LocalLiteralValue	literal_value;
+	LocalLiteralValue	Semi					Statement			do_nothing;
+	
+	//	foreach <target> <source>{...}.  The <targetr> must be an ID.  The <source> may be an ID or a collection literal
+	Statement			Foreach					ForeachTarget		foreach_init;
+	ForeachTarget		Factor					ForeachSource		foreach_target;
+	ForeachSource		Factor					ForeachBlock		foreach_source;
+	ForeachSource		LBracket				Expression			foreach_source;
+	ForeachSource		LBrace					Expression			foreach_source;	
+	ForeachBlock		LBrace					Statement			do_nothing;
+
+	//	The expression state is the start of expression processing:  There are a number of
+	//	productions we can recognize here:
+	//
+	//		<expression> "-" <factor> 			-> unary minus	(factor = Number or ID)
+	//		<expression> "+" <factor>			-> unary plus	(factor = Number or ID)
+	//		<expression> "!" <factor>			-> unary NOT	(factor = Number or ID)
+	//		<expression> "--" <factor>			-> pre incdec	(factor = ID or function call only)
+	//		<expression> "++" <factor>			-> pre incdec   (factor = ID or function call only)
+	//		<expression> "(" <factor>			-> function call
+	//		<expression> <factor>				-> an actual expression maybe
+	
+
+	Expression			BinaryOp				Expression			unary_op_test;			// if <binary op> <factor> then it's a unary op 
+	Expression			UnaryOp 				Expression			unary_op_test;			// it is a unary op
+	Expression			IncDec					Expression			unary_op_test;			// It is a pre incdec
+
+	IdAddress			Factor					ExpressionTerm		id_address;				// convert ID to IDADDR
+
+	Expression			Factor					ExpressionTerm	 	expression_factor;		// returns new state FunctionCallArg if Factor is fc
+
+	//	<expression> :: "(" <expression> ")" or function_call(...)
+	Expression			LParen					Expression 			lparen;
+
+	//	collection literals. Note that if a RBracket immediatly follows this
+	//	we assume that an "empty" array literal is being requested
+	Expression			LBracket				Expression 			array_literal;
+
+	//	When we see "ID (" come here which will check for an immediate ")", meaning
+	//	it's a function call with no arguments or it's a function with at least
+	//	one argument.  If there aren't any arguments, function_call_agument consumes the ")"
+	FunctionCallArg		LParen					ExpressionTerm		function_call_argument;
+
+	//	ExpressionTerm always follows a factor or something that acts like a factor.  It can be empty (meaning
+	//	the next token after can be one of ";" or "{" or "," (end of a list item))
+	//
+	//		<factor> <operator> or <empty>
+	//		<function call>(...) <operator> or <empty>
+	//		<factor> "," 
+	//
+	//	or some operators can follow the ExpressionTerm
+
+	ExpressionTerm		Semi 					Statement			statement_end;
+	ExpressionTerm		Comma					Expression			expression_list_item;
+	ExpressionTerm		RParen					ExpressionTerm		rparen;
+	ExpressionTerm		LBrace					Statement			lbrace;
+
+	//	<expression> :: = <factor> <op> <term>
+	ExpressionTerm		BinaryOp				Expression			binary_op;
+	ExpressionTerm		RelOp					Expression			binary_op;
+
+	//	<expression> ::= <factor> <incdec> <term> (post incdec)
+	ExpressionTerm		IncDec					ExpressionTerm		post_inc_dec;
+
+	//  <expression> ::= <function name> "(" <expression> ")".  However, we don't do
+	//  anything here because we've alrady recognized the function call in expression_factor
+	ExpressionTerm		LParen					Expression			lparen;
+
+	//	A collection index is:  "a[<index expression>]".  The type of collection is determeined by the type of the index
+	//	it can appear on either side of an "AssignmentOp".  That is, it can be both a target and a source.  The
+	//	action here will set the context to CollectionSource (i.e. the array access is part of an expression)
+	ExpressionTerm		LBracket				Expression			index_expression;
+
+	//	We can see the "]" in a number of different contexts:  CollectionTarget, CollectionSource, ArrayLiteral
+	//	The rbracket action queries the context and returns an appropriate ParserState which overrides the value
+	//	in this transition
+	ExpressionTerm		RBracket				ExpressionTerm		rbracket;
+
+	Expression			LBrace					DictLiteral			dict_literal_begin;
+	DictLiteral			LBrace					Expression			dict_literal_kv_begin;
+	DictLiteral			RBrace					ExpressionTerm		dict_literal_end;
+	ExpressionFactor	RBrace					ExpressionTerm		dict_literal_kv_end;	
+	ExpressionTerm		RBrace					DictLiteral			dict_literal_kv_end;	
+	DictLiteral			Comma					DictLiteral			expression_list_item;
+
+	ExpressionFactor	LParen					ExpressionFactor	expression_term;
+	ExpressionFactor	LBracket				Expression			array_literal;
+
+	Statement			RBrace					Statement			rbrace;

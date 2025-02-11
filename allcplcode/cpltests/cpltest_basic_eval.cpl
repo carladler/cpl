@@ -1,0 +1,16 @@
+entry foobar(){
+	x = 100;
+	println x;
+	ar = [1,2,3,4];
+	y = 100;
+	println y;
+
+	eval 2 {
+		when ar[0] {println 0;}
+		when ar[2] {println 2;}
+		when ar[1] {println "tada! 1";}
+		when ar[3] {println 3;}
+		otherwise {println "who knows";}
+	}
+}
+

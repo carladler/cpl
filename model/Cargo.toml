@@ -1,0 +1,20 @@
+[package]
+name = "model"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
+cli = { path = "../cli" }
+modelstructs = { path = "../modelstructs" }
+tokenizer = { path = "../tokenizer" }
+codeframe = { path = "../codeframe" }
+structmodel = { path = "../structmodel" }
+literalmodel = { path = "../literalmodel" }
+names = { path = "../names" }
+
+[lib]
+name="model"
+path="../allsources/model.rs"

@@ -1,0 +1,11 @@
+entry foo(){
+	x = bar(10,20);
+	println x;
+}
+
+fn bar(a,b){
+	an_extra_var = 40000;
+	c = a*b;
+	return c;
+}
+

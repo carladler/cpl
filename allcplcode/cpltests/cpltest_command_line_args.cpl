@@ -1,0 +1,24 @@
+entry fn ENTRY(args){
+	if #args < 5{
+		println "This test requires at least 5 command line args";
+		return 0;
+	}
+	a = 4;
+	more = [args[3],2+a,args[4]];
+
+	println "aaa";
+	foreach y more{
+		println y;
+	}
+
+	println "bbb";
+	foreach x args{
+		println x;
+
+		println "ccc";
+		more = [1,2,3];
+		foreach y more{
+			println y;
+		}
+	}
+}

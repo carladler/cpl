@@ -1,0 +1,5 @@
+entry replace_string{
+	orig = "this, or, that";
+	x = Replace(orig,",","",5);
+	println "new val=".x;
+}

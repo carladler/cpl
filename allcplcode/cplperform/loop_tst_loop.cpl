@@ -1,0 +1,25 @@
+entry tst_loop (args){
+	if #args < 1 {
+		print "Usage: dups <ls output file>";
+		return 1;
+	}
+
+	// open the file
+	ls_file = Fopen(args[0],"<");
+
+	//	read the file into memory
+	lines = [];
+	Fread(ls_file, lines);
+
+	//  visit every line using while;
+	index=0;
+	loop{
+		if index >= #lines{
+			break;
+		}
+		line = lines[index];
+		index+=1;
+	}
+
+	eprintln "\ntotal entries=".index;
+}

@@ -1,0 +1,22 @@
+entry foobar(){
+	orig = "this is a foobar at 19:30";
+	//      0123456789012345678901234
+	x = Match(orig, "is", 0);
+	i=0;
+	while i<#x{
+		//println x[i];
+		details = Split(x[i],":");
+		sub = Substr(orig, details[0], details[1]-details[0]);
+		println "/".sub."/";
+		i+=1;
+	}
+	x = Match(orig, "\d{2}", 0);
+	i=0;
+	while i<#x{
+		println x[i];
+		details = Split(x[i],":");
+		sub = Substr(orig, details[0], details[1]-details[0]);
+		println "/".sub."/";
+		i+=1;
+	}
+}

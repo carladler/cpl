@@ -1,0 +1,5 @@
+struct s_foo{
+	member_a;
+	member_b="foo.member b";
+	member_c="foo.member c";
+}

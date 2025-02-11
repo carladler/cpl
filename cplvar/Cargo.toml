@@ -1,0 +1,20 @@
+[package]
+name = "cplvar"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+
+cli = { path = "../cli" }
+opcode = { path = "../opcode" }
+tokenizer = { path = "../tokenizer" }
+macrolib = { path = "../macrolib" }
+csvparser = { path = "../csvparser" }
+regex = "1.11.1"
+names = { path = "../names" }
+
+
+[lib]
+name="cplvar"
+path="../allsources/cplvar.rs"

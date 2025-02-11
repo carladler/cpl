@@ -1,0 +1,5 @@
+entry foo(){
+	a = "test xxx";
+	b = Substr(a,0,4);
+	println b;
+}

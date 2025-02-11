@@ -1,0 +1,10 @@
+[package]
+name = "csvparser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[lib]
+name="csvparser"
+path="../allsources/csvparser.rs"

@@ -1,0 +1,17 @@
+entry  fn hello(){
+	a=10;
+	b=20;
+	println 0.5 * foo(a, bar(b+2)+15, 100);
+}
+
+fn bar(a){
+	println "bar a=".a;
+	println "returning a*2: ".a*2;
+	return a*2;
+}
+
+fn foo(a,b,c){
+	println "foo a,b,c=".a.",".b.",".c;
+	println "returning a*b+c: ".(a*b+c);
+	return a*b+c;
+}

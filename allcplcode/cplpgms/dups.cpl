@@ -1,0 +1,160 @@
+entry dup(args){
+	if #args < 3 {
+		println "Usage: dups <ls output file> <skips file> <csv file>";
+		return 1;
+	}
+	// open the file
+	ls_file = Fopen(args[0],"<");
+
+	//	If there is a "skip" file present (args[2]) then for each line of it
+	//	build the regex (i.e. we end up with an array compiled regex expressions)
+	skips_match_list=[];
+	skips_match_source=[];
+	skip_file = Fopen(args[1], "<");
+	while !Feof(skip_file){
+		skips_match_reg = Freadln(skip_file);
+		if #skips_match_reg > 0{
+			skips_match_list += Regex(skips_match_reg);
+		}
+	}
+
+	// build the directory/file descrimination regex's
+	// directory_regex = "^(?i)(".args[1].".*):";
+	// directory_line_capture = Regex(directory_regex);
+	file_line_capture = Regex("^([-])([-\\w@]+)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(\\d+)\\s+(\\w+)\\s+(\\d+)\\s+(\\d+:\\d+:\\d+)\\s+(\\d{4})\\s+(.*)");
+
+	//	read the "ls" file into memory
+	directory_lines = [];
+	Fread(ls_file, directory_lines);
+
+	//output=[];
+
+	count=0;
+	dir_count = 0;
+	
+	current_directory = "";
+
+	process_count = 0;
+	analyze_count = 0;
+	skip_count = 0;
+	dups_hash = {};
+
+	include "allcplcode/cplincludes/month_name_to_number.cpl"
+
+	
+
+	foreach line directory_lines{
+		process_count += 1;
+		//if process_count & 8191 == 0 {eprint process_count."\r";}
+
+		if #line == 0{
+			continue;
+		}
+
+		analyze_count += 1;
+
+		// dir_capture = Capture(line, directory_line_capture, 0);
+		if Substr(line,0,1) == "/"{
+			dir_count += 1;
+			current_directory = line;
+			continue;
+		}
+		
+		file_capture = Capture(line, file_line_capture, 0);
+		if #file_capture == 0{
+			continue;
+		}
+		
+		//  try to find a match from any of the skip patterns (if there are any) in
+		//	the concatination of file and directory
+		if skip_check(file_capture[11].current_directory, skips_match_list){
+			skip_count += 1;
+			continue;
+		}
+
+		//	construct the key to the dups file
+		//	-rw-r--r--@ 1 clairehesselholt  staff  768392 Dec 14 18:12:57 2021 IMG_3595-preview.ktx
+		//	12          3 4                 5      6      7   8  9        10   11
+
+		lit cap_file_name = 11;
+		lit cap_year = 10;
+		lit cap_month = 7;
+		lit cap_day = 8;
+		lit cap_time = 9;
+
+
+		// file_name = file_capture[11];
+		// if Locate(file_name,"^",0) > 0{
+		// 	eprintln file_name;
+		// }
+
+		//	insert a ";" between each of element of the key so that we can split out these elements
+		//	for the csv file
+		dups_key = file_capture[cap_file_name].";".file_capture[cap_year].";".month_name_to_number[file_capture[cap_month]].";".file_capture[cap_day].";".file_capture[cap_time];
+		if Contains(dups_hash,dups_key){
+			dup = dups_hash[dups_key];
+			dup += current_directory;
+			Insert(dups_hash, dups_key, dup, true);
+		}else{
+			payload = [current_directory];
+			Insert(dups_hash, dups_key, payload, true);
+		}
+	}
+
+	duplicate_count = csv_out(dups_hash,args[2]);
+
+	eprintln "\ntotal lines read from ".args[0]." = ".#directory_lines;
+	eprintln "total entries processed = ".process_count;
+	eprintln "total entries analyzed = ".analyze_count;
+
+	// foreach o output{
+	// 	println o;
+	// }
+
+
+	eprintln "directories= ".dir_count;
+	eprintln "files duplicated in 2 or more directories = ".duplicate_count;
+	eprintln "files skipped = ".skip_count;
+	// eprintln "total written = ".write_count;
+}
+
+fn skip_check(skip_haystack, skips_match_list){
+	regex_num = 0;
+	while regex_num < #skips_match_list {
+		//	attempt a match on the next regex		
+		m = Match(skip_haystack, skips_match_list[regex_num], 0);
+
+		//	if there was a match then m contains something
+		if #m > 0{
+			// eprintln "source line: ".skip_haystack;
+			// eprintln "skip match: ".m;
+			return true;
+		}
+
+		regex_num += 1;
+	}
+	return false;
+}
+
+fn csv_out(dups_hash,csv_output){
+	csv_file = Fopen(csv_output,">");
+	duplicate_count = 0;
+	dup_keys = Keys(dups_hash);
+	Sort(dup_keys);
+	foreach dup_key dup_keys{
+		if #dups_hash[dup_key] > 1{
+			duplicate_count += 1;
+
+			dup_out = Split(dup_key,";");
+			dup_fn = dup_out[0];
+			dup_date = dup_out[1]." ".dup_out[2]." ".dup_out[3]." ".dup_out[4];
+
+			dup_line = [dup_fn,dup_date];
+			dupdirs = dups_hash[dup_key];
+			dup_line += dupdirs;
+
+			Fwriteln(csv_file, dup_line);
+		}
+	}
+	return duplicate_count;
+}

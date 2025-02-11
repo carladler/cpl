@@ -1,0 +1,11 @@
+entry foo{
+	array=[1,2,3];
+	println "array[1]=".array[1];
+	println "array[2]=".array[2];
+	array[2] = 100;
+	println "array[2] after update=".array[2];
+	println "array=".array;
+
+	array[0] += 200;
+	println "array after += =".array;
+}

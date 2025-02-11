@@ -1,0 +1,11 @@
+[package]
+name = "literalmodel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokenizer = { path = "../tokenizer" }
+
+[lib]
+name="literalmodel"
+path="../allsources/literalmodel.rs"

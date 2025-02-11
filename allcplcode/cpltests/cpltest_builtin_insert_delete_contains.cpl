@@ -1,0 +1,25 @@
+entry foo(){
+	a = {{500*3,"blat"},{"two","this is two"." and three"}};
+	Insert(a,"afour","ookkookachook",false);
+	Insert(a,"afour","ookkookachook...2",true);
+
+	if Contains(a,"two"){
+		println "yes (before delete) two = ".a["two"];
+	}else{
+		println "no two";
+	}
+
+	Delete(a,"two");
+
+	if Contains(a,"two"){
+		println "yes two = ".a["two"];
+	}else{
+		println "no (after delete) two";
+	}
+
+	if Contains(a, 500*3){
+		println "yes 500*3 = ".a[500*3];
+	}else{
+		println "no 500*3";
+	}
+}

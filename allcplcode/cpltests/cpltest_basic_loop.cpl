@@ -1,0 +1,12 @@
+entry foo(){
+	i=0;
+	end=10;
+	loop{
+		println "i=".i;
+		i+=1;
+		if i>=end{
+			println "Trying to break on ".i;
+			break;
+		}
+	}
+}

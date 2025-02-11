@@ -1,0 +1,30 @@
+struct my_struct{
+	mem1 = "mem1";
+	mem2 = "mem2";
+	mem3 = "mem3";
+}
+entry ENTRY(){
+	in_file = Fopen("testdata/cpltest_builtin_io_input.dat", "<");
+	out_file = Fopen("testdata/cpltest_builtin_io_output.dat", ">");
+	a = Freadln(in_file);
+	while !Feof(in_file){
+		println a;
+		Fwriteln(out_file, a);
+		a = Freadln(in_file);
+	}
+
+	doodl = [100,"blooie blit",300];
+	Fwriteln(out_file, doodl);
+
+	s = new my_struct;
+	Fwriteln(out_file, s);
+
+	append_file = Fopen("testdata/ccpltest_builtin_io_output.dat", ">>");
+	Fwrite(append_file, "howdy!");
+	Fwriteln(append_file, " Blat");
+	av = [1,2,"blarny","zoop,foop"];
+	Fwriteln(append_file, av);
+	Fwrite(append_file, "whoopee!");
+
+
+}

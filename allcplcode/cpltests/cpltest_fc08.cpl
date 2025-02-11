@@ -1,0 +1,13 @@
+entry foo(){
+	a = [1,2,3];
+	bar(&a);
+	println a;
+}
+
+fn bar(a){
+	i=0;
+	while i<#a{
+		a[i] += 100;
+		i+=1;
+	}
+}

@@ -1,0 +1,111 @@
+/*
+	Each row of this file provides the content required to produce
+	the parser_state_transition_table HashMap inserts.  There are
+	5 things to collect followed by semi-colon to terminate each row.
+	The semicolon is required.
+
+	the 5 things are:
+
+				Key
+				<parser_state>		::= the  current state
+				<trigger>			::= the category of the last token read
+	
+			Content
+				look_ahead			::= a look-ahead token call look_ahead_action if true (ignore if NONE)
+				do_nothing_flag		::= if true don't call action
+				new_parser_state	::= the new parser state after transition
+				action				::= name of the action function
+				look_ahead_action	::= action if look_ahead is true
+	
+	Run from CPL crate:  ../parsergen/target/debug/main testdata/transitions -pallsources/parser.rs
+*/
+//	-----------------------------------------------------------------------------------------------------------------------------------------
+//  Start state			Trigger	(Category)		End State 			Action					Look Ahead	Look Ahead State	Look Ahead Action
+//  -----------------	---------------------	-----------------	--------------------	----------	----------------	-----------------
+	Program 			FunctionDeclaration		Function 			function_declaration	NONE		Nothing				do_nothing;
+	Function 			Factor 					FunctionSignature	function_name			NONE		Nothing				do_nothing;
+	FunctionSignature	LParen					FunctionParameter	do_nothing				NONE		Nothing				do_nothing;
+	FunctionParameter	Factor					FunctionParameter	function_parameter		NONE		Nothing				do_nothing;
+	FunctionParameter	Comma					FunctionParameter	do_nothing				NONE		Nothing				do_nothing;			
+	FunctionParameter	RParen					FunctionBody		function_parameter		NONE		Nothing				do_nothing;			
+	FunctionBody		LBrace					Statement			do_nothing				NONE		Nothing				do_nothing;	
+	
+	//	We start by assuming this is the beginning an assignment statement (e.g. "a = 10").
+	//	But we don't yet know what it is really.  However, save the factor for later
+	Statement			Factor					Assignment			statement_factor		NONE		Nothing				do_nothing;
+	//  Now we know that it really is an assignment statement and the factor is the target	
+	Assignment			AssignmentOp			Expression			assignment_op			NONE		Nothing				do_nothing;
+	//  It is an assignment but the target is an indexed expression rather than just a scalar
+	//	The assignment op is recognized after seening an RBracket
+	Assignment			LBracket				Expression			index_expression		NONE		Nothing				do_nothing;
+	//	It's actually not an assignment statement but a function call
+	Assignment			LParen					Expression			function_call_statement	NONE		Nothing				do_nothing;
+
+	Statement			Verb					Expression			verb					NONE		Nothing				do_nothing;
+
+	Statement			Else					ElseBlock			keyword_else			NONE		Nothing				do_nothing;
+	ElseBlock			LBrace					Statement			do_nothing				NONE		Nothing				do_nothing;
+
+	//	foreach <target> <source>{...}.  The <targetr> must be an ID.  The <source> may be an ID or a collection literal
+	Statement			Foreach					ForeachTarget		do_nothing				NONE		Nothing				do_nothing;
+	ForeachTarget		Factor					ForeachSource		foreach_target			NONE		Nothing				do_nothing;
+	ForeachSource		Factor					ForeachBlock		foreach_source			NONE		Nothing				do_nothing;
+	ForeachSource		LBracket				Expression			foreach_source			NONE		Nothing				do_nothing;
+	ForeachSource		LBrace					Expression			foreach_source			NONE		Nothing				do_nothing;	
+	ForeachBlock		LBrace					Statement			do_nothing				NONE		Nothing				do_nothing;
+	
+	//  The only allowable op here is + or - assuming a lookahead sees a number or an ID
+	Expression			BinaryOp				Expression			unary_op				NONE		Nothing				do_nothing;
+
+	//	NOTE: CPL does not allow inc/dec (pre or post) in a statement context.  That is, "foo++;" is not not allowed.
+	//	For incrementing values in a statement, CPL programs should do:  "foo += 1";
+
+	//	post inc/dec in an expression
+	ExpressionTerm		IncDec					ExpressionTerm		post_inc_dec			NONE		Nothing				do_nothing;
+
+	//	Testing for pre inc/dec.  Can only precede a number.  The transition fom IncDec to Term fails otherwise
+	Expression			IncDec					IncDec				do_nothing				NONE		Nothing				do_nothing;
+	ExpressionFactor	IncDec					IncDec				do_nothing				NONE		Nothing				do_nothing;
+	IncDec				Factor					ExpressionTerm		pre_inc_dec				NONE		Nothing				do_nothing;
+
+	Expression			Factor					ExpressionTerm 		expression_term			LPAREN		Expression			function_call_term;
+	Expression			LParen					Expression 			expression_term			NONE		Nothing				do_nothing;
+
+	//	The array_literal action sets the context to ArrayLiteral Even though the entire statement was:  a[2] = [1,2,3].
+	//	We will have already processed a[2] with that "]" being in the CollectionTarget
+	Expression			LBracket				Expression 			array_literal			NONE		Nothing				do_nothing;
+
+	Expression			LBrace					DictLiteral			dict_literal_begin		NONE		Nothing				do_nothing;
+	DictLiteral			LBrace					Expression			do_nothing				NONE		Nothing				do_nothing;
+	DictLiteral			Factor					ExpressionTerm		do_nothing				NONE		Nothing				do_nothing;
+	ExpressionFactor	RBrace					ExpressionTerm		dict_literal_member		NONE		Nothing				do_nothing;	
+	ExpressionTerm		RBrace					ExpressionTerm		dict_literal_end		NONE		Nothing				do_nothing;	
+
+	ExpressionTerm		BinaryOp				ExpressionFactor	expression_factor		NONE		Nothing				do_nothing;
+
+	//  Function call as a term in an expression
+	ExpressionTerm		LParen					Expression			function_call_term		NONE		Nothing				do_nothing;
+
+	//	A collection index is:  "a[<index expression>]".  The type of collection is determeined by the type of the index
+	//	it can appear on either side of an "AssignmentOp".  That is, it can be both a target and a source.  The
+	//	action here will set the context to CollectionSource (i.e. the array access is part of an expression)
+	ExpressionTerm		LBracket				Expression			index_expression		NONE		Nothing				do_nothing;
+
+	//	We can see the "]" in a number of different contexts:  CollectionTarget, CollectionSource, ArrayLiteral
+	//	The rbracket action queries the context and returns an appropriate ParserState which overrides the value
+	//	in this transition
+	ExpressionTerm		RBracket				ExpressionTerm		rbracket				NONE		Nothing				do_nothing;
+	AssignmentOp		AssignmentOp			Expression			assignment_op			NONE		Nothing				do_nothing;
+
+	ExpressionFactor	Factor					ExpressionTerm		expression_term			NONE		Nothing				do_nothing;
+	ExpressionFactor	LParen					ExpressionFactor	expression_term			NONE		Nothing				do_nothing;
+	ExpressionFactor	LBracket				Expression			array_literal			NONE		Nothing				do_nothing;
+
+	//  The only allowable op here is + or - assuming a lookahead sees a number or an ID
+	ExpressionFactor	BinaryOp				Expression			unary_op				NONE		Nothing				do_nothing;
+	
+	ExpressionTerm		Semi 					Statement			statement_end			NONE		Nothing				do_nothing;
+	ExpressionTerm		Comma					Expression			expression_list_item	NONE		Nothing				do_nothing;
+	ExpressionTerm		RParen					ExpressionTerm		expression_term			NONE		Nothing				do_nothing;
+	ExpressionTerm		LBrace					Statement			lbrace					NONE		Nothing				do_nothing;
+	Statement			RBrace					Statement			rbrace					NONE		Nothing				do_nothing;

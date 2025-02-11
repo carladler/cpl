@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Major Version</key><integer>1</integer>
+	<key>Minor Version</key><integer>1</integer>
+	<key>Date</key><date>2024-04-11T16:24:15Z</date>
+	<key>Application Version</key><string>1.4.4.48</string>
+	<key>Features</key><integer>5</integer>
+	<key>Show Content Ratings</key><true/>
+	<key>Music Folder</key><string>file:///Users/carl/Music/Music/Media.localized/</string>
+	<key>Library Persistent ID</key><string>42754C638F88213A</string>
+	<key>Tracks</key>
+	<dict>
+		<key>1892</key>
+		<dict>
+			<key>Track ID</key><integer>1892</integer>
+			<key>Name</key><string>Sorrow &#38; Fear</string>
+			<key>Artist</key><string>Bowie David</string>
+			<key>Composer</key><string>Feldman/Goldstein/Gottehrer</string>
+			<key>Album</key><string>Pin Ups</string>
+			<key>Genre</key><string>Rock</string>
+			<key>Kind</key><string>AAC audio file</string>
+			<key>Size</key><integer>2824316</integer>
+			<key>Total Time</key><integer>173126</integer>
+			<key>Disc Number</key><integer>1</integer>
+			<key>Disc Count</key><integer>1</integer>
+			<key>Track Number</key><integer>8</integer>
+			<key>Track Count</key><integer>14</integer>
+			<key>Year</key><integer>1973</integer>
+			<key>Date Modified</key><date>2007-05-10T19:13:26Z</date>
+			<key>Date Added</key><date>2022-12-07T12:47:34Z</date>
+			<key>Bit Rate</key><integer>128</integer>
+			<key>Sample Rate</key><integer>44100</integer>
+			<key>Play Count</key><integer>2</integer>
+			<key>Play Date</key><integer>3758025318</integer>
+			<key>Play Date UTC</key><date>2023-01-31T23:55:18Z</date>
+			<key>Normalization</key><integer>1245</integer>
+			<key>Persistent ID</key><string>FFC64957DDF12C79</string>
+			<key>Track Type</key><string>File</string>
+			<key>Location</key><string>file:///Users/carl/Music/Music/Media.localized/Music/Bowie%20David/Pin%20Ups/08%20Sorrow.m4a</string>
+			<key>File Folder Count</key><integer>5</integer>
+			<key>Library Folder Count</key><integer>1</integer>
+		</dict>
+		<key>1894</key>
+		<dict>
+			<key>Track ID</key><integer>1894</integer>
+			<key>Name</key><string>Sleep Like a Baby Tonight</string>
+			<key>Artist</key><string>U2</string>
+			<key>Album Artist</key><string>U2</string>
+			<key>Album</key><string>Songs of Innocence</string>
+			<key>Genre</key><string>Rock</string>
+			<key>Kind</key><string>Purchased AAC audio file</string>
+			<key>Size</key><integer>10414554</integer>
+			<key>Total Time</key><integer>301641</integer>
+			<key>Disc Number</key><integer>1</integer>
+			<key>Disc Count</key><integer>1</integer>
+			<key>Track Number</key><integer>9</integer>
+			<key>Track Count</key><integer>11</integer>
+			<key>Year</key><integer>2014</integer>
+			<key>Date Added</key><date>2023-02-02T21:40:46Z</date>
+			<key>Bit Rate</key><integer>256</integer>
+			<key>Sample Rate</key><integer>44100</integer>
+			<key>Release Date</key><date>2014-09-09T07:00:00Z</date>
+			<key>Normalization</key><integer>1120</integer>
+			<key>Artwork Count</key><integer>1</integer>
+			<key>Sort Album</key><string>Songs of Innocence</string>
+			<key>Sort Artist</key><string>U2</string>
+			<key>Sort Name</key><string>Sleep Like a Baby Tonight</string>
+			<key>Persistent ID</key><string>B236A5268DBF5C1C</string>
+			<key>Track Type</key><string>File</string>
+			<key>Purchased</key><true/>
+			<key>Location</key><string>file:///Users/carl/Music/Music/Media.localized/Music/U2/Songs%20of%20Innocence/09%20Sleep%20Like%20a%20Baby%20Tonight.m4a</string>
+			<key>File Folder Count</key><integer>5</integer>
+			<key>Library Folder Count</key><integer>1</integer>
+		</dict>
+	</dict>
+	<array>
+		<dict>
+			<key>Name</key><string>Library</string>
+			<key>Description</key><string></string>
+			<key>Master</key><true/>
+			<key>Playlist ID</key><integer>64</integer>
+			<key>Playlist Persistent ID</key><string>0000000000000005</string>
+			<key>Visible</key><false/>
+			<key>All Items</key><true/>
+			<key>Playlist Items</key>
+			<array>
+				<dict>
+					<key>Track ID</key><integer>1892</integer>
+				</dict>
+				<dict>
+					<key>Track ID</key><integer>1894</integer>
+				</dict>
+				<dict>
+					<key>Track ID</key><integer>1897</integer>
+				</dict>
+				<dict>
+					<key>Track ID</key><integer>1900</integer>
+				</dict>
+

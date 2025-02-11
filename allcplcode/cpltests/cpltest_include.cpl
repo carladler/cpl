@@ -1,0 +1,18 @@
+include "allcplcode/cpltests/cpltest_include_struct.cpl"
+
+entry ENTRY(){
+	foo=new s_foo;
+	foo:member_a = "hello";
+	println "in ENTRY -- foo:member_a=".foo:member_a;
+	println foo:member_b;
+	fun1(foo);
+	println "Back at ENTRY -- foo:member_b=".foo:member_b;
+	include "allcplcode/cpltests/cpltest_include_junk.cpl"
+	goo = foo:member_a;
+	println "goo=".goo;
+}
+
+fn fun1(s:s_foo){
+	println "at fun1 -- s:member_a=".s:member_a;
+	s:member_b .= "---goodbye";
+}

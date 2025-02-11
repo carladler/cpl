@@ -1,0 +1,8 @@
+entry foo(){
+	a = 9;
+	if a == 10{
+		println "a=".a;
+	}else{
+		println "not 10: ". a;
+	}
+}

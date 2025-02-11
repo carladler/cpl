@@ -1,0 +1,25 @@
+[package]
+name = "exec"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
+cli = { path = "../cli" }
+tokenizer = { path = "../tokenizer" }
+codegen = { path = "../codegen" }
+cplvar = { path = "../cplvar" }
+builtin = { path = "../builtin" }
+opcode = { path = "../opcode" }
+machineinstruction = { path = "../machineinstruction" }
+codeframe = { path = "../codeframe" }
+macrolib = { path = "../macrolib" }
+runtimestats = { path = "../runtimestats" }
+names = { path = "../names" }
+cpu-time = "1.0.0"
+
+[lib]
+name="exec"
+path="../allsources/exec.rs"

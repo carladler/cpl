@@ -1,0 +1,32 @@
+struct foo{									
+	foo_member_1="foo:member_1";			
+	struct bar{								
+		bar_member_1="bar:member_1";		
+		struct zot{							
+			zot_member_1="zot:member_1";	
+		}	
+		struct pook{						
+			pook_member_1 = "pook:member_1";
+			pook_member_2 = "pook:member_2";
+		}	
+		bar_member_2="bar:member_2";		
+	}	
+	struct baz{								
+		baz_member_1="bas:member_1";	
+	}	
+	foo_member_2="foo.member_2";			
+}
+
+entry struct00_test{
+	inst = new foo;
+}
+
+fn fun1(fun1_struct:foo){
+	println fun1_struct:foo_member_1;
+	// println fun1_struct:bar:bar_member_1;
+	// println fun1_struct:bar:zot:zot_member_1;
+	// println fun1_struct:bar:pook:pook_member_1;
+	// println fun1_struct:bar:pook:pook_member_2;
+	// println fun1_struct:baz:baz_member_1;
+	// println fun1_struct:foo_member_2;
+}

@@ -1,0 +1,31 @@
+/Users/clairehesselholt/Library/Caches/com.apple.MobileSMS/Previews/Attachments/dd/13/61EFA5B9-481B-4F07-916D-D2C12C1C9279:
+total 1504
+-rw-r--r--  1 clairehesselholt  staff  768392 May 22 15:39:54 2024 IMG_2032-preview.ktx
+
+/Users/clairehesselholt/Library/Caches/com.apple.MobileSMS/Previews/Attachments/dd/13/632D4880-E62D-475A-B82D-851729CFB0BC:
+total 944
+-rw-r--r--@ 1 clairehesselholt  staff  480392 Aug  2 11:19:58 2021 Screenshot 2021-08-02 at 10.48.26 AM-preview.ktx
+
+/Users/clairehesselholt/Library/Caches/com.apple.MobileSMS/Previews/Attachments/dd/13/7017E3AB-EDAB-42A8-8374-7AC15243E70D:
+total 1504
+-rw-r--r--  1 clairehesselholt  staff  768392 Apr  8 07:19:33 2024 73427876004__F6FFFD14-8311-455B-BFCB-33BAC40F973D-preview.ktx
+
+/Users/clairehesselholt/Library/Caches/com.apple.MobileSMS/Previews/Attachments/dd/13/722A9F9B-4D25-457F-A417-354C9B6F963E:
+total 1504
+-rw-r--r--@ 1 clairehesselholt  staff  768392 Dec 14 18:12:57 2021 IMG_3595-preview.ktx
+
+/Users/clairehesselholt/Documents:
+total 302776
+-rw-r--r--@   1 clairehesselholt  staff     38131 Nov 25 19:16:50 2019  Emmaadopt1.docx
+-rw-r--r--@   1 clairehesselholt  staff     39281 Nov 25 19:16:21 2019  Emmaadopt2.docx
+-rw-r--r--@   1 clairehesselholt  staff     38321 Feb  2 11:36:32 2020  Emmaadopt2rev.docx
+-rw-r--r--@   1 clairehesselholt  staff     39067 Nov 25 19:17:35 2019  Emmaadopt3.docx
+-rw-r--r--@   1 clairehesselholt  staff     38749 Nov 25 19:31:17 2019  Emmaadopt4.docx
+-rw-r--r--@   1 clairehesselholt  staff     38633 Nov 25 19:19:33 2019  Emmaadopt5.docx
+-rw-r--r--@   1 clairehesselholt  staff     37146 Feb  5 18:34:18 2020  Emmaadoptmotion.docx
+drwxr-xr-x@   3 clairehesselholt  staff        96 Mar 12 16:26:54 2017 $RECYCLE.BIN
+
+/Users/clairehesselholt/Dups:
+total 302776
+-rw-r--r--@   1 clairehesselholt  staff     38131 Nov 25 19:16:50 2019  Emmaadopt1.docx
+-rw-r--r--@   1 clairehesselholt  staff     37146 Feb  5 18:34:18 2020  Emmaadoptmotion.docx

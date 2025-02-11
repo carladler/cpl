@@ -1,0 +1,23 @@
+entry csv(args){
+	if #args < 1 {
+		print "Usage: csv <csv file>";
+		return 1;
+	}
+
+	csv_file = Fopen(args[0],"<");
+	title_line = Freadln(csv_file);
+	println title_line;
+	while !Feof(csv_file){
+		line = Freadln(csv_file);
+		process_csv_line(line);
+	}
+}
+
+
+fn process_csv_line(line){
+	food = Split(line,'/[,"]/');
+	println #food;
+	foreach f food{
+		println f;	
+	}
+}

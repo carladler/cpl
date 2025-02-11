@@ -1,0 +1,33 @@
+entry foo{
+	a = 1;
+	b = 2;
+
+	if a==1 || b==2{
+		println "okay1";
+	}
+
+	if a<2 && b<3{
+		println "okay2";
+	}
+
+	if a==0 || b < 3{
+		println "okay3";
+	}
+
+	if a==0 || b==0{
+		println "not okay4";
+	}else{
+		println "okay4";
+	}
+
+	if a==1 && b==3{
+		println "not okay5";
+	}else{
+		println "okay5";
+	}
+
+	if a+b > 2 && a*b > 0{
+		println "okay6";
+	}
+
+}

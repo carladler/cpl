@@ -1,0 +1,10 @@
+entry foo(){
+	array = ["one", "two", "three"];
+	bar(array);
+}
+
+fn bar(a){
+	foreach x a{
+		println x;
+	}
+}

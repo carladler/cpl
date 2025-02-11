@@ -1,0 +1,33 @@
+entry foo(){
+	array = ["zot",100, 200, "three"];
+	set_array(array,1,"bloot");
+	println "After call to set_array: ".array[1];
+	
+	dictionary = {{"key1","one"},{"key2","two"},{"key3","three"},{"key4","four"}};
+	set_dict(dictionary, "key2", "NEW KEY2");
+	println "After all to set_dict: ".dictionary["key2"];
+}
+
+fn dump_dict(a){
+	keys = Keys(a);
+	Sort(keys);
+	foreach key keys{
+		println key."=".a[key];
+	}
+}
+
+fn dump_array(a){
+	foreach x a{
+		println x;
+	}
+}
+
+fn set_array(a,ix,v){
+	a[ix] = v;
+	dump_array(a);
+}
+
+fn set_dict(d, key, value){
+	d[key] = value;
+	dump_dict(d);
+}

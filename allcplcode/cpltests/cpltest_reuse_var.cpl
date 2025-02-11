@@ -1,0 +1,26 @@
+//  Testing reuse of variables
+struct s_foo{
+	member_a;
+	member_b="foo.member b";
+	member_c="foo.member c";
+}
+
+struct s_bar{
+	a=1;
+	b=2;
+ 	c=3;
+}
+
+entry ENTRY{
+	foo = 1001;
+	println foo;
+
+	foo=new s_foo;
+	println foo:member_b;
+
+	foo = new s_bar;
+	println foo:a;
+
+	foo = 5000;
+	println foo;
+}

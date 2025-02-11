@@ -1,0 +1,33 @@
+
+entry main(){
+	args = [2, 4, 5, "foo", 7,  8,  9, 11, 13];
+	avg = compute_average(args);
+	println "Average=".avg;
+}
+
+fn compute_average(args){
+	total = 0;
+	count = 0;
+	foreach foreach_target args {
+		eval true {
+			when foreach_target == "foo" {
+				println foreach_target." is an illegal element";
+			}
+			when foreach_target == 11{
+				//println foreach_target." is the last element";
+				count+= 1;
+				total += foreach_target;
+			}
+			otherwise{
+				//println "===otherwise: ".foreach_target;
+				count+= 1;
+				total += foreach_target;
+			}
+		}
+	}
+	if count != 0{
+		return total / count;
+	}else{
+		return 99999;
+	}
+}

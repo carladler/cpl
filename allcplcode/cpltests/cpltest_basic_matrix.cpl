@@ -1,0 +1,20 @@
+entry foo{
+	array = [1,2,3];
+	array[0] = [10,20,30];
+	array[1] = [100,200,300];
+	array[2] = ["one","two","three"];
+
+	i=0;
+	while i<#array{
+		j=0;
+		while j< Length(array[i]){
+			fun (array, i, j);
+			j+=1;
+		}
+		i+=1;
+	}
+}
+
+fn fun(a, i, j){
+	println a[j,i];
+}

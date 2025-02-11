@@ -1,0 +1,22 @@
+[package]
+name = "modelstructs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokenizer = { path = "../tokenizer" }
+cli = { path = "../cli" }
+codegen = { path = "../codegen" }
+exec = { path = "../exec" }
+cplvar = { path = "../cplvar" }
+codeframe = { path = "../codeframe" }
+structmodel = { path = "../structmodel" }
+literalmodel = { path = "../literalmodel" }
+macrolib = { path = "../macrolib" }
+names = { path = "../names" }
+
+[lib]
+name="modelstructs"
+path="../allsources/modelstructs.rs"

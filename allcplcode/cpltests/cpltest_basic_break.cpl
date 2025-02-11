@@ -1,0 +1,22 @@
+entry break_test{
+	array1 = ["one","two","three"];
+	array2 = ["four2","five2", "Done2","More2"];
+
+	//println "===========  break test ==========";
+	foreach target1 array1{
+		if target1 == "two"{
+			println "breaking outer on ".target1;
+			break;
+		}
+		
+		foreach target2 array2{
+			if target2 == "Done2"{
+				println "Breaking inner on ".target2;
+				break 10;
+			}
+			println "target2=".target2;
+		}
+		println "target1=".target1;
+	}
+	println "end of pgm";
+}

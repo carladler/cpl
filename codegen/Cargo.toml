@@ -1,0 +1,26 @@
+[package]
+name = "codegen"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokenizer = { path = "../tokenizer" }
+cli = { path = "../cli" }
+symboltable = { path = "../symboltable" }
+cplvar = { path = "../cplvar" }
+opcode = { path = "../opcode" }
+machineinstruction = { path = "../machineinstruction" }
+codeframe = { path = "../codeframe" }
+structmodel = { path = "../structmodel" }
+literalmodel = { path = "../literalmodel" }
+macrolib = { path = "../macrolib" }
+names = { path = "../names" }
+
+
+rand = "=0.8"
+
+[lib]
+name="codegen"
+path="../allsources/codegen.rs"

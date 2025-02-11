@@ -1,0 +1,20 @@
+entry  fn hello(args){
+	if #args == 0{
+		println "This test requires at least 1 command line argument";
+		return 0;
+	}
+	a=[2,"foobar",4];
+	b = [a[0],200,300];
+
+	foreach arg args{
+		println arg;
+	}
+	
+	foreach i a{
+		println i;
+	}
+
+	foreach x b{
+		println x;
+	}
+}

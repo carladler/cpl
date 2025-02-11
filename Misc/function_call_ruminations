@@ -1,0 +1,25 @@
+a = 4*foo(bar+2, zot*4, blat(book,what)+3)+2
+
+
+expression = number * fc (id + number, id * number, fc (id,id)+ number) + number;
+
+expression		 	factor 			push number		"4"	
+expression_term		binary_op		push op			"*"
+expression_factor	factor			push fc			"foo(" (look ahead)
+expression			factor			push id			"bar"
+expression_term		binary_op		push op			"+"
+expression_factor	factor			push number		"2"
+expression_term		comma			push comma		","
+expression			factor			push id			"zot"
+expression_term		binary_op		push op			"*"
+expression_factor	factor			push number		""
+	push comma
+		push fc
+		push id
+		push id
+		push end_fc
+	push op
+	push number
+	push end_fc
+push op
+push number

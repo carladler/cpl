@@ -1,0 +1,9 @@
+.*\.o|\.bin|\.d|\.rlib|\.rmeta|\.lock
+.*invoked\.timestamp
+InfoPlist\.strings
+/debug
+/release/build
+\.Trash
+^\.
+/Users/Carl/\.
+/Users/Carl/(Applications|Downloads|Library|Parallels)

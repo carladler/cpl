@@ -1,0 +1,9 @@
+[package]
+name = "names"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+[lib]
+name="names"
+path="../allsources/names.rs"

@@ -1,0 +1,37 @@
+.*\.o/|.*\.bin|.*\.d/|.*\.rlib|.*\.rmeta|.*\.lock
+/Users/clairehesselholt/Library/
+.*invoked\.timestamp
+InfoPlist\.strings
+/debug
+/release/build
+\.Trash
+^\.
+Creative Cloud Files
+Entourage Script Menu Items
+Documents/Microsoft User Data
+Thumbnail.info
+Flash Player\.app/
+/Users/clairehesselholt/Library/
+iTunes/Album Artwork
+/Flash Player Debugger\.app
+/Lightroom/Lightroom Catalog
+Pictures/Photos Library 2\.photoslibrary
+photoslibrary/Thumbnails
+Master Photos/Photos/photos2/iphone /Photos Library.photoslibrary/resources/recovery/
+\.lisj
+Pictures/Lightroom Library.lrlibrary
+thumb_IMG
+com\.apple
+/Downloads
+Desktop\.ini
+desktop.ini
+\.ipa
+\.m4a
+\.m4p
+\.apalbum
+\.apdb
+\.apfolder
+\.itdb
+\.itl
+\.apmaster
+\.apversion

@@ -1,0 +1,23 @@
+struct s_fop{
+	a = 100;
+	b = 200;
+	c = 300;
+}
+
+entry Entry(){
+	foo = new s_fop;
+	print_foo(foo);
+	update_foo(foo);
+	print_foo(foo);
+}
+
+fn print_foo(x:s_fop){
+	println x:a;
+	println x:b;
+	println x:c;
+}
+
+fn update_foo(x:s_fop){
+	x:b = "tada!";
+	x:a += 40233;
+}

@@ -1,0 +1,13 @@
+entry fn ENTRY(){
+	i=0;
+	while i<4{
+			b=2;
+		if i==2{
+			println "blat ".i;
+		}else{
+			println "i=".i;
+		}
+		i+=1;
+	}
+}
+

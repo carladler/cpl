@@ -1,0 +1,54 @@
+entry break_continue{
+	array1 = ["one","two","three"];
+	array2 = ["four2","five2", "Done2","More2"];
+
+	println "===========  continue test ==========";
+	foreach target1 array1{
+		top_of_loop = target1;;
+		if top_of_loop == "two"{
+			println "top_of_loop=".top_of_loop;
+			continue;
+		}
+
+		println "at middle: top_of_loop=".top_of_loop;
+		foreach target2 array2{
+			middle_loop = target2;
+
+			if middle_loop == "Done2"{
+				println "middle_loop=".middle_loop;
+				continue;
+			}
+			println "at middle: middle_loop=".middle_loop;
+		}
+		println "at end: top_of_loop=".top_of_loop;
+	}
+	println "Done";
+
+	println "===========  break test ==========";
+	foreach target1 array1{
+		foreach target2 array2{
+			if target2 == "Done2"{
+				println "Breaking on Done2";
+				break;
+			}
+			println "target2=".target2;
+		}
+		println "target1=".target1;
+	}
+
+
+	println "=========== combo test ==========";
+	foreach target1 array1{
+		foreach target2 array2{
+			if target2 != "Done2"{
+				println "target2=".target2;
+				continue;
+			}
+			println "breaking on Done2";
+			break;
+		}
+		println "target1=".target1;
+	}
+
+	println "Done";
+}

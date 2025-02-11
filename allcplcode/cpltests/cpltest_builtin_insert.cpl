@@ -1,0 +1,12 @@
+entry foo(){
+	dictionary = {{"key1","one"},{"key2","two"},{"key3","three"},{"key4","four"}};
+	Insert(dictionary, "key0", "zero", false);
+	keys = Keys(dictionary);
+	Sort(keys);
+
+	i=0;
+	while i<#keys{
+		println keys[i];
+		i+=1;
+	}
+}

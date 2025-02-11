@@ -1,0 +1,19 @@
+[package]
+name = "parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+model = { path = "../model" }
+cli = { path = "../cli" }
+tokenizer = { path = "../tokenizer" }
+itop = { path = "../itop" }
+codeframe = { path = "../codeframe" }
+macrolib = { path = "../macrolib" }
+names = { path = "../names" }
+
+#enum-ordinalize = "=3.1.13"
+
+[lib]
+name="parser"
+path="../allsources/parser.rs"

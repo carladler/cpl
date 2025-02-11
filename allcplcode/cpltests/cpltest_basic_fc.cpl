@@ -1,0 +1,10 @@
+entry foo(){
+	bar=10;
+	callbar(bar,20);
+}
+
+fn callbar(a,b){
+	bar = a*b;
+	println bar;
+}
+

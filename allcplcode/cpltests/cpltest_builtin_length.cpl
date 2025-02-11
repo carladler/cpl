@@ -1,0 +1,9 @@
+entry foo(){
+	array = [1,2,3,4];
+	println "array length: ".#array;
+	i=0;
+	while i<#array{
+		println i;
+		i+=1;
+	}
+}

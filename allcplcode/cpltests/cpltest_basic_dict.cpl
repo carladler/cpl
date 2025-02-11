@@ -1,0 +1,13 @@
+entry foo(){
+	dictionary = {{"key1","one"},{"key2","two"},{3,"three"},{"key4","four"}};
+	println dictionary[3];
+	
+	keys = Keys(dictionary);
+	Sort(keys);
+
+	dictionary["key2"] = "well now, isn't this swell";
+
+	foreach key keys{
+		println key."=".dictionary[key];
+	}
+}

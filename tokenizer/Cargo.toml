@@ -1,0 +1,17 @@
+[package]
+name = "tokenizer"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cli = { path = "../cli" }
+enum-ordinalize = "=3.1.13"
+macrolib = { path = "../macrolib" }
+names = { path = "../names" }
+
+
+[lib]
+name="tokenizer"
+path="../allsources/tokenizer.rs"

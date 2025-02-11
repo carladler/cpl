@@ -1,0 +1,116 @@
+CPL Language BNF
+
+<program> ::= <body list>
+<body list> ::= <body> <body list>
+<body> ::= <struct>
+	   | <function>
+
+<struct> ::= STRUCT <struct id> { <struct member list> }
+<struct id> ::= ID
+<struct member list> ::= ID <id list>
+<id list> ::= <empty>
+           |  ID, <id list>
+
+
+<function> ::= <entry function>
+		 |  <normal function>
+
+<entry function> ::= ENTRY <function signature> <statement block>
+<statement block> ::= "{" <statement> ";" <statement list> "}"
+<statement list> ::= <empty>
+				  |  <statement> ";" <statement list>
+
+<normal function> ::= FN <function signature> <statement block>
+<function signature>  ::= <function name> "(" ID <id list> ")"
+<function name> ::= ID
+
+<statement> ::= <assignment statement>
+		  |  <function call>
+		  |  <if>
+		  |  <while>
+		  |  <foreach>
+
+<assignment statement> ::= <target> <assignment op> <expression>
+<target> ::= ID <index expression>
+<assignment op> ::= "=" | "+=" | "-=" | "*=" | "/=" | "%=" | ".="
+<index expression> ::= <empty>
+			    |  "[" <expression> <expression list> "]"
+<expression list> ::= <empty>
+				   |<expression> "," <expression list>
+
+<function call> :: = ID "(" <argument list> ")"
+<argument listt> ::= <empty>
+				  |  <expression> <expression tail>
+<expression tail> ::= <empty>
+				   |  "," <expression> <expression tail>
+
+<if> ::= IF <boolean expression> <block>
+<boolean expression> ::= <expression> <logical operator> <expression>
+<logical operator> ::= "&&"
+					|  "||"
+
+<while> ::= WHILE <boolean expression> <block> 
+
+<foreach> ::= FOREACH <foreach target> <foreach source> <block>
+<foreach target> ::= ID
+<foreach source> ::= ID
+
+
+
+/*
+   ********************************************************
+   ***********************  EXPRESSION  *******************
+   ********************************************************
+
+   NOTE:  binary and uniary operator operator priority is implemented as part of the infix
+   to postfix expression conversion
+*/
+
+<expression> ::= <term> <binary op> <expression>
+<term> ::= <factor>
+	    |  <sign> term>
+
+<sign> ::= "!" | "+" | "-"
+
+<factor> ::= <ID>
+    | "(" <expression> ")" 
+    | <function call factor> 
+    | <inc/dec> <ID>
+    | <ID> <inc/dec>
+    | ID <index expression>
+	| <literal>
+
+<inc/dec> ::= "++" | "--"
+
+<literal> ::=  NUMBER
+           | STRING
+		   | TRUE
+		   | FALSE
+           | <array literal>
+		   | <dictionary literal>
+
+<function call factor> ::= <ID> "(" <argument list> ")"
+
+<binary op> ::= == | != | < | <= | >= | > | + | - | * | / | % | <bitwise and> | <bitwise or>
+<array literal> ::= [<factor> <element list>]
+<element list> ::= <empty>
+		     | ,<factor>
+<dictionary literal> := { <key/value pair> <dictionary literal list> }
+<dictionary literal list> ::= <empty>
+			          |  ,<key/value pair> <dictionary literal list>
+<key/value pair> ::= {<expression>,<expression>}
+
+Semantic Constraints
+The grammar shown above does not provide specific semantic considerations.  Here we describe various constraints added  during execution:
+Boolean Expressions
+The result of the <expression> element used in the <if> and <while> statements will be interpreted as a boolean.  That is:
+•	“true” will be interpreted as true
+•	“false” will be interpreted as false
+•	number not equal to 0 will be interpreted as true
+•	the number 0 will be interpreted as false
+•	a string with length 0 will be interpreted as false
+•	a string with length > 0 will be interpreted as true
+If/while Conditionals
+Unlike C or C++ or Perl, the conditional expression for IF and WHILE do not use a parenthesis except as part of the expression.  Expression parsing stops at the “{“ which begins the block. Unlike C or C++ even a single statement must start with “{“ and end with “}”.  So, for example:
+	if foo > 10 { do_something;}
+We are kind of forced into this because of how we’re doing expression parsing.  We only want a single set of states to recognize an expression and since “(“ and “)” are valid characters in an expression we have to terminate the parse using the block begin.  We could, I suppose, scan the text from the first “(“ until we see a final “)”, put that into a separate buffer and parse it but, Gee Wiz, that sounds over complicated.

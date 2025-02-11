@@ -1,0 +1,28 @@
+entry foobar(){
+	ar = [1,2,3,4];
+
+	eval 2 {
+		when ar[0] {println 0;}
+		when ar[2] {println 2;}
+		when ar[1] {
+			println "************ 1";
+			ar2 = [10,20,30,40];
+			eval 30 {
+				when ar2[0] {println 0;}
+				when ar2[2] {println 2;}
+				when ar2[1] {println 1;}
+				when ar2[3] {println 3;}
+				otherwise {println "who knows";}
+			}
+			k=99;
+			if k==100{
+				println "blat!";
+			}else{
+				println "bloot";
+			}
+		}
+		when ar[3] {println 3;}
+		otherwise {println "who knows";}
+	}
+}
+

@@ -1,0 +1,21 @@
+entry foo{
+	array = [1,2,3];
+	b = 5;
+	b *= 2;
+	println b; 
+	bar(array,&b);
+	println b;
+	println array;
+}
+
+fn bar(a,b){
+	i=0;
+	while i<#a{
+		a[i] += b;
+		i+=1;
+	}
+	b+=20;
+	c=10;
+	c+=100;
+	println c;
+}

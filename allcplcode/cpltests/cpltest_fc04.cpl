@@ -1,0 +1,20 @@
+struct s_foo{
+	member_a;
+	member_b="foo.member b";
+	member_c="foo.member c";
+}
+
+entry Entry(){
+	foo = new s_foo;
+	x=[1,2,3];
+	bar(foo,x);
+	println foo:member_c;
+}
+
+fn bar(a:s_foo,b){
+	println a:member_b;
+	foreach z b{
+		println z;
+	}
+	a:member_c = "new value for member c";
+}

@@ -1,0 +1,13 @@
+entry fn ENTRY(){
+	i=0;
+	while i<4{
+		println "i=".i;
+		i = i+1;
+	}
+	j=0;
+	while j<4{
+		println "J=".j;
+		j+=1;
+	}
+}
+

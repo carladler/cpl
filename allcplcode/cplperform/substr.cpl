@@ -1,0 +1,40 @@
+entry dup(args){
+	if #args < 1 {
+		print "Usage: dups <ls output file>";
+		return 1;
+	}
+
+	// open the file
+	ls_file = Fopen(args[0],"<");
+
+	//	read the file into memory
+	directory_lines = [];
+	Fread(ls_file, directory_lines);
+	count=0;
+	directory_line_count = 0;
+	file_line_count = 0;
+	file_dir_count = 0;
+	other_count = 0;
+	while count < #directory_lines{
+	// foreach line directory_lines{
+		line = directory_lines[count];
+		//println line;
+		if #line > 0{
+			first = Substr(line,0,1);
+			eval first{
+				when "/" {directory_line_count+=1;}
+				when "-" {file_line_count+=1;}
+				when "d" {file_dir_count+=1;}
+				otherwise {other_count += 1;}
+			}
+		}
+		count += 1;
+		if count & 2047 == 0 {eprint count."\r";}
+	}
+
+	eprintln "\ntotal entries=".count;
+	eprintln "directories = ".directory_line_count;
+	eprintln "files=".file_line_count;
+	eprintln "directory files=".file_dir_count;
+	eprintln "other types=".other_count;
+}

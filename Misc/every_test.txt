@@ -1,0 +1,25 @@
+total 0
+drwxr-xr-x   2 carl  staff    64 Oct 11 06:13:54 2022 Attachments
+drwxrwxrwx@ 61 carl  staff  1952 Oct 11 06:30:34 2022 CVs and Jobs
+drwxr-xr-x   4 carl  staff   128 Oct 11 06:30:33 2022 Covid Cert
+drwxr-xr-x   4 carl  staff   128 Nov 23 08:48:17 2022 Documents
+drwxr-xr-x   3 carl  staff    96 Apr  5 11:25:46 2024 Final
+drwx------@ 29 carl  staff   928 Oct 12 11:39:58 2024 FinancialStuff
+drwxr-xr-x  13 carl  staff   416 Dec 22 06:26:53 2024 FreeFileSync
+drwxr-xr-x  21 carl  staff   672 Nov 25 04:53:22 2024 Griffin
+drwxrwxrwx@ 23 carl  staff   736 Sep  1 12:58:27 2023 Kaiser
+drwxr-xr-x  17 carl  staff   544 Dec 22 05:07:43 2024 Misc
+drwx------  16 carl  staff   512 Jun 25 13:56:14 2024 Passports and DLS
+drwxr-xr-x  38 carl  staff  1216 Sep 14 09:51:43 2023 Pictures
+drwxr-xr-x  20 carl  staff   640 Dec 14 07:17:09 2024 Projects
+drwxr-xr-x   5 carl  staff   160 Oct 11 06:30:33 2022 Quicken
+drwxr-xr-x   4 carl  staff   128 Oct 22 23:04:20 2024 Shared
+drwxrwxrwx   9 carl  staff   288 May  9 11:38:54 2024 Software Keys
+drwx------@  6 carl  staff   192 Apr  5 11:28:16 2024 Wills
+
+/Users/Carl/McTreeHouse/Attachments:
+total 0
+
+/Users/Carl/McTreeHouse/CVs and Jobs:
+total 9016
+-rwxrwxrwx@  1 carl  staff   13333 Dec 16 15:04:00 2020 0 T Johnson Ltr1.docx

@@ -1,0 +1,26 @@
+a = 4*foo(bar+2, zot*4, blat(book,what)+3)+2
+
+expression = number * fc (id + number, id * number, fc (id,id)+ number) + number;
+
+expression		 	factor 			push number		"4"	
+expression_term		binary_op		push op			"*"
+expression_factor	factor			push fc			"foo(" (look ahead)		at state expression factor when token is a factor look ahead for "(" convert to fc
+expression			factor			push id			"bar"
+expression_term		binary_op		push op			"+"
+expression_factor	factor			push number		"2"
+expression_term		comma			push comma		","
+expression			factor			push id			"zot"
+expression_term		binary_op		push op			"*"
+expression_factor	factor			push number		"4"
+expression_term		comma			push comma		","
+expression			factor			push fc			"blat(" (look ahead)	at state expression factor when token is a factor look ahead for "(" convert to fc
+expression			factor			push id			"book"
+expression_term		comma			push comma		","
+expression			factor			push id			"what"
+expression_term		rparen			push end_fc		")"		how many items in the list?  number of commas + 1
+expression_term		binary_op		Push op			"+"
+expression_factor	factor			push number		"3"
+expression_term		rparen			push end_fc		")"		how many items in the list?  number of commas + 1
+expressiopn_term	binary_op		push op			"+"
+expression_factor	factor			push number		"2"
+

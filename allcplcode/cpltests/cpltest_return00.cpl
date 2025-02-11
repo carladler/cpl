@@ -1,0 +1,12 @@
+entry main(){
+	rslt = foo(10);
+	println rslt;
+}
+
+fn foo(arg){
+	if arg==10{
+		return 100;
+	}else{
+		return 200;
+	}
+}

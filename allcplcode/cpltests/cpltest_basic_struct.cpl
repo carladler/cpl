@@ -1,0 +1,29 @@
+struct foo{									
+	foo_member_1="foo:member_1";			
+	struct bar{								
+		bar_member_1="bar:member_1";		
+		struct zot{							
+			zot_member_1="zot:member_1";	
+		}	
+		struct pook{						
+			pook_member_1 = "pook:member_1";
+			pook_member_2 = "pook:member_2";
+		}	
+		bar_member_2="bar:member_2";		
+	}	
+	struct baz{								
+		baz_member_1="bas:member_1";	
+	}	
+	foo_member_2="foo.member_2";			
+}
+
+entry basic_struct {
+	inst = new foo;
+	println inst:foo_member_1;
+	println inst:bar:bar_member_1;
+	println inst:bar:zot:zot_member_1;
+	println inst:bar:pook:pook_member_1;
+	println inst:bar:pook:pook_member_2;
+	println inst:baz:baz_member_1;
+	println inst:foo_member_2;
+}

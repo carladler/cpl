@@ -1,0 +1,23 @@
+entry break_continue{
+	array1 = ["one","two","three"];
+	array2 = ["four2","five2", "Done2","Fini","More2"];
+
+	println "===========  continue test ==========";
+	foreach target1 array1{
+		outer_loop = target1;;
+		if outer_loop == "two"{
+			continue;
+		}
+
+		foreach target2 array2{
+			inner_loop = target2;
+			if inner_loop == "Done2"{
+				continue;
+			}
+			
+			println "inner_loop=".inner_loop;
+		}
+		println "outer_loop=".outer_loop;
+	}
+	println "Done";
+}

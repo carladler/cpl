@@ -1,0 +1,14 @@
+entry foo(){
+	array = ["1","2","","4"];
+	i=0;
+	println "length=".#array;
+	while i<#array {
+		println "item len=".#array[i];
+		if #array[i] == 0{
+			i+=1;
+			continue;
+		}
+		println "    array[".i."]=".array[i];
+		i+=1;
+	}
+}

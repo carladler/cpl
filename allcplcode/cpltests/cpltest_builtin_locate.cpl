@@ -1,0 +1,8 @@
+entry foo(){
+	a = "this is a test blat for you";
+	lookfor = "blat";
+	b = Locate(a,lookfor,0);
+	println b;
+	c = Locate(a,"zot",0);
+	println c;
+}

@@ -1,0 +1,21 @@
+struct s_foo{
+	member_a="Hello";
+	member_b="Good Buy";
+	member_c="Aloha";
+}
+
+entry ENTRY(){
+	foo=new s_foo;
+	fun1(foo);
+}
+
+fn fun1(s:s_foo){
+	println "At fun1";
+	s:member_a = "Argggg!";
+	fun2(s);
+}
+
+fn fun2(x:s_foo){
+	println "At fun2";
+	println x:member_a;
+}
