@@ -1,75 +1,43 @@
-struct s_foo{
-	member_a;
-	member_b="s_foo_member_b";
-	member_c="s_foo_member_c";
+struct foo{									
+	foo_member_1="foo:member_1";			
+	struct bar{								
+		bar_member_1="bar:member_1";		
+		struct zot{							
+			zot_member_1="zot:member_1";	
+		}	
+		struct pook{						
+			pook_member_1 = "pook:member_1";
+			pook_member_2 = "pook:member_2";
+		}	
+		bar_member_2="bar:member_2";		
+	}	
+	struct baz{								
+		baz_member_1="bas:member_1";	
+	}	
+	foo_member_2="foo.member_2";			
 }
 
-struct s_bar{
-	a=1;
-	b=2;
- 	c=3;
-}
-
-entry ENTRY(){
-	foo=new s_foo;
-	// foo:member_a = "hello";
-	// println foo:member_a;
-	// println foo:member_b;
-
-	// dummy = "this is a dummy";
-	// println dummy;
-
-	// bar=new s_bar;
-	// a = foo:member_b;
-	// b = bar:c;
-	// println a;
-	// println b;
-	// a = bar:c+1000;
-	// println a;
-	// a = bar:c+bar:a;
-	// println a;
-	// c = bar:c + a;
-	// println c;
-	// d = bar:c * 1000;
-	// println d;
-	// println "bar:a=".bar:a;
-	// println "bar:c=".bar:c;
-	// bar:a += bar:c;
-	// println "bar:a+=bar:c:".bar:a;
-	// bar:a /= (bar:c + bar:a);
-	// println bar:a;
-	// fun1(foo);
-	// fun2(bar);
-}
-
-
-fn fun1(s:s_foo){
-	println "at fun1";
-	println s:member_a;
-	println "function fun";
-	array=[1,2,3];
-
-	foreach a array{
-		println a;
-	}
-
-	if array[0] == 1{
-		println "tada!";
-	}
-
-	array[1] = 500;
-	println array[0];
-	println array[1];
+entry struct01{
+	inst = new foo;
 	
-	foreach b array{
-		println b;
-	}
-}
+	// println "inst:bar:pook:pook_member_2=".inst:bar:pook:pook_member_2;
+	inst:bar:bar_member_1 = "*** bar_member_1 ***";
+	
+	// println inst:bar:bar_member_1;
 
-fn fun2(b:s_bar){
-	println "at fun2";
-	println "b:a=".b:a;
-	println "b:c=".b:c;
-	b:a += b:c;
-	println "b:a+=b:c:".b:a;
+	// println "these are wrong";
+	// println inst:bar:pook:pook_member_2;
+	// println inst:bar:zot:zot_member_1;
 }
+/*
+
+0:28 : exec_push: Push(lit) "1" Mode: Lit
+      push_lit_number: Push(lit) "1"
+0:29 : exec_push: Push(lit) "*** bar_member_1 ***" Mode: Lit
+     push_lit_string: Push(lit) "*** bar_member_1 ***"
+0:30 : exec_update: Update(update indexed) 0,0,0 (inst:bar:bar_member_1)
+      update_indexed: Update(update indexed) 0,0,0 (inst:bar:bar_member_1) VarRef: 0,0,0
+      update_indexed_direct: Update(update indexed) 0,0,0 (inst:bar:bar_member_1) VarRef: 0,0,0
+
+
+*/
