@@ -1,25 +1,26 @@
 entry foo(){
 	array=[1,2,3];
-	println "start array: ".array;
+	println "start array=".array[1];
 
-	array[0] = 100;
-	println "update 1: ". array;
+	array[1] = 100;
+	println "array[1]=".array[1];
+
+	println "update 1=".array[1];
 
 	fun1(array);
+	println "update 2=".array[1];
 
-	println "array after call to fun1: ".array;
 	fun2();
 }
 
 fn fun1(array_param){
-	println "fun1: array_param: ". array_param;
+	println "fun1: array_param=". array_param;
 	array_param[1] = 200;
-	println "fun1: array_param[1] after update: ".array_param[1];
 }
 
 fn fun2{
 	fun_array=[100,200,300];
-	println "fun2:fun_array: ".fun_array;
+	println "fun2:fun_array=".fun_array;
 	fun_array[0] = 101;
-	println "fun2:fun_array[0]".fun_array[0];
+	println "fun2:fun_array[0]=".fun_array[0];
 }

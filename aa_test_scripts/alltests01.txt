@@ -1,783 +1,604 @@
 +/Users/carl/.zshenv:1> . /Users/carl/.cargo/env
 +/Users/carl/.cargo/env:4> case :/opt/homebrew/opt/php@7.4/sbin:/opt/homebrew/opt/php@7.4/bin:/opt/homebrew/opt/php@8.0/sbin:/opt/homebrew/opt/php@8.0/bin:/opt/homebrew/opt/llvm/bin:/opt/homebrew/bin:/opt/homebrew/opt/llvm/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/carl/.cargo/bin: (*:/Users/carl/.cargo/bin:*)
 +zsh:1> cargo run allcplcode/cpltests/cpltest_assign_update.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_assign_update.cpl`
-zot
-100
-200
-three
-key1=1
-key2=2
-key3=3
-key4=4
-+zsh:2> cargo run allcplcode/cpltests/cpltest_basic_arithmetic.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_arithmetic.cpl`
-156
-3483
-102
-4.777777777777778
-21
-10
-8
-+zsh:3> cargo run allcplcode/cpltests/cpltest_basic_array.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_array.cpl`
-100,1000,300
-1000
-+zsh:4> cargo run allcplcode/cpltests/cpltest_basic_assign.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_assign.cpl`
-variable=1
-variable+=2 = 3
-string.=b = xxxbb
-+zsh:5> cargo run allcplcode/cpltests/cpltest_basic_break.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_break.cpl`
-target2=four2
-target2=five2
-Breaking inner on Done2
-end of pgm
-+zsh:6> cargo run allcplcode/cpltests/cpltest_basic_continue.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_continue.cpl`
-===========  continue test ==========
-inner_loop=four2
-inner_loop=five2
-inner_loop=Fini
-inner_loop=More2
-outer_loop=one
-inner_loop=four2
-inner_loop=five2
-inner_loop=Fini
-inner_loop=More2
-outer_loop=three
-Done
-+zsh:7> cargo run allcplcode/cpltests/cpltest_basic_dict.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_dict.cpl`
-three
-dumping dict
-3=three
-key1=one
-key2=well now, isn't this swell
-key4=four
-+zsh:8> cargo run allcplcode/cpltests/cpltest_basic_eq_ne.cpl -w
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_eq_ne.cpl -w`
-not equals
-equals
-not equals
-WARNING from exec_binary_operator: 1==[1,2,3] is invalid.  returning false
-not equals
-+zsh:9> cargo run allcplcode/cpltests/cpltest_basic_eval.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_eval.cpl`
-100
-100
-tada! 1
-+zsh:10> cargo run allcplcode/cpltests/cpltest_basic_exit.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_exit.cpl`
-0
-1
-2
-3
-4
-Program exit with: Done with exit_test at 5
-+zsh:11> cargo run allcplcode/cpltests/cpltest_basic_exp.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_exp.cpl`
-6
-+zsh:12> cargo run allcplcode/cpltests/cpltest_basic_fc.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_fc.cpl`
-200
-+zsh:13> cargo run allcplcode/cpltests/cpltest_basic_foreach.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_foreach.cpl`
-===========  Original ==========
-array=[[one,two,three]]
-===========  push test ==========
-Pushing four, Done, More
-Cpl Abend from CplVar.apply_binary_operator_scalar:  unable to perform AddEq on type CplArray: ["one"], ["two"], ["three"]
-+zsh:14> cargo run allcplcode/cpltests/cpltest_basic_if.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_if.cpl`
-not 10: 9
-+zsh:15> cargo run allcplcode/cpltests/cpltest_basic_literal.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_literal.cpl`
-10
-20
-+zsh:16> cargo run allcplcode/cpltests/cpltest_basic_loop.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_loop.cpl`
-i=0
-i=1
-i=2
-i=3
-i=4
-i=5
-i=6
-i=7
-i=8
-i=9
-Trying to break on 10
-+zsh:17> cargo run allcplcode/cpltests/cpltest_basic_lvalue.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_lvalue.cpl`
-bleeping fart
-2
-3
-4
-one
-new one, ahah!
-key1=new one, ahah!
-key2=two
-key3=three
-key4=four
-+zsh:18> cargo run allcplcode/cpltests/cpltest_basic_matrix.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_matrix.cpl`
-one
-2
-3
-two
-three
-+zsh:19> cargo run allcplcode/cpltests/cpltest_basic_multi_level_struct.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_multi_level_struct.cpl`
-multi-level structs are not implemented yet and I don't know when or even if they will be
-+zsh:20> cargo run allcplcode/cpltests/cpltest_basic_return.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_return.cpl`
-200
-+zsh:21> cargo run allcplcode/cpltests/cpltest_basic_string.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_string.cpl`
-Length of s1 = 10
-s1#=12
-20 is a number 20
-n1=30.1
-this is s1 this is s2
-900.9
-n1+sn2=130.2
-180
-hello: 50.1 and more
-hello: 20 and more
-now let's see if inequalities work on strings
-this != thit
-this < thit
-xx1234 < yy12345
-123 < 124
-this is s3 with 4 with 4
-this is s3 with 4 with 4 with 5
-+zsh:22> cargo run allcplcode/cpltests/cpltest_basic_struct.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_struct.cpl`
-foo:member_1
-bar:member_1
-zot:member_1
-pook:member_1
-pook:member_2
-bas:member_1
-foo.member_2
-+zsh:23> cargo run allcplcode/cpltests/cpltest_basic_unary.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_unary.cpl`
-a is 10
-a is 10
-+zsh:24> cargo run allcplcode/cpltests/cpltest_basic_while_break.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_while_break.cpl`
-i=0
-i=1
-i=2
-i=3
-i=4
-i=5
-i=6
-i=7
-i=8
-i=9
-+zsh:25> cargo run allcplcode/cpltests/cpltest_basic_while_continue.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_while_continue.cpl`
-i=0
-i=1
-i=2
-i=3
-i=4
-i=5
-i=6
-i=7
-i=8
-i=9
-+zsh:26> cargo run allcplcode/cpltests/cpltest_basic_while00.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_while00.cpl`
-i=0
-i=1
-i=2
-i=3
-i=4
-i=5
-i=6
-i=7
-i=8
-i=9
-+zsh:27> cargo run allcplcode/cpltests/cpltest_basic_while01.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_basic_while01.cpl`
-length=4
-item len=1
-    array[0]=1
-item len=1
-    array[1]=2
-item len=0
-item len=1
-    array[3]=4
-+zsh:28> cargo run allcplcode/cpltests/cpltest_break_continue_foreach.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_break_continue_foreach.cpl`
-===========  continue test ==========
-at middle: top_of_loop=one
-at middle: middle_loop=four2
-at middle: middle_loop=five2
-middle_loop=Done2
-at middle: middle_loop=More2
-at end: top_of_loop=one
-top_of_loop=two
-at middle: top_of_loop=three
-at middle: middle_loop=four2
-at middle: middle_loop=five2
-middle_loop=Done2
-at middle: middle_loop=More2
-at end: top_of_loop=three
-Done
-===========  break test ==========
-target2=four2
-target2=five2
-Breaking on Done2
-target1=one
-target2=four2
-target2=five2
-Breaking on Done2
-target1=two
-target2=four2
-target2=five2
-Breaking on Done2
-target1=three
-=========== combo test ==========
-target2=four2
-target2=five2
-breaking on Done2
-target1=one
-target2=four2
-target2=five2
-breaking on Done2
-target1=two
-target2=four2
-target2=five2
-breaking on Done2
-target1=three
-Done
-+zsh:29> cargo run allcplcode/cpltests/cpltest_break_continue_while.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_break_continue_while.cpl`
-===========  continue test ==========
-target2=four2
-target2=five2
-target2=More2
-target1=one
-target2=four2
-target2=five2
-target2=More2
-target1=three
-Done
-===========  break test ==========
-target2=four2
-target2=five2
-Breaking on Done2
-target1=one
-target2=four2
-target2=five2
-Breaking on Done2
-target1=two
-target2=four2
-target2=five2
-Breaking on Done2
-target1=three
-=========== combo test ==========
-target2=four2
-target2=five2
-breaking on Done2
-target1=one
-target2=four2
-target2=five2
-breaking on Done2
-target1=two
-target2=four2
-target2=five2
-breaking on Done2
-target1=three
-Done
-+zsh:30> cargo run allcplcode/cpltests/cpltest_builtin_append_sort.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_append_sort.cpl`
-1
-2
-3
-6
-5
-4
-1
-2
-3
-4
-5
-6
-100
-+zsh:31> cargo run allcplcode/cpltests/cpltest_builtin_delete.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_delete.cpl`
-key2
-key3
-key4
-+zsh:32> cargo run allcplcode/cpltests/cpltest_builtin_insert.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_insert.cpl`
-key0
-key1
-key2
-key3
-key4
-+zsh:33> cargo run allcplcode/cpltests/cpltest_builtin_insert_delete_contains.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_insert_delete_contains.cpl`
-yes (before delete) two = this is two and three
-no (after delete) two
-yes 500*3 = blat
-+zsh:34> cargo run allcplcode/cpltests/cpltest_builtin_io.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_io.cpl`
-line 1
-line 2
-line 3
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
 
-line 4
-line 5
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:2> cargo run allcplcode/cpltests/cpltest_basic_arithmetic.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:3> cargo run allcplcode/cpltests/cpltest_basic_array.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:4> cargo run allcplcode/cpltests/cpltest_basic_assign.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:5> cargo run allcplcode/cpltests/cpltest_basic_break.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:6> cargo run allcplcode/cpltests/cpltest_basic_continue.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:7> cargo run allcplcode/cpltests/cpltest_basic_dict.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:8> cargo run allcplcode/cpltests/cpltest_basic_eq_ne.cpl -w
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:9> cargo run allcplcode/cpltests/cpltest_basic_eval.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:10> cargo run allcplcode/cpltests/cpltest_basic_exit.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:11> cargo run allcplcode/cpltests/cpltest_basic_exp.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:12> cargo run allcplcode/cpltests/cpltest_basic_fc.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:13> cargo run allcplcode/cpltests/cpltest_basic_foreach.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:14> cargo run allcplcode/cpltests/cpltest_basic_if.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:15> cargo run allcplcode/cpltests/cpltest_basic_literal.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:16> cargo run allcplcode/cpltests/cpltest_basic_loop.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:17> cargo run allcplcode/cpltests/cpltest_basic_lvalue.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:18> cargo run allcplcode/cpltests/cpltest_basic_matrix.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:19> cargo run allcplcode/cpltests/cpltest_basic_multi_level_struct.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:20> cargo run allcplcode/cpltests/cpltest_basic_return.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:21> cargo run allcplcode/cpltests/cpltest_basic_string.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:22> cargo run allcplcode/cpltests/cpltest_basic_struct.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:23> cargo run allcplcode/cpltests/cpltest_basic_unary.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:24> cargo run allcplcode/cpltests/cpltest_basic_while_break.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:25> cargo run allcplcode/cpltests/cpltest_basic_while_continue.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:26> cargo run allcplcode/cpltests/cpltest_basic_while00.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:27> cargo run allcplcode/cpltests/cpltest_basic_while01.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:28> cargo run allcplcode/cpltests/cpltest_break_continue_foreach.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:29> cargo run allcplcode/cpltests/cpltest_break_continue_while.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:30> cargo run allcplcode/cpltests/cpltest_builtin_append_sort.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:31> cargo run allcplcode/cpltests/cpltest_builtin_delete.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:32> cargo run allcplcode/cpltests/cpltest_builtin_insert.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:33> cargo run allcplcode/cpltests/cpltest_builtin_insert_delete_contains.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
++zsh:34> cargo run allcplcode/cpltests/cpltest_builtin_io.cpl
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
 +zsh:35> cargo run allcplcode/cpltests/cpltest_builtin_length.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_length.cpl`
-array length: 4
-0
-1
-2
-3
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
 +zsh:36> cargo run allcplcode/cpltests/cpltest_builtin_locate.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_locate.cpl`
-15
--1
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
 +zsh:37> cargo run allcplcode/cpltests/cpltest_builtin_match_substr.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_match_substr.cpl`
-/is/
-/is/
-20:22:19
-/19/
-23:25:30
-/30/
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
 +zsh:38> cargo run allcplcode/cpltests/cpltest_builtin_push_pop.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_push_pop.cpl`
-CplString popped blat!
-CplString popped: a new item
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
 +zsh:39> cargo run allcplcode/cpltests/cpltest_builtin_read_csv.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_read_csv.cpl`
-Date,Store,Who,Generic,Cost,Item,Monthly Generic Sort,Annual Generic Sort,Year,Month,Y/M
-20-Nov 	Canned Soup	3.5
-20-Nov 	Canned Soup	3.49
-20-Nov 	Canned Soup	3.49
-20-Nov 	Dairy	2.39
-20-Nov 	Dairy	2.89
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
 +zsh:40> cargo run allcplcode/cpltests/cpltest_builtin_replace_regex.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_replace_regex.cpl`
-before=this is a foobar at 19:30 after=this is a bullshit at 19:40
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)
+error[E0609]: no field `qualfifier` on type `&machineinstruction::MachineInstruction`
+   --> exec/../allsources/exec.rs:812:92
+    |
+812 | ...   self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualfifier, instruction.opcode, instruction...
+    |                                                                                               ^^^^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+812 |             self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+    |                                                                                                     ~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `exec` (lib) due to 1 previous error
 +zsh:41> cargo run allcplcode/cpltests/cpltest_builtin_replace_string.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_replace_string.cpl`
-new val=this, or that
-+zsh:42> cargo run allcplcode/cpltests/cpltest_builtin_split.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_split.cpl`
-foo
-bar
-+zsh:43> cargo run allcplcode/cpltests/cpltest_builtin_substring.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_builtin_substring.cpl`
-test
-+zsh:45> cargo run allcplcode/cpltests/cpltest_array00.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_array00.cpl`
-start array: [[1,2,3]]
-update 1: [[100,2,3]]
-fun1: array_param: [[100,2,3]]
-fun1: array_param[1] after update: 2
-array after call to fun1: [[100,2,3]]
-fun2:fun_array: [[100,200,300]]
-fun2:fun_array[0]101
-+zsh:46> cargo run allcplcode/cpltests/cpltest_command_line_args.cpl 1 2 3 4 5
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_command_line_args.cpl 1 2 3 4 5`
-aaa
-4
-6
-5
-bbb
-1
-ccc
-1
-2
-3
-2
-ccc
-1
-2
-3
-3
-ccc
-1
-2
-3
-4
-ccc
-1
-2
-3
-5
-ccc
-1
-2
-3
-+zsh:47> cargo run allcplcode/cpltests/cpltest_continue.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_continue.cpl`
-0
-1
-2
-3
-4
-skipping 5
-6
-7
-skipping 8
-9
-+zsh:48> cargo run allcplcode/cpltests/cpltest_dict00.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_dict00.cpl`
-yes
-yes
-+zsh:49> cargo run allcplcode/cpltests/cpltest_dict01.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_dict01.cpl`
-first=3
-second=33
-three=33
-one=1
-two=2
-+zsh:50> cargo run allcplcode/cpltests/cpltest_eval.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_eval.cpl`
-************ 1
-2
-bloot
-+zsh:51> cargo run allcplcode/cpltests/cpltest_exp00.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_exp00.cpl`
-This test requires at least 1 numeric command line argument
-+zsh:52> cargo run allcplcode/cpltests/cpltest_exp01.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_exp01.cpl`
-152.8
-+zsh:53> cargo run allcplcode/cpltests/cpltest_fc00.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_fc00.cpl`
-This test requires at least 2 command line arguments
-Program exit with: eek
-+zsh:54> cargo run allcplcode/cpltests/cpltest_fc01.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_fc01.cpl`
-bar a=22
-returning a*2: 44
-foo a,b,c=10,59,100
-returning a*b+c: 690
-345
-+zsh:55> cargo run allcplcode/cpltests/cpltest_fc02.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_fc02.cpl`
-2
-3
-6
-.... zot:11
-0
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-onetwo
-.... zot:0
-.... zot:1
-0
-.... zot:2
-0
-1
-.... zot:3
-0
-1
-2
-.... zot:4
-0
-1
-2
-3
-.... zot:5
-0
-1
-2
-3
-4
-.... zot:6
-0
-1
-2
-3
-4
-5
-.... zot:7
-0
-1
-2
-3
-4
-5
-6
-.... zot:8
-0
-1
-2
-3
-4
-5
-6
-7
-.... zot:9
-0
-1
-2
-3
-4
-5
-6
-7
-8
-.... zot:10
-0
-1
-2
-3
-4
-5
-6
-7
-8
-9
-.... zot:11
-0
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-+zsh:56> cargo run allcplcode/cpltests/cpltest_fc03.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_fc03.cpl`
-+zsh:57> cargo run allcplcode/cpltests/cpltest_fc04.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_fc04.cpl`
-foo.member b
-foo.member c
-+zsh:58> cargo run allcplcode/cpltests/cpltest_fc05.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_fc05.cpl`
-After call to set_array: 100
-key1=one
-key2=two
-key3=three
-key4=four
-After all to set_dict: two
-+zsh:59> cargo run allcplcode/cpltests/cpltest_fc06.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_fc06.cpl`
-100
-200
-300
-100
-200
-300
-+zsh:60> cargo run allcplcode/cpltests/cpltest_fc07.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_fc07.cpl`
-At fun1
-At fun2
-Hello
-+zsh:61> cargo run allcplcode/cpltests/cpltest_fc08.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_fc08.cpl`
-1,2,3
-+zsh:62> cargo run allcplcode/cpltests/cpltest_foreach00.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_foreach00.cpl`
-This test requires command line arguments
-+zsh:63> cargo run allcplcode/cpltests/cpltest_foreach01.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_foreach01.cpl`
-This test requires at least 1 command line argument
-+zsh:64> cargo run allcplcode/cpltests/cpltest_if00.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_if00.cpl`
-This test requires command line arguments
-+zsh:65> cargo run allcplcode/cpltests/cpltest_include.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_include.cpl`
-in ENTRY -- foo:member_a=hello
-foo.member b
-at fun1 -- s:member_a=hello
-Back at ENTRY -- foo:member_b=foo.member b
-this var was included: 1000
-goo=hello
-+zsh:66> cargo run allcplcode/cpltests/cpltest_literal00.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_literal00.cpl`
-0
-1
-2
-1
-2
-3
-+zsh:67> cargo run allcplcode/cpltests/cpltest_op_overload.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_op_overload.cpl`
-==========  Testing += ==========
-one,two,three
-four,five,six
-Cpl Abend from CplVar.apply_binary_operator_scalar:  unable to perform AddEq on type CplArray: ["one"], ["two"], ["three"]
-+zsh:68> cargo run allcplcode/cpltests/cpltest_pass_by_reference.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_pass_by_reference.cpl`
-10
-110
-30
-1,2,3
-+zsh:69> cargo run allcplcode/cpltests/cpltest_predicates.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_predicates.cpl`
-okay1
-okay2
-okay3
-okay4
-okay5
-okay6
-+zsh:70> cargo run allcplcode/cpltests/cpltest_return00.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_return00.cpl`
-100
-+zsh:71> cargo run allcplcode/cpltests/cpltest_return01.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_return01.cpl`
-foo.arg=10
-bar.arg=11
-99
-+zsh:72> cargo run allcplcode/cpltests/cpltest_return02.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_return02.cpl`
-Average=99999
-+zsh:73> cargo run allcplcode/cpltests/cpltest_reuse_var.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_reuse_var.cpl`
-1001
-foo.member b
-1
-5000
-+zsh:74> cargo run allcplcode/cpltests/cpltest_struct00.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_struct00.cpl`
-foo:member_1
-bar:member_1
-zot:member_1
-pook:member_1
-pook:member_2
-bas:member_1
-foo.member_2
-+zsh:75> cargo run allcplcode/cpltests/cpltest_struct01.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_struct01.cpl`
-10123
-bas:member_1xxx
-+zsh:76> cargo run allcplcode/cpltests/cpltest_while00.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_while00.cpl`
-i=0
-i=1
-blat 2
-i=3
-+zsh:77> cargo run allcplcode/cpltests/cpltest_while01.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_while01.cpl`
-i,j=0,0
-i,j=0,1
-i,j=0,2
-i,j=0,3
-i,j=1,0
-i,j=1,1
-i,j=1,2
-i,j=1,3
-i,j=2,0
-i,j=2,1
-i,j=2,2
-i,j=2,3
-i,j=3,0
-i,j=3,1
-i,j=3,2
-i,j=3,3
-end
-+zsh:78> cargo run allcplcode/cpltests/cpltest_while02.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/cpltest_while02.cpl`
-i=0
-i=1
-i=2
-i=3
-J=0
-J=1
-J=2
-J=3
-+zsh:79> cargo run allcplcode/cpltests/trans.cpl allsources/transitions.txt
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
-     Running `target/debug/main allcplcode/cpltests/trans.cpl allsources/transitions.txt`
+   Compiling exec v0.1.0 (/Users/carl/McTreeHouse/Projects/Rust/cpl/exec)

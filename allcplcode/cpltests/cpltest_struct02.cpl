@@ -11,42 +11,42 @@ struct s_bar{
 }
 
 entry ENTRY(){
-	// foo=new s_foo;
-	// foo:member_a = "hello";
-	// println foo:member_a;
-	// println foo:member_b;
+	foo=new s_foo;
+	foo:member_a = "hello";
+	println foo:member_a;
+	println foo:member_b;
 
 	bar=new s_bar;
 	bar:a += bar:c;
 
-	// a = foo:member_b;
-	// b = bar:c;
-	// println a;
-	// println b;
+	a = foo:member_b;
+	b = bar:c;
+	println a;
+	println b;
 
-	// a = bar:c+1000;
-	// println a;
+	a = bar:c+1000;
+	println a;
 
 
-	// a = bar:c+bar:a;
-	// println a;
+	a = bar:c+bar:a;
+	println a;
 
-	// c = bar:c + a;
-	// println c;
+	c = bar:c + a;
+	println c;
 
-	// d = bar:c * 1000;
-	// println d;
+	d = bar:c * 1000;
+	println d;
 
-	// println "bar:a=".bar:a;
-	// println "bar:c=".bar:c;
-	// bar:a += bar:c;
+	println "bar:a=".bar:a;
+	println "bar:c=".bar:c;
+	bar:a += bar:c;
 
-	// println bar:a;
-	// println "bar:a+=bar:c:".bar:a;
-	// bar:a /= (bar:c + bar:a);
-	// println bar:a;
-	// fun1(foo);
-	// fun2(bar);
+	println bar:a;
+	println "bar:a+=bar:c:".bar:a;
+	bar:a /= (bar:c + bar:a);
+	println bar:a;
+	fun1(foo);
+	fun2(bar);
 }
 
 

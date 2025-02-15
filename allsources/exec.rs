@@ -791,47 +791,30 @@ impl<'a> Executor<'a>{
 
 	//	As noted, this is a bit tricky:  we need to get a rust reference to the
 	//	operand pointed to by the VarRef
-	fn update_indexed_indirect(&mut self, _instruction : &MachineInstruction, _current_frame_num : usize){
-		// if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_indexed_indirect: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
+	fn update_indexed_indirect(&mut self, instruction : &MachineInstruction, current_frame_num : usize){
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_indexed_indirect: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
 	
-		// let value = self.operand_stack.dereference_tos();
-		// let index = self.operand_stack.dereference_tos();
+		let collection_ref = &self.operand_stack.operand_frames[current_frame_num].operand_blocks[instruction.block_num].operand_block[instruction.address];
+		if let CplDataType::CplVarRef(ref vr) = &collection_ref.var{
+			//	So here is an example of getting around the borrow checker.  You'd like to
+			//	think that you could use the fields of vr (var ref) directly in the next
+			//	statement below ("let collection = {...}").  But NO!.  If you substitute
+			//	vr.frame_num for coll_frame in that statement you get:
+			//
+			//	cannot borrow `self.operand_stack.operand_frames` as mutable because it is also borrowed as immutable
+			//
+			//	so, the solution, evidently, is to create local variables to hold these fields.
+			let frame_num = vr.frame_num;
+			let block_num = vr.block_num;
+			let address = vr.address;
 
-		// let collection_ref = &self.operand_stack.operand_frames[current_frame_num].operand_blocks[instruction.block_num].operand_block[instruction.address];
+			if self.cli.is_debug_bit(TRACE_EXEC){
+				eprintln!("      update_indexed_indirect: frame={} block={} address={}", frame_num, block_num, address);
+			}
 
-		// if let CplDataType::CplVarRef(ref vr) = &collection_ref.var{
-
-		// 	//	So here is an example of getting around the borrow checker.  You'd like to
-		// 	//	think that you could use the fields of vr (var ref) directly in the next
-		// 	//	statement below ("let collection = {...}").  But NO!.  If you substitute
-		// 	//	vr.frame_num for coll_frame in that statement you get:
-		// 	//
-		// 	//	cannot borrow `self.operand_stack.operand_frames` as mutable because it is also borrowed as immutable
-		// 	//
-		// 	//	so, the solution, evidently, is to create local variables to hold these fields.
-		// 	let coll_frame = vr.frame_num;
-		// 	let coll_block = vr.block_num;
-		// 	let coll_address = vr.address;
-
-		// 	let collection = &mut self.operand_stack.operand_frames[coll_frame].operand_blocks[coll_block].operand_block.get_mut (coll_address).unwrap();
-
-		// 	//	For each of the collection types (Array or Dict), if the opcode is Update
-		// 	//	meanding that the op was "=", just replace what was in the element with
-		// 	//	the rvalue, otherwise the opcode will be an assignment op (e.g. "+=")
-		// 	match &mut collection.var{
-		// 		CplDataType::CplArray(a) => if instruction.opcode == Opcode::Update{
-		// 			a.update_indexed(&index, &value);
-		// 		}else{
-		// 			a.update_indexed_op(&index, &value, instruction.opcode);
-		// 		},
-		// 		CplDataType::CplDict(d) => if instruction.opcode == Opcode::Update{
-		// 			d.update_indexed(&index, &value);
-		// 		}else{
-		// 			d.update_indexed_op(&index, &value, instruction.opcode);
-		// 		},
-		// 		_ => panic!("from update_indexed_indirect:  expected an array or dictionary, got {}",collection.var),
-		// 	}
-		// }
+			self.operand_stack.update_global_collection(frame_num, block_num, address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
+			self.runtime_data_qual = "Indexed-Indirect".to_string();
+		}
 	}
 
 

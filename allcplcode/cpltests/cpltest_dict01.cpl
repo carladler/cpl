@@ -1,15 +1,34 @@
 entry cpltest_dict00{
+	adummy=10;
 	dict = {{"one","1"}};
-	dict["two"] = "2";
-	dict["three"] = "3";
-
-	println "first=".dict["three"];
-	dict["three"] = "33";
-	println "second=".dict["three"];
-	
-	keys = Keys(dict);
-	foreach key keys{
-		println key."=".dict[key];
-	}
+	Insert(dict,"two","2",false);
+	Insert(dict,"three","3",false);
+	fun1(dict);
+	println "after fun1: ".dict["five"];
 }
 
+fn fun1(fun1_dict){
+	keys = Keys(fun1_dict);
+	foreach key keys{
+		println key."=".fun1_dict[key];
+	}
+
+	Insert(fun1_dict,"four","4",false);
+	keys = Keys(fun1_dict);
+	foreach key keys{
+		println key."=".fun1_dict[key];
+	}
+	fun1_dict["five"]="5";
+
+
+	// println "fun1_dict[four]=".fun1_dict["four"];
+	println fun1_dict["four"];
+
+	// fun1_dict["five"]="5";
+	// Delete(fun1_dict,"four");
+
+	
+	if Contains(fun1_dict,"two"){
+		println "yes";
+	}
+}

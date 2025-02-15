@@ -1,21 +1,15 @@
 entry cpltest_dict00{
-	adummy=10;
 	dict = {{"one","1"}};
-	Insert(dict,"two","2",false);
-	Insert(dict,"three","3",false);
-	Delete(dict,"three");
-	if Contains(dict,"two"){
-		println "yes";
+	dict["two"] = "2";
+	dict["three"] = "3";
+
+	println "first=".dict["three"];
+	dict["three"] = "33";
+	println "second=".dict["three"];
+	
+	keys = Keys(dict);
+	foreach key keys{
+		println key."=".dict[key];
 	}
-	fun1(dict);
 }
 
-fn fun1(dict){
-	Insert(dict,"four","4",false);
-	Insert(dict,"five","5",false);
-	Delete(dict,"four");
-	keys = Keys(dict);
-	if Contains(dict,"two"){
-		println "yes";
-	}
-}

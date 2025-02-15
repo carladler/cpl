@@ -682,29 +682,31 @@ impl OperandStack{
 		}		
 	}
 
+
+
 	//	updates the value of a local array element.  The element is found by traversing the
 	//	the index_list.  That is, index_list[0] is the element of the array to start at
 	//	the rvalue at tos	
-	fn update_local_array(&mut self, block_num : usize, address: usize, index_list : &Vec<usize>, op : Opcode){
-		//eprintln!("======= update_local_array index list={:?}", index_list);
+	fn update_array(&mut self, frame_num : usize, block_num : usize, address: usize, index_list : &Vec<usize>, op : Opcode){
+		//eprintln!("======= update_array frame{} block={} address={} index list={:?}", frame_num, block_num, address, index_list);
 
 		//	get the rvalue
 		let value = self.dereference_tos();
 
 		//	get the current frame
-		let frame = self.operand_frames.last_mut().unwrap();
+		let frame = self.operand_frames.get_mut(frame_num).unwrap();
 
 		let mut array = frame.operand_blocks.get_mut(block_num).unwrap().operand_block.get_mut(address).unwrap();
 
 		let mut i = 0;
-		let mut last_index = i;
+		let mut last_index = index_list[i];
 		while i < index_list.len() - 1 {
-			//eprintln!("====== update_local_array i={} index = {}", i, index_list[i]);
-			let index = index_list[i];
+			//eprintln!("====== update_array i={} index = {}", i, index_list[i]);
+			// let index = index_list[i];
 			match array.var {
 				CplDataType::CplArray(ref mut match_array) => {
-					//eprintln!("====== update_local_array i={} index = {}", i, index);
-					array = &mut match_array.cpl_array[index];
+					//eprintln!("====== update_array i={} index = {}", i, index);
+					array = &mut match_array.cpl_array[last_index];
 				}
 				_ =>{break;}
 			}
@@ -712,71 +714,53 @@ impl OperandStack{
 			last_index = index_list[i];
 		}
 
-		//eprintln!("======= update_local_array: last_index={}",last_index);
+		//eprintln!("======= update_array: last_index={}",last_index);
 
 		if let CplDataType::CplArray(ref mut a) = array.var{
 			a.update_indexed(last_index, &value, op);
 		}else{
-			panic!("from OperandStack.update_local_array: Unexpected data type: {}",array.var);
+			panic!("from OperandStack.update_array: Unexpected data type: {}",array.var);
 		}
 	}
 
 	//	update the value of a local collection element.  The collection may be either an array
 	//	or a dictionary. The indices are on the stack (above the value).  This is a "dispatcher"
 	//	function depending on the type of collection.
-	fn update_local_collection_from_stack (&mut self, block_num : usize, address : usize, index_count : usize, op : Opcode){
-		#[derive(PartialEq)]
-		enum CollectionType{
-			Array,
-			Dict,
-		}
-
-		let collection_type : CollectionType;
-
-		//	get the current frame
-		let frame = self.operand_frames.last_mut().unwrap();
-
-		if let CplDataType::CplArray(_) = frame.operand_blocks.get(block_num).unwrap().operand_block.get(address).unwrap().var{
-			collection_type = CollectionType::Array;
-		}else if let CplDataType::CplDict(_) = frame.operand_blocks.get(block_num).unwrap().operand_block.get(address).unwrap().var{
-			collection_type = CollectionType::Dict;
-		}else{
-			panic!("from update_local_collection_from_stack:  Expecting either an array or dictionary");
-
-		}
-
-		//	load an array with indices.  We are cloning them but that shouldn't
-		//	be much of a hit since the indices are all scalar values (or at least
-		//	should be)
-		let mut i = 0;
-		
-		if collection_type == CollectionType::Array{
+	fn update_collection_from_stack (&mut self, frame_num : usize, block_num : usize, address : usize, index_count : usize, op : Opcode){
+		if let CplDataType::CplArray(_) = self.operand_frames.get(frame_num).unwrap().operand_blocks.get(block_num).unwrap().operand_block.get(address).unwrap().var{
 			let mut array_index_list : Vec<usize> = Vec::new();
+			let mut i=0;
 			while i<index_count {
-				if let CplDataType::CplNumber(ref n) = frame.operand_blocks.last_mut().unwrap().operand_block.pop().unwrap().var{
+				if let CplDataType::CplNumber(ref n) = self.operand_frames.last_mut().unwrap().operand_blocks.last_mut().unwrap().operand_block.pop().unwrap().var{
 					array_index_list.push(n.cpl_number as usize);
 				}
 				i+=1;
 			}
-			self.update_local_array(block_num, address, &array_index_list, op);
+
+			self.update_array(frame_num, block_num, address, &array_index_list, op);
 			return;
-		}
-		
-		let mut dict_index_list : Vec<CplVar> = Vec::new();
-		while i<index_count{
-			dict_index_list.push(frame.operand_blocks.last_mut().unwrap().operand_block.pop().unwrap());
-			i+=1;
-		}
-
-		//	get the rvalue
-		let value = self.dereference_tos();
-
-		self.update_local_dictionary(block_num, address, &dict_index_list, &value, op);
+		}else if let CplDataType::CplDict(_) = self.operand_frames.get(frame_num).unwrap().operand_blocks.get(block_num).unwrap().operand_block.get(address).unwrap().var{
+			let mut i=0;
+			let mut dict_index_list : Vec<CplVar> = Vec::new();
+			while i<index_count{
+				dict_index_list.push(self.operand_frames.last_mut().unwrap().operand_blocks.last_mut().unwrap().operand_block.pop().unwrap());
+				//eprintln!("======= last dict index={}",dict_index_list.last().unwrap());
+				i+=1;
+			}
+			//	get the rvalue
+			let value = self.dereference_tos();
+	
+			self.update_dictionary(frame_num, block_num, address, &dict_index_list, &value, op);
+		}else{
+			panic!("from update_collection_from_stack:  Expecting either an array or dictionary");
+		}		
 	}
 
-	fn update_local_dictionary (&mut self, block_num : usize, address : usize, indices : &Vec<CplVar>, value : &CplVar, op : Opcode){
+	fn update_dictionary (&mut self, frame_num : usize, block_num : usize, address : usize, indices : &Vec<CplVar>, value : &CplVar, op : Opcode){
+		// eprintln!("======= update_dictionary frame={} block={} address={} index={} value={} op={}", frame_num, block_num, address, indices[0].var, value, op);
+
 		//	get the current frame
-		let frame = self.operand_frames.last_mut().unwrap();
+		let frame = self.operand_frames.get_mut(frame_num).unwrap();
 
 		//	For now, we only support a single dimension for dictionaries
 		if let CplDataType::CplDict(ref mut d) = frame.operand_blocks.get_mut(block_num).unwrap().operand_block.get_mut(address).unwrap().var{
@@ -787,47 +771,6 @@ impl OperandStack{
 		}
 	}
 
-		// //	get context for top of stack
-		// let operand_frame = self.operand_frames.last_mut().unwrap();
-		// let operand_block = operand_frame.operand_blocks.last_mut().unwrap();
-
-		// let mut i = 0;
-		// let mut last_index : CplVar = operand_block.operand_block.pop().unwrap();
-		// while i < index_count - 1 {
-		// 	//	now determine the kind of index we need
-		// 	match collection.var {
-		// 		CplDataType::CplArray(ref mut match_array) => {
-		// 			//eprintln!("====== update_local_array i={} index = {}", i, index);
-		// 			if let CplDataType::CplNumber(ref index) = last_index.var{
-		// 				collection = &mut match_array.cpl_array[index.cpl_number as usize];
-		// 			}
-		// 		}
-
-		// 		CplDataType::CplDict(ref mut match_dict) => {
-		// 			if let CplDataType::CplString(_) = last_index.var{
-		// 				collection = &mut match_dict.cpl_dict.get(&CplKey::to_key(&last_index.var)).unwrap();
-		// 			}					
-		// 		}
-		// 		_ =>{break;}
-		// 	}
-		// 	i+=1;
-		// 	last_index = operand_block.operand_block.pop().unwrap();
-		// }
-
-		// //	get the rvalue
-		// let value = self.dereference_tos();
-
-		// if let CplDataType::CplArray(ref mut a) = collection.var{
-		// 	if let CplDataType::CplNumber(ref index) = last_index.var{
-		// 		a.update_indexed(index.cpl_number as usize, &value, op);
-		// 	}
-		//} else 
-		// }else{
-		// 	panic!("from OperandStack.update_local_collection_from_stack: Unexpected data type: {}",collection.var);
-		// }
-	
-
-
 	//	If the mode is UpdateIndexed, the indicies are on the stack and the number of
 	//	indicies is the first element of the qualifier.
 	//
@@ -835,12 +778,16 @@ impl OperandStack{
 	//	are always arrays so the indicies are always numbers.
 	//
 	pub fn update_local_collection(&mut self, block_num : usize, address: usize, qualifier : &Vec<usize>, op : Opcode, mode : OpcodeMode){
-		if mode == OpcodeMode::UpdateStructElement{
-			self.update_local_array(block_num, address, qualifier, op);
-		}else if mode == OpcodeMode::UpdateIndexed{
-			self.update_local_collection_from_stack(block_num, address, qualifier[0], op);
-		}
+		let frame_num = self.operand_frames.len() - 1;
+		self.update_global_collection(frame_num, block_num, address, qualifier, op, mode);
+	}
 
+	pub fn update_global_collection(&mut self, frame_num : usize, block_num : usize, address: usize, qualifier : &Vec<usize>, op : Opcode, mode : OpcodeMode){
+		if mode == OpcodeMode::UpdateStructElement{
+			self.update_array(frame_num, block_num, address, qualifier, op);
+		}else if mode == OpcodeMode::UpdateIndexed{
+			self.update_collection_from_stack(frame_num, block_num, address, qualifier[0], op);
+		}
 	}
 
 	//	given a CplVar return its type as a string
@@ -2334,12 +2281,6 @@ impl CplDict{
 	pub fn update_indexed(&mut self, key : &CplVar, value : &CplVar){
 		let cpl_key = CplKey::to_key(&key.var);
 		self.cpl_dict.insert(cpl_key,value.clone());
-		
-		// if self.cpl_dict.contains_key(&cpl_key){
-		// 	self.cpl_dict.insert(cpl_key,value.clone());
-		// }else{
-		// 	abend!(format!("from CplDict.update_indexed: Key not found {}", key));
-		// }
 	}
 
 
