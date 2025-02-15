@@ -45,6 +45,8 @@ cargo run allcplcode/cpltests/cpltest_builtin_substring.cpl
 cargo run allcplcode/cpltests/cpltest_array00.cpl
 cargo run allcplcode/cpltests/cpltest_command_line_args.cpl 1 2 3 4 5
 cargo run allcplcode/cpltests/cpltest_continue.cpl
+cargo run allcplcode/cpltests/cpltest_dict00.cpl
+cargo run allcplcode/cpltests/cpltest_dict01.cpl
 cargo run allcplcode/cpltests/cpltest_eval.cpl
 cargo run allcplcode/cpltests/cpltest_exp00.cpl
 cargo run allcplcode/cpltests/cpltest_exp01.cpl

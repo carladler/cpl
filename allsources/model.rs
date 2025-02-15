@@ -172,7 +172,17 @@ impl<'a> Model<'a>{
 				println!("Model.add_assignment_statement: {}[{}]{}{}", assignment_target.token_value, token_list_text(&target_index_expression), assignment_op.token_value, token_list_text(&expression));
 			}
 		}
-		let s = AssignmentStatement::new(assignment_target, assignment_op, target_index_expression.clone(), expression.clone());
+
+		//	And, of course, here's a bit of a hack:  we would like to know the comma count for
+		//	the target_index_expression because, downstream from here, we are going to generate
+		//	and instruction that has to know how many indicies were specified in the target_index_expression
+		let mut target_index_count :usize = 0;
+		for token in target_index_expression{
+			if token.token_type == TokenType::COMMA{
+				target_index_count += 1;
+			}
+		}
+		let s = AssignmentStatement::new(assignment_target, assignment_op, target_index_expression.clone(), target_index_count, expression.clone());
 		let f = self.program.current_function();
 		f.add_statement(StatementType::AssignmentStatement(s));
 	}

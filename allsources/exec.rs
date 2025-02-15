@@ -284,16 +284,16 @@ impl<'a> Executor<'a>{
 				Opcode::Concat 					=> self.exec_binary_operator(instruction),
 
 
-				Opcode::AddEq 					=> self.exec_assignment_operator(instruction),
-				Opcode::SubEq 					=> self.exec_assignment_operator(instruction),
-				Opcode::MulEq 					=> self.exec_assignment_operator(instruction),
-				Opcode::DivEq					=> self.exec_assignment_operator(instruction),
-				Opcode::ModEq 					=> self.exec_assignment_operator(instruction),
-				Opcode::OrEq 					=> self.exec_assignment_operator(instruction),
-				Opcode::AndEq 					=> self.exec_assignment_operator(instruction),
-				Opcode::AppendEq 				=> self.exec_assignment_operator(instruction),
-
+				Opcode::AddEq 					=> self.exec_update(instruction),
+				Opcode::SubEq 					=> self.exec_update(instruction),
+				Opcode::MulEq 					=> self.exec_update(instruction),
+				Opcode::DivEq					=> self.exec_update(instruction),
+				Opcode::ModEq 					=> self.exec_update(instruction),
+				Opcode::OrEq 					=> self.exec_update(instruction),
+				Opcode::AndEq 					=> self.exec_update(instruction),
+				Opcode::AppendEq 				=> self.exec_update(instruction),
 				Opcode::Update					=> self.exec_update(instruction),
+
 				Opcode::Append					=> self.exec_append(instruction),
 				Opcode::Insert					=> self.exec_insert(instruction),
 
@@ -637,7 +637,7 @@ impl<'a> Executor<'a>{
 	//		* an argument from from the arguments register
 	//		* an array element -- technically this is not going onto the stack but
 	//		  instead it's being added to an array which is at the top of the stack
-	//		  (this is used for struct instantiation -- see exec_update (mode = array)
+	//		  (this is used for struct instantiation -- see exec-update (mode = array)
 	//		  which does something similar -- maybe even the same thing)
 	fn exec_push(&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_push: {} Mode: {}", self.code_block_num, self.instruction_counter,instruction, instruction.opcode_mode)}
@@ -735,83 +735,114 @@ impl<'a> Executor<'a>{
 		self.operand_stack.pop();
 	}
 
+	//  Apply an operator to a scalar lvalue.  The value may be either direct or via
+	//	a VarRef (if this is a called function with a pass by reference argument)
+	fn apply_assignment_operator(&mut self, block_num : usize, address : usize, opcode : Opcode) {
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("     assignment_operator: {}", opcode);}
 
-	//	This updates a local operand in situ via the address in the instruction
-	fn update_scalar_tos(&mut self, block_num : usize, address : usize){
-		// if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar_tos(start): {},{}", block_num, address)}
-		self.operand_stack.update_local_from_tos(block_num, address);
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar_tos: {},{} {}", block_num, address, self.operand_stack.fetch_local_var(block_num, address))}
+		//	determine if the TOS is the variable to update or is a VarRef pointing at it.  Note that
+		//	we are only support a single level of indirection (i.e. we can't deal with a VarRef pointint at another
+		//	VarRef)
+		match self.operand_stack.fetch_local_var(block_num, address).var{
+			CplDataType::CplNumber(_) | CplDataType::CplString(_) => {
+				//	If the collection is direct (i.e. an array or dictionay) do this
+				// n.apply_binary_operator_to_number(&new_value_var, instruction.opcode);
+				self.operand_stack.apply_binary_operator_scalar_local(block_num, address, opcode);
+			}
+
+			CplDataType::CplVarRef(vr) =>{
+				//	Get the address of the lvalue via the VarRef
+				// let varref : &mut CplVar = self.operand_stack.fetch_mutable_ref(vr.frame_num, vr.block_num, vr.address);
+				self.operand_stack.apply_binary_operator_scalar_global(vr.frame_num, vr.block_num, vr.address, opcode);
+			}
+
+			_=> panic!("from exec.apply_assignment_operator:  unknown type: {}", self.operand_stack.fetch_local_var(block_num, address).var),
+		}
 	}
 
-	//	if the mode is UpdateIndexed and the target is an actual collection
-	//	update it directly
+
+
+	//	This updates a local operand in situ via the address in the instruction.  Whether this
+	//	is a simple replacement or an operator assignment is determined by the opcode
+	fn update_scalar_tos(&mut self, block_num : usize, address : usize, op : Opcode){
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar_tos(start): {},{} op={}", block_num, address, op)}
+
+		match op{
+			Opcode::Update => self.operand_stack.update_local_from_tos(block_num, address),
+			_ => self.apply_assignment_operator(block_num, address, op),
+		}
+		//if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_scalar_tos: {},{} {}", block_num, address, self.operand_stack.fetch_local_var(block_num, address))}
+	}
+
+	//	If the mode is UpdateIndexed, the indicies are on the stack and the number of
+	//	indicies is the first element of the qualifier.
+	//
+	//	If the mode is UpdateStructMember, the indices are in the qualfifier.  Structs
+	//	are always arrays so the indicies are always numbers.
 	fn update_indexed_direct(&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_indexed_direct: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
-		self.operand_stack.update_local_collection(instruction.block_num, instruction.address);
+		if self.cli.is_debug_bit(TRACE_EXEC){
+			eprintln!("      update_indexed_direct: {} {} index_list={:?} op={}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address), instruction.qualifier, instruction.opcode);
+			//self.dump_operands("========== at update_indexed_direct");
+		}
+
+		self.operand_stack.update_local_collection(instruction.block_num, instruction.address, &instruction.qualifier, instruction.opcode, instruction.opcode_mode);
 		self.runtime_data_qual = "Indexed".to_string();
 	}
 
 	//	As noted, this is a bit tricky:  we need to get a rust reference to the
 	//	operand pointed to by the VarRef
-	fn update_indexed_indirect(&mut self, instruction : &MachineInstruction, current_frame_num : usize){
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_indexed_indirect: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
+	fn update_indexed_indirect(&mut self, _instruction : &MachineInstruction, _current_frame_num : usize){
+		// if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_indexed_indirect: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
 	
-		let value = self.operand_stack.dereference_tos();
-		let index = self.operand_stack.dereference_tos();
+		// let value = self.operand_stack.dereference_tos();
+		// let index = self.operand_stack.dereference_tos();
 
-		let collection_ref = &self.operand_stack.operand_frames[current_frame_num].operand_blocks[instruction.block_num].operand_block[instruction.address];
+		// let collection_ref = &self.operand_stack.operand_frames[current_frame_num].operand_blocks[instruction.block_num].operand_block[instruction.address];
 
-		if let CplDataType::CplVarRef(ref vr) = &collection_ref.var{
+		// if let CplDataType::CplVarRef(ref vr) = &collection_ref.var{
 
-			//	So here is an example of getting around the borrow checker.  You'd like to
-			//	think that you could use the fields of vr (var ref) directly in the next
-			//	statement below ("let collection = {...}").  But NO!.  If you substitute
-			//	vr.frame_num for coll_frame in that statement you get:
-			//
-			//	cannot borrow `self.operand_stack.operand_frames` as mutable because it is also borrowed as immutable
-			//
-			//	so, the solution, evidently, is to create local variables to hold these fields.
-			let coll_frame = vr.frame_num;
-			let coll_block = vr.block_num;
-			let coll_address = vr.address;
+		// 	//	So here is an example of getting around the borrow checker.  You'd like to
+		// 	//	think that you could use the fields of vr (var ref) directly in the next
+		// 	//	statement below ("let collection = {...}").  But NO!.  If you substitute
+		// 	//	vr.frame_num for coll_frame in that statement you get:
+		// 	//
+		// 	//	cannot borrow `self.operand_stack.operand_frames` as mutable because it is also borrowed as immutable
+		// 	//
+		// 	//	so, the solution, evidently, is to create local variables to hold these fields.
+		// 	let coll_frame = vr.frame_num;
+		// 	let coll_block = vr.block_num;
+		// 	let coll_address = vr.address;
 
-			let collection = &mut self.operand_stack.operand_frames[coll_frame].operand_blocks[coll_block].operand_block.get_mut (coll_address).unwrap();
+		// 	let collection = &mut self.operand_stack.operand_frames[coll_frame].operand_blocks[coll_block].operand_block.get_mut (coll_address).unwrap();
 
-			//	For each of the collection types (Array or Dict), if the opcode is Update
-			//	meanding that the op was "=", just replace what was in the element with
-			//	the rvalue, otherwise the opcode will be an assignment op (e.g. "+=")
-			match &mut collection.var{
-				CplDataType::CplArray(a) => if instruction.opcode == Opcode::Update{
-					a.update_indexed(&index, &value);
-				}else{
-					a.update_indexed_op(&index, &value, instruction.opcode);
-				},
-				CplDataType::CplDict(d) => if instruction.opcode == Opcode::Update{
-					d.update_indexed(&index, &value);
-				}else{
-					d.update_indexed_op(&index, &value, instruction.opcode);
-				},
-				_ => panic!("from update_indexed_indirect:  expected an array or dictionary, got {}",collection.var),
-			}
-		}
-
+		// 	//	For each of the collection types (Array or Dict), if the opcode is Update
+		// 	//	meanding that the op was "=", just replace what was in the element with
+		// 	//	the rvalue, otherwise the opcode will be an assignment op (e.g. "+=")
+		// 	match &mut collection.var{
+		// 		CplDataType::CplArray(a) => if instruction.opcode == Opcode::Update{
+		// 			a.update_indexed(&index, &value);
+		// 		}else{
+		// 			a.update_indexed_op(&index, &value, instruction.opcode);
+		// 		},
+		// 		CplDataType::CplDict(d) => if instruction.opcode == Opcode::Update{
+		// 			d.update_indexed(&index, &value);
+		// 		}else{
+		// 			d.update_indexed_op(&index, &value, instruction.opcode);
+		// 		},
+		// 		_ => panic!("from update_indexed_indirect:  expected an array or dictionary, got {}",collection.var),
+		// 	}
+		// }
 	}
 
 
-	//	If the mode is UpdateIndexed, the address in the instruction is the
-	//	address of an array or a VarRef.  TOS is the new value and TOS-1 is the index.
+	//	Here we are updating an element of an array or dictionary.  The Address
+	//	of the collection is in the instruction.  This will be the case if the collection
+	//	is declared in the same function as where it was defined.  If the address points at a VarRef
+	//	the VarRef points at the collection.  This will happen when the collection was passed as
+	//	an argument to a function:  collections are always passed by reference.
 	//
-	//	If the collection being updated is in the same function as where it
-	//	was declared then "update_indexed_direct" will be used.
-	//
-	//	If the collection being updated is a parameter to a function and
-	//	the update is in that function, then "update_indexed_indirect" will be used.
-	//
-	//	Recall that arrays are always passed by reference which means that the
-	//	argument will be a VarRef which means that the operand in the operand
-	//	stack will be that VarRef.
 	fn update_indexed (&mut self, instruction : &MachineInstruction){
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_indexed: {} {}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address))}
+		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("      update_indexed: {} {} indices={:?}", instruction, self.operand_stack.fetch_local_var(instruction.block_num, instruction.address),instruction.qualifier)}
 
 		let frame_num = self.operand_stack.operand_frames.len()-1;
 
@@ -842,12 +873,16 @@ impl<'a> Executor<'a>{
 
 		//self.dump_operands("begin exec_update");
 
+		//	Update:					update a scalar
+		//	UpdateStructMember:		update the struct array (indices in instruction.qualifier)
+		//	UpdateIndexed:			update an normal array (Indices on stack, count in instruction.qualifier)
 		match instruction.opcode_mode{
 			OpcodeMode::Update => {
-				self.update_scalar_tos(instruction.block_num, instruction.address);
+				self.update_scalar_tos(instruction.block_num, instruction.address, instruction.opcode);
 				self.runtime_data_qual = "Scalar".to_string();
 			}
-			OpcodeMode::UpdateIndexed => {
+
+			OpcodeMode::UpdateStructElement | OpcodeMode::UpdateIndexed => {
 				self.update_indexed(instruction);
 				self.runtime_data_qual = "Indexed".to_string();
 			}
@@ -870,68 +905,10 @@ impl<'a> Executor<'a>{
 		self.update_collection_dict();
 	}
 
-	/**********************************************************************
-	***		Assignment Operators (e.g. +=, -=, etc.)
-	**********************************************************************/
-
-	//  Apply an operator to an lvalue.  If the lvalue is an indexed value (i.e. if
-	//	the mode is "UpdateIndexed") then the target is a collection.  Otherwise it's a
-	//	scalar.
-	fn exec_assignment_operator(&mut self, instruction : &MachineInstruction) {
-		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("{}:{} : exec_assignment_operator: {}", self.code_block_num, self.instruction_counter, instruction)}
-
-		if instruction.opcode_mode == OpcodeMode::UpdateIndexed{
-			//	if the mode is indexed then update an element of an array
-			self.apply_binary_operator_indexed(instruction);
-			return;
-		}
-
-		//	Otherwise we just updating a scalar.  E.G.  a += foo;
-		//  NOTE (TODO):  here we're actually grabbing the variable to determine it's type.  I
-		//	don't think we need to do this:  I think we an just look at it via referenced
-		//	because, here, we don't actually need it (given the all to operand_stack.apply_binary_operator_scalar).
-		match self.operand_stack.fetch_local_var(instruction.block_num, instruction.address).var{
-			CplDataType::CplNumber(_) | CplDataType::CplString(_) => {
-				//	If the collection is direct (i.e. an array or dictionay) do this
-				// n.apply_binary_operator_to_number(&new_value_var, instruction.opcode);
-				self.operand_stack.apply_binary_operator_scalar(instruction.block_num, instruction.address, instruction.opcode);
-			}	
-
-			//	otherwise, get a mutable reference to the collection and then, depending on the type
-			//	of collection update the element at the index
-			CplDataType::CplVarRef(vr) =>{
-				let new_value_var = self.operand_stack.dereference_tos();
-				let varref : &mut CplVar = self.operand_stack.fetch_mutable_ref(vr.frame_num, vr.block_num, vr.address);
-				match varref.var{
-					CplDataType::CplNumber (ref mut n) => {
-						n.apply_binary_operator_to_number(&new_value_var, instruction.opcode);
-					}
-
-					CplDataType::CplString (ref mut s) =>{
-						s.apply_binary_operator_to_string(&new_value_var, instruction.opcode);
-					}
-
-					CplDataType::CplArray (ref mut a) => {
-						a.apply_binary_operator_to_array(&new_value_var, instruction.opcode);
-					}
-					_=> panic!("from exec.apply_binary_operator_scalar:  expected a VarRef to array or dictionary.  Got {}",varref),
-				}
-			}
-
-			// CplDataType::CplArray(ref mut a) => {
-			// 	if instruction.opcode != Opcode::Concat{
-			// 		panic!("from exec.apply_binary_operator_scalar: only concat is supported for {}",self.operand_stack.fetch_local_var(instruction.block_num, instruction.address).var),
-			// 	}
-			// 	a.append(&new_value_var, instruction.opcode);
-			// }
-
-			_=> panic!("from exec.apply_binary_operator_scalar:  unknown type: {}", self.operand_stack.fetch_local_var(instruction.block_num, instruction.address).var),
-		}
-	}
 
 	
 	//	Apply and operator to an element of a collection
-	fn apply_binary_operator_indexed(&mut self, instruction : &MachineInstruction){
+	fn _apply_binary_operator_indexed(&mut self, instruction : &MachineInstruction){
 		if self.cli.is_debug_bit(TRACE_EXEC){eprintln!("     apply_binary_operator_indexed {}", instruction)}
 
 		let var = self.operand_stack.fetch_local_var(instruction.block_num, instruction.address);

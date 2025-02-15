@@ -564,15 +564,18 @@ pub struct AssignmentStatement{
 	//cli : & 'a CLI<'a>,
 	pub target : Token,
 	pub target_index_expression : Expression,
+	pub target_index_count : usize,
 	pub op : Token,
 	pub expression : Expression,
 }
 impl AssignmentStatement{
-	pub fn new(target : Token, op : Token, target_index_expression : Vec<Token>, expression : Vec<Token>) -> AssignmentStatement{
+	pub fn new(target : Token, op : Token, target_index_expression : Vec<Token>, target_index_comma_count : usize, expression : Vec<Token>) -> AssignmentStatement{
 		AssignmentStatement {
 			//cli : cli,
 			target : target,					// target of the AssignmentStatement
 			target_index_expression : Expression::new(target_index_expression),
+			//	the number of indices in the target is the number of commas + 1
+			target_index_count : target_index_comma_count+1,
 			op : op,							// AssignmentStatement operator of some kine
 			expression: Expression::new(expression),
 		}
@@ -719,7 +722,7 @@ impl<'a> Generator<'_>{
 					self.code_gen.gen_simple(&t.token, &t.expression.expression_list, function_num);
 				}
 				StatementType::LoopStatement(_) => self.code_gen.gen_loop(function_num),
-				StatementType::AssignmentStatement(t) => self.code_gen.gen_assignment(&t.target, &t.op, &t.target_index_expression.expression_list, &t.expression.expression_list, function_num),
+				StatementType::AssignmentStatement(t) => self.code_gen.gen_assignment(&t.target, &t.op, &t.target_index_expression.expression_list, t.target_index_count, &t.expression.expression_list, function_num),
 				StatementType::InstantiateStatement(t) => self.code_gen.gen_struct_instantiate(&t.instantiated_struct, &t.struct_name, function_num),
 				StatementType::FunctionCallStatement(t) => self.code_gen.gen_function_call_statement(&t.function_name, &t.expression.expression_list, function_num, t.argument_count),
 				StatementType::While(t) => self.code_gen.gen_while(&t.condition.expression_list, function_num),

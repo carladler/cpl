@@ -6,8 +6,13 @@
 //	Need to take it with a grain of salt because some spending is more intermitant
 //	than other so, if there is an "under budget" number the extra money is not actually
 //	available.
-entry budget{
-	budget_file = Fopen("/users/carl/McTreeHouse/FinancialStuff/Retirement/Budget.csv", "<,");
+entry budget(args){
+	if #args == 0{
+		eprintln ("usage: budget.cpl yyyy-mm");
+		return 0;
+	}
+	budget_file_name = "/users/carl/McTreeHouse/FinancialStuff/Retirement/Budget ".args[0].".csv";
+	budget_file = Fopen(budget_file_name, "<,");
 	budget_cat = " ";
 
 	budget_dict = {};
@@ -63,10 +68,11 @@ entry budget{
 			break;
 		}
 
+		//eprintln ".....".report_line;
+
 		if report_line[0] != "!" || #report_line[2] == 0{
 			continue;
 		}
-
 
 		match = Match(report_line[2], report_cat_reg, 0);
 
@@ -107,21 +113,40 @@ fn analyze(budget, report){
 	totals = {};
 	budget_keys = Keys(budget);
 	total_diff = 0;
+	no_activity = [];
 
+	println "Budget Item".","."Budget Value".","."Report Value".","."Difference";
 	foreach budget_key budget_keys{
 		if Contains(report,budget_key){
 			diff = budget[budget_key] - report[budget_key];
+			println budget_key.",".budget[budget_key].",".report[budget_key].",".diff;
 			Insert(totals, budget_key, diff, false);
 			total_diff += diff;
 		}else{
-			Insert(totals, budget_key, 0, false);
+			//Insert(totals, budget_key, 0, false);
+			no_activity += budget_key;
 		}
 	}
+	println "";
+	println "Total Difference,".total_diff;
 
-	total_keys = Keys(totals);
-	Sort(total_keys);
-	foreach total_key total_keys{
-		println total_key.",".totals[total_key];
+	println "";
+	println "*****************************";
+	println "Budget Items with No Activity";
+	println "*****************************";
+	println "";
+
+	foreach none no_activity{
+		println none;
 	}
-	println "total diff,".total_diff;
+
+	// total_keys = Keys(totals);
+	// Sort(total_keys);
+	// foreach total_key total_keys{
+	// 	if totals[total_key] == 0{
+	// 		println total_key;
+	// 	}
+		//println total_key.",".totals[total_key];
+	// }
+	//println "total diff,".total_diff;
 }

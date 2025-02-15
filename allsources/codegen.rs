@@ -1158,7 +1158,7 @@ impl<'a> CodeGen<'a>{
 				, self.symbol_table.current_frame()
 				, 0			
 				, 0
-				, vec!(self.index_expression_comma_counter)
+				, vec!(self.index_expression_comma_counter+1)  // number of indices
 				, 0
 				, token.clone()
 			),function_num
@@ -1828,93 +1828,6 @@ impl<'a> CodeGen<'a>{
 		return true;
 	}
 
-	//	Compute an expression and then assign this value to a member of a struct.  
-	
-	//	TODO:  This code is remarkably similar to the gen_assignment_to_collection that we should be able
-	//	reduce the duplication.
-
-	//	TODO:  We need as generalized approach to updating an lvalue which is a n-dimensional array
-	//	to deal with both:  "foo:bar:zot:member = 5" and "foo[1,2,3] = 5".
-	fn gen_assignment_to_struct_member(&mut self, target : &Token, op : &Token, expression_list : &Vec<Token>, function_num : usize){		
-		//	The first thing we  do is generate the instructions to compute the index
-		//	which will result in the value we are updating the member with
-		self.gen_expression(expression_list, function_num);
-
-		//	Next we'll need to push the indices onto the stack.  So that
-		//	when we execute the update_indexed the stack will be:
-		//
-		//		rvalue
-		//		index n
-		//		index n-1
-		//			:
-		//		index 0
-		//
-
-		let parts: Vec<&str> = target.token_value.split(':').collect();
-		let struct_name = parts[0].to_string();
-
-		eprintln!("====== CodGen.gen_assignment_to_struct_member {}",parts.len());
-
-		//	get the address of the instantiated struct which is the underlying array
-		let struct_detail = self.symbol_table.get_normal_address(&struct_name);
-		let member_detail = self.symbol_table.get_struct_member_entry(&target.token_value);
-
-		//	The payload of a member entry includes a "path" variable which is
-		//	a list of indices.  These indices need to be pushed onto the
-		//	operand stack.  Index 0 is the inner most dimension so it must
-		//	be the last item pushed (i.e. must be at the top of the stack when
-		//	update index runs) 
-		
-		//	build a token we can reuse for each index using the target as a template
-		let mut index_token = target.clone();
-		index_token.token_type = TokenType::INTEGER;
-		index_token.token_category = TokenCategory::Factor;
-		
-		let mut i : i32 = (member_detail.index_list.len() - 1) as i32;
-		while i >= 0{
-			index_token.token_value = member_detail.index_list[i as usize].to_string();
-
-			//	Add the instruction push the index on to the operand stack
-			self.add_machine_instruction(
-				MachineInstruction::new(
-					Opcode::Push
-					, OpcodeMode::Lit
-					, self.symbol_table.current_frame()
-					, 0
-					, 0
-					, Vec::new()
-					, 0
-					, index_token.clone()
-				),function_num
-			);
-
-			i-=1;
-		}
-
-		//	Now, we've got the new value, followed by the path list we an
-		//	run the update indexed instruction
-			
-		//	set the local id type to INDEXED
-		let mut local_target = target.clone();
-		local_target.token_type = TokenType::INDEXED_ID;
-		local_target.token_category = TokenCategory::IndexedId;
-
-		//	And we want to update the member element of the struct
-		self.add_machine_instruction(
-			MachineInstruction::new(
-				self.op_to_opcode(op)
-				, OpcodeMode::UpdateIndexed
-				, self.symbol_table.current_frame()
-				, struct_detail.block_num
-				, struct_detail.index
-				, vec!(parts.len())			// the number of expected indices
-				, member_detail.interner
-				, target.clone()
-			),function_num
-		);
-	
-		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen:gen_assignment_to_struct_member target={} indexes={:?}", target.token_value, member_detail.index_list);}
-	}
 
 	fn gen_assignment_to_scalar(&mut self, target : &Token, op : &Token, expression_list : &Vec<Token>, function_num : usize){		
 		let detail : NormalSymbolEntry;
@@ -1963,7 +1876,7 @@ impl<'a> CodeGen<'a>{
 	}
 
 	//	Since this is the "lvalue" we need to update in situ.
-	fn gen_assignment_to_collection (&mut self, target : &Token, op : &Token, target_index_expression : &Vec<Token>,expression_list : &Vec<Token>, function_num : usize){
+	fn gen_assignment_to_collection (&mut self, target : &Token, op : &Token, target_index_expression : &Vec<Token>, target_index_count : usize, expression_list : &Vec<Token>, function_num : usize){
 		let detail : NormalSymbolEntry;
 		let mut local_id = target.clone();
 
@@ -1973,12 +1886,14 @@ impl<'a> CodeGen<'a>{
 		local_id.token_type = TokenType::INDEXED_ID;
 		local_id.token_category = TokenCategory::IndexedId;
 		
+		//eprintln!("======== gen_assignment_to_collection target={}", token_list_text(target_index_expression));
+
+		//	The new value is below the indices on the stack
+		self.gen_expression(expression_list, function_num);
+
 		//	emit the code that will compute the index
 		//	Generate the instructions to process the expresion
 		self.gen_expression(target_index_expression, function_num);
-
-		//	The new value is at the top of the operand stack
-		self.gen_expression(expression_list, function_num);
 
 		self.add_machine_instruction(
 			MachineInstruction::new(
@@ -1987,7 +1902,7 @@ impl<'a> CodeGen<'a>{
 				, self.symbol_table.current_frame()
 				, detail.block_num
 				, detail.index
-				, Vec::new()
+				, vec!(target_index_count)
 				, detail.interner
 				, target.clone()
 			),function_num
@@ -1995,6 +1910,55 @@ impl<'a> CodeGen<'a>{
 
 		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("    gen_assignment_to_collection target={} detail={}", target.token_value, detail);}
 	}
+
+	//	Compute an expression and then assign this value to a member of a struct.  
+	
+	//	TODO:  This code is remarkably similar to the gen_assignment_to_collection that we should be able
+	//	reduce the duplication.
+
+	//	TODO:  We need as generalized approach to updating an lvalue which is a n-dimensional array
+	//	to deal with both:  "foo:bar:zot:member = 5" and "foo[1,2,3] = 5".
+	fn gen_assignment_to_struct_member(&mut self, target : &Token, op : &Token, expression_list : &Vec<Token>, function_num : usize){		
+		//	The first thing we  do is generate the instructions to compute the index
+		//	which will result in the value we are updating the member with
+		self.gen_expression(expression_list, function_num);
+
+		let parts: Vec<&str> = target.token_value.split(':').collect();
+		let struct_name = parts[0].to_string();
+
+		//eprintln!("====== CodGen.gen_assignment_to_struct_member {} {:?} {}",parts.len(), parts, op.token_value);
+
+		//	get the address of the instantiated struct which is the underlying array
+		let struct_detail = self.symbol_table.get_normal_address(&struct_name);
+		let member_detail = self.symbol_table.get_struct_member_entry(&target.token_value);
+			
+		//	set the local id type to INDEXED
+		let mut local_target = target.clone();
+		local_target.token_type = TokenType::INDEXED_ID;
+		local_target.token_category = TokenCategory::IndexedId;
+
+		//	And we want to update the member element of the struct.  The instruction includes
+		//	the list of indexes required to find the element.  The order of this list
+		//	in inner array to outer array.  That is, the first index is the index of the
+		//	array that implements the struct and subsequent indices are for subsequent
+		//	substruct arrays
+		self.add_machine_instruction(
+			MachineInstruction::new(
+				self.op_to_opcode(op)
+				, OpcodeMode::UpdateStructElement
+				, self.symbol_table.current_frame()
+				, struct_detail.block_num
+				, struct_detail.index
+				, member_detail.index_list.clone()	// the path to the element
+				, member_detail.interner
+				, target.clone()
+			),function_num
+		);
+	
+		if self.cli.is_debug_bit(TRACE_CODE_GEN){eprintln!("CodeGen:gen_assignment_to_struct_member target={} indexes={:?}", target.token_value, member_detail.index_list);}
+	}
+
+
 
 	//	The syntax is:
 	//
@@ -2016,7 +1980,7 @@ impl<'a> CodeGen<'a>{
 	// pub fn gen_assignment_to_literal (&mut self, target : &Token, op : &Token, expression_list : &Vec<Token>, function_num : Option<usize>){
 	// }
 
-	pub fn gen_assignment(&mut self, target : &Token, op : &Token, target_index_expression : &Vec<Token>,expression_list : &Vec<Token>, function_num : usize){		
+	pub fn gen_assignment(&mut self, target : &Token, op : &Token, target_index_expression : &Vec<Token>, target_index_count : usize, expression_list : &Vec<Token>, function_num : usize){		
 		//	Here we test for x+=1 or x-=1 which we convert to x++ or x-- respectively
 		if op.token_type == TokenType::ASG_ADD_EQ || op.token_type == TokenType::ASG_SUB_EQ{
 			if expression_list.len() == 1 {
@@ -2040,7 +2004,7 @@ impl<'a> CodeGen<'a>{
 		if target_index_expression.len() == 0{
 			self.gen_assignment_to_scalar(target, op, expression_list, function_num);
 		}else{
-			self.gen_assignment_to_collection(target, op, target_index_expression, expression_list, function_num);
+			self.gen_assignment_to_collection(target, op, target_index_expression, target_index_count, expression_list, function_num);
 		}
 	}
 

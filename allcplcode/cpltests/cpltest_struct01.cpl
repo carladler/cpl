@@ -22,22 +22,12 @@ entry struct01{
 	
 	// println "inst:bar:pook:pook_member_2=".inst:bar:pook:pook_member_2;
 	inst:bar:bar_member_1 = "*** bar_member_1 ***";
-	
-	// println inst:bar:bar_member_1;
+	//println inst:bar:bar_member_1;
 
-	// println "these are wrong";
-	// println inst:bar:pook:pook_member_2;
-	// println inst:bar:zot:zot_member_1;
+	inst:bar:zot:zot_member_1 = 10023;
+	inst:bar:zot:zot_member_1 += 100;
+	println inst:bar:zot:zot_member_1;
+
+	inst:bar:pook:pook_member_2 = inst:baz:baz_member_1."xxx";
+	println inst:bar:pook:pook_member_2;
 }
-/*
-
-0:28 : exec_push: Push(lit) "1" Mode: Lit
-      push_lit_number: Push(lit) "1"
-0:29 : exec_push: Push(lit) "*** bar_member_1 ***" Mode: Lit
-     push_lit_string: Push(lit) "*** bar_member_1 ***"
-0:30 : exec_update: Update(update indexed) 0,0,0 (inst:bar:bar_member_1)
-      update_indexed: Update(update indexed) 0,0,0 (inst:bar:bar_member_1) VarRef: 0,0,0
-      update_indexed_direct: Update(update indexed) 0,0,0 (inst:bar:bar_member_1) VarRef: 0,0,0
-
-
-*/

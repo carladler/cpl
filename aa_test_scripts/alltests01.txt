@@ -1,13 +1,13 @@
 +/Users/carl/.zshenv:1> . /Users/carl/.cargo/env
 +/Users/carl/.cargo/env:4> case :/opt/homebrew/opt/php@7.4/sbin:/opt/homebrew/opt/php@7.4/bin:/opt/homebrew/opt/php@8.0/sbin:/opt/homebrew/opt/php@8.0/bin:/opt/homebrew/opt/llvm/bin:/opt/homebrew/bin:/opt/homebrew/opt/llvm/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/carl/.cargo/bin: (*:/Users/carl/.cargo/bin:*)
 +zsh:1> cargo run allcplcode/cpltests/cpltest_assign_update.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_assign_update.cpl`
 zot
-120
+100
 200
 three
-key1=1001
+key1=1
 key2=2
 key3=3
 key4=4
@@ -24,19 +24,14 @@ key4=4
 +zsh:3> cargo run allcplcode/cpltests/cpltest_basic_array.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_basic_array.cpl`
-array[1]=2
-array[2]=3
-array[2] after update=100
-array=[[1,2,100]]
-array after += =[[201,2,100]]
+100,1000,300
+1000
 +zsh:4> cargo run allcplcode/cpltests/cpltest_basic_assign.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_basic_assign.cpl`
 variable=1
 variable+=2 = 3
-thread 'main' panicked at cplvar/../allsources/cplvar.rs:1649:25:
-from CplString.apply_string_to_string: may only append or replace a string with a string. got:AppendEq
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+string.=b = xxxbb
 +zsh:5> cargo run allcplcode/cpltests/cpltest_basic_break.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_basic_break.cpl`
@@ -63,6 +58,7 @@ Done
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_basic_dict.cpl`
 three
+dumping dict
 3=three
 key1=one
 key2=well now, isn't this swell
@@ -105,25 +101,7 @@ Program exit with: Done with exit_test at 5
 array=[[one,two,three]]
 ===========  push test ==========
 Pushing four, Done, More
-target=one
-target=two
-target=three
-target=four
-target=Done
-target=More
-===========  Pop test ==========
-popped(should be 'More')=More
-target=one
-target=two
-target=three
-target=four
-target=Done
-===========  Break test ==========
-continuing: one
-continuing: two
-continuing: three
-breaking: four
-end: four
+Cpl Abend from CplVar.apply_binary_operator_scalar:  unable to perform AddEq on type CplArray: ["one"], ["two"], ["three"]
 +zsh:14> cargo run allcplcode/cpltests/cpltest_basic_if.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_basic_if.cpl`
@@ -163,14 +141,10 @@ key4=four
 +zsh:18> cargo run allcplcode/cpltests/cpltest_basic_matrix.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_basic_matrix.cpl`
-10
-100
 one
-20
-200
+2
+3
 two
-30
-300
 three
 +zsh:19> cargo run allcplcode/cpltests/cpltest_basic_multi_level_struct.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
@@ -198,15 +172,18 @@ this != thit
 this < thit
 xx1234 < yy12345
 123 < 124
-thread 'main' panicked at cplvar/../allsources/cplvar.rs:1649:25:
-from CplString.apply_string_to_string: may only append or replace a string with a string. got:AppendEq
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+this is s3 with 4 with 4
+this is s3 with 4 with 4 with 5
 +zsh:22> cargo run allcplcode/cpltests/cpltest_basic_struct.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_basic_struct.cpl`
-foo:member_a=hello
-foo.member b
-hello,foo.member b,foo.member c
+foo:member_1
+bar:member_1
+zot:member_1
+pook:member_1
+pook:member_2
+bas:member_1
+foo.member_2
 +zsh:23> cargo run allcplcode/cpltests/cpltest_basic_unary.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_basic_unary.cpl`
@@ -451,8 +428,8 @@ test
 start array: [[1,2,3]]
 update 1: [[100,2,3]]
 fun1: array_param: [[100,2,3]]
-fun1: array_param[1] after update: 200
-array after call to fun1: [[100,200,3]]
+fun1: array_param[1] after update: 2
+array after call to fun1: [[100,2,3]]
 fun2:fun_array: [[100,200,300]]
 fun2:fun_array[0]101
 +zsh:46> cargo run allcplcode/cpltests/cpltest_command_line_args.cpl 1 2 3 4 5
@@ -501,26 +478,39 @@ skipping 5
 7
 skipping 8
 9
-+zsh:48> cargo run allcplcode/cpltests/cpltest_eval.cpl
++zsh:48> cargo run allcplcode/cpltests/cpltest_dict00.cpl
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running `target/debug/main allcplcode/cpltests/cpltest_dict00.cpl`
+yes
+yes
++zsh:49> cargo run allcplcode/cpltests/cpltest_dict01.cpl
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running `target/debug/main allcplcode/cpltests/cpltest_dict01.cpl`
+first=3
+second=33
+three=33
+one=1
+two=2
++zsh:50> cargo run allcplcode/cpltests/cpltest_eval.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_eval.cpl`
 ************ 1
 2
 bloot
-+zsh:49> cargo run allcplcode/cpltests/cpltest_exp00.cpl
++zsh:51> cargo run allcplcode/cpltests/cpltest_exp00.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_exp00.cpl`
 This test requires at least 1 numeric command line argument
-+zsh:50> cargo run allcplcode/cpltests/cpltest_exp01.cpl
++zsh:52> cargo run allcplcode/cpltests/cpltest_exp01.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_exp01.cpl`
 152.8
-+zsh:51> cargo run allcplcode/cpltests/cpltest_fc00.cpl
++zsh:53> cargo run allcplcode/cpltests/cpltest_fc00.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_fc00.cpl`
 This test requires at least 2 command line arguments
 Program exit with: eek
-+zsh:52> cargo run allcplcode/cpltests/cpltest_fc01.cpl
++zsh:54> cargo run allcplcode/cpltests/cpltest_fc01.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_fc01.cpl`
 bar a=22
@@ -528,7 +518,7 @@ returning a*2: 44
 foo a,b,c=10,59,100
 returning a*b+c: 690
 345
-+zsh:53> cargo run allcplcode/cpltests/cpltest_fc02.cpl
++zsh:55> cargo run allcplcode/cpltests/cpltest_fc02.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_fc02.cpl`
 2
@@ -625,64 +615,64 @@ onetwo
 8
 9
 10
-+zsh:54> cargo run allcplcode/cpltests/cpltest_fc03.cpl
++zsh:56> cargo run allcplcode/cpltests/cpltest_fc03.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_fc03.cpl`
-+zsh:55> cargo run allcplcode/cpltests/cpltest_fc04.cpl
++zsh:57> cargo run allcplcode/cpltests/cpltest_fc04.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_fc04.cpl`
 foo.member b
-new value for member c
-+zsh:56> cargo run allcplcode/cpltests/cpltest_fc05.cpl
+foo.member c
++zsh:58> cargo run allcplcode/cpltests/cpltest_fc05.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_fc05.cpl`
-After call to set_array: bloot
+After call to set_array: 100
 key1=one
-key2=NEW KEY2
+key2=two
 key3=three
 key4=four
-After all to set_dict: NEW KEY2
-+zsh:57> cargo run allcplcode/cpltests/cpltest_fc06.cpl
+After all to set_dict: two
++zsh:59> cargo run allcplcode/cpltests/cpltest_fc06.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_fc06.cpl`
 100
 200
 300
-40333
-tada!
+100
+200
 300
-+zsh:58> cargo run allcplcode/cpltests/cpltest_fc07.cpl
++zsh:60> cargo run allcplcode/cpltests/cpltest_fc07.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_fc07.cpl`
 At fun1
 At fun2
-Argggg!
-+zsh:59> cargo run allcplcode/cpltests/cpltest_fc08.cpl
+Hello
++zsh:61> cargo run allcplcode/cpltests/cpltest_fc08.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_fc08.cpl`
-101,102,103
-+zsh:60> cargo run allcplcode/cpltests/cpltest_foreach00.cpl
+1,2,3
++zsh:62> cargo run allcplcode/cpltests/cpltest_foreach00.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_foreach00.cpl`
 This test requires command line arguments
-+zsh:61> cargo run allcplcode/cpltests/cpltest_foreach01.cpl
++zsh:63> cargo run allcplcode/cpltests/cpltest_foreach01.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_foreach01.cpl`
 This test requires at least 1 command line argument
-+zsh:62> cargo run allcplcode/cpltests/cpltest_if00.cpl
++zsh:64> cargo run allcplcode/cpltests/cpltest_if00.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_if00.cpl`
 This test requires command line arguments
-+zsh:63> cargo run allcplcode/cpltests/cpltest_include.cpl
++zsh:65> cargo run allcplcode/cpltests/cpltest_include.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_include.cpl`
 in ENTRY -- foo:member_a=hello
 foo.member b
 at fun1 -- s:member_a=hello
-Back at ENTRY -- foo:member_b=foo.member b---goodbye
+Back at ENTRY -- foo:member_b=foo.member b
 this var was included: 1000
 goo=hello
-+zsh:64> cargo run allcplcode/cpltests/cpltest_literal00.cpl
++zsh:66> cargo run allcplcode/cpltests/cpltest_literal00.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_literal00.cpl`
 0
@@ -691,36 +681,21 @@ goo=hello
 1
 2
 3
-+zsh:65> cargo run allcplcode/cpltests/cpltest_op_overload.cpl
++zsh:67> cargo run allcplcode/cpltests/cpltest_op_overload.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_op_overload.cpl`
 ==========  Testing += ==========
 one,two,three
 four,five,six
-one,two,three,three.1
-one,two,three,three.1,four,five,six
-CplString
-CplString
-CplString
-CplString
-CplString
-CplString
-CplString
-=========== Testing . (cat) =========
-hello world
-hello world49
-49hello world
-thread 'main' panicked at cplvar/../allsources/cplvar.rs:1649:25:
-from CplString.apply_string_to_string: may only append or replace a string with a string. got:AppendEq
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-+zsh:66> cargo run allcplcode/cpltests/cpltest_pass_by_reference.cpl
+Cpl Abend from CplVar.apply_binary_operator_scalar:  unable to perform AddEq on type CplArray: ["one"], ["two"], ["three"]
++zsh:68> cargo run allcplcode/cpltests/cpltest_pass_by_reference.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_pass_by_reference.cpl`
 10
 110
 30
 1,2,3
-+zsh:67> cargo run allcplcode/cpltests/cpltest_predicates.cpl
++zsh:69> cargo run allcplcode/cpltests/cpltest_predicates.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_predicates.cpl`
 okay1
@@ -729,71 +704,50 @@ okay3
 okay4
 okay5
 okay6
-+zsh:68> cargo run allcplcode/cpltests/cpltest_return00.cpl
++zsh:70> cargo run allcplcode/cpltests/cpltest_return00.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_return00.cpl`
 100
-+zsh:69> cargo run allcplcode/cpltests/cpltest_return01.cpl
++zsh:71> cargo run allcplcode/cpltests/cpltest_return01.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_return01.cpl`
 foo.arg=10
 bar.arg=11
 99
-+zsh:70> cargo run allcplcode/cpltests/cpltest_return02.cpl
++zsh:72> cargo run allcplcode/cpltests/cpltest_return02.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_return02.cpl`
 Average=99999
-+zsh:71> cargo run allcplcode/cpltests/cpltest_reuse_var.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
++zsh:73> cargo run allcplcode/cpltests/cpltest_reuse_var.cpl
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_reuse_var.cpl`
 1001
 foo.member b
 1
 5000
-+zsh:72> cargo run allcplcode/cpltests/cpltest_struct01.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.03s
++zsh:74> cargo run allcplcode/cpltests/cpltest_struct00.cpl
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running `target/debug/main allcplcode/cpltests/cpltest_struct00.cpl`
+foo:member_1
+bar:member_1
+zot:member_1
+pook:member_1
+pook:member_2
+bas:member_1
+foo.member_2
++zsh:75> cargo run allcplcode/cpltests/cpltest_struct01.cpl
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_struct01.cpl`
-hello
-foo_member_b
-this is a dummy
-foo_member_b
-3
-1003
-4
-7
-3000
-bar:a=1
-bar:c=3
-bar:a+=bar:c:4
-0.5714285714285714
-at fun1
-hello
-function fun
-1
-2
-3
-tada!
-1
-500
-1
-500
-3
-at fun2
-b:a=0.5714285714285714
-b:c=3
-b:a+=b:c:3.571428571428571
-+zsh:73> cargo run allcplcode/cpltests/cpltest_struct02.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
-     Running `target/debug/main allcplcode/cpltests/cpltest_struct02.cpl`
-2
-+zsh:74> cargo run allcplcode/cpltests/cpltest_while00.cpl
+10123
+bas:member_1xxx
++zsh:76> cargo run allcplcode/cpltests/cpltest_while00.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_while00.cpl`
 i=0
 i=1
 blat 2
 i=3
-+zsh:75> cargo run allcplcode/cpltests/cpltest_while01.cpl
++zsh:77> cargo run allcplcode/cpltests/cpltest_while01.cpl
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_while01.cpl`
 i,j=0,0
@@ -813,8 +767,8 @@ i,j=3,1
 i,j=3,2
 i,j=3,3
 end
-+zsh:76> cargo run allcplcode/cpltests/cpltest_while02.cpl
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
++zsh:78> cargo run allcplcode/cpltests/cpltest_while02.cpl
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/cpltest_while02.cpl`
 i=0
 i=1
@@ -824,6 +778,6 @@ J=0
 J=1
 J=2
 J=3
-+zsh:77> cargo run allcplcode/cpltests/trans.cpl allsources/transitions.txt
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
++zsh:79> cargo run allcplcode/cpltests/trans.cpl allsources/transitions.txt
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
      Running `target/debug/main allcplcode/cpltests/trans.cpl allsources/transitions.txt`

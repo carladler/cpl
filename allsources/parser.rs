@@ -1265,8 +1265,10 @@ impl <'a> Parser<'a>{
 			token.token_category = TokenCategory::ArgSeparator;
 		}else if *context == ParserContext::CollectionSource{
 			//  just accept this contet
+		}else if *context == ParserContext::IndexedTarget{
+			//	and this context as well?????
 		}else{
-			abend!(format!("from expression_list_item:  unknown parser context: {}", context));
+			panic!("from expression_list_item:  unknown parser context: {}", context);
 		}
 
 		self.infix_expression.push(token.clone());	
