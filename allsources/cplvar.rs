@@ -62,7 +62,6 @@ pub enum CplDataType{
 	CplVarRef(CplVarRef),					// pointer to a CplVar
 	CplFileReader(CplFileReader),
 	CplFileWriter(CplFileWriter),
-	CplFileAppender(CplFileAppender),
 	CplUninitialized(CplUninitialized),
 	CplUndefined(CplUndefined),
 }
@@ -79,7 +78,6 @@ impl fmt::Display for CplDataType{
 			CplDataType::CplString(s) => write!(f,"\"{}\"", s.cpl_string),
 			CplDataType::CplFileReader(s) => write!(f,"CplFileReader: \"{}\"", s.file_name),
 			CplDataType::CplFileWriter(s) => write!(f,"CplFileWriter: \"{}\"", s.file_name),
-			CplDataType::CplFileAppender(s) => write!(f,"CplFileAppender: \"{}\"", s.file_name),
 			CplDataType::CplStruct(_) => write!(f,"CplStruct"),
 	   }
 	}
@@ -98,7 +96,6 @@ impl Clone for CplDataType{
 			CplDataType::CplString(v) => CplDataType::CplString(CplString::new(v.cpl_string.clone())),
 			CplDataType::CplFileReader(_) => abend!(format!("Unable to clone CplFileReader")),
 			CplDataType::CplFileWriter(_) => abend!(format!("Unable to clone CplFileWriter")),
-			CplDataType::CplFileAppender(_) => abend!(format!("Unable to clone CplFileAppender")),
 			CplDataType::CplStruct(a) => CplDataType::CplStruct(a.clone()),
 	   }
 	}
@@ -804,7 +801,6 @@ impl OperandStack{
 			CplDataType::CplVarRef(_)				=> rtn = "CplVarRef",
 			CplDataType::CplFileReader(_) 			=> rtn = "CplFileHandle",
 			CplDataType::CplFileWriter(_) 			=> rtn = "CplFileHandle",
-			CplDataType::CplFileAppender(_) 		=> rtn = "CplFileHandle",
 			CplDataType::CplDict(_) 				=> rtn = "CplDict",
 			CplDataType::CplStruct(_)				=> rtn = "CplStruct",
 		}
@@ -888,17 +884,17 @@ impl OperandStack{
 		for element in &array.cpl_array{
 			if element.interner > 0 {
 				if begin{
-					eprint!("{} ({})",element, self.namelist[element.interner]);
+					eprint!("{}({})",element, self.namelist[element.interner]);
 					begin = false;
 				}else{
-					eprint!(",{} ({})",element, self.namelist[element.interner]);
+					eprint!(", {}({})",element, self.namelist[element.interner]);
 				}
 			}else{
 				if begin{
-					eprint!("{} ()",element);
+					eprint!("{}",element);
 					begin = false;
 				}else{
-					eprint!(",{} ()",element);
+					eprint!(", {}",element);
 				}
 			}
 		}
@@ -931,7 +927,7 @@ impl OperandStack{
 							let variable = &self.operand_frames[frame_num].operand_blocks[block_num].operand_block[variable_num];
 
 							if let CplDataType::CplArray(ref array) = variable.var{
-								eprint!("      ");
+								eprint!("      ({}):  ",self.namelist[variable.interner]);
 								self.dump_array(array);
 							}else{
 								eprintln!("      {}: {} ({})",variable_num, variable, self.namelist[variable.interner]);
@@ -1097,7 +1093,6 @@ impl CplVar{
 			CplDataType::CplString(_) => if let CplDataType::CplString(_) = self.var {return true}else{return false},
 			CplDataType::CplFileReader(_) => if let CplDataType::CplFileReader(_) = self.var {return true}else{return false},
 			CplDataType::CplFileWriter(_) => if let CplDataType::CplFileWriter(_) = self.var {return true}else{return false},
-			CplDataType::CplFileAppender(_) => if let CplDataType::CplFileAppender(_) = self.var {return true}else{return false},
 			CplDataType::CplStruct(_) => if let CplDataType::CplStruct(_) = self.var {return true}else{return false},
 		}
 	}
@@ -1110,8 +1105,7 @@ impl CplVar{
 			CplDataType::CplArray(_) |
 			CplDataType::CplDict(_) |
 			CplDataType::CplFileReader(_) |
-			CplDataType::CplFileWriter(_) |
-			CplDataType::CplFileAppender(_) => {
+			CplDataType::CplFileWriter(_) => {
 				if warn{
 					eprintln!("Warning: unable compare {} with {}", self.var, v.var);
 				}
@@ -1222,7 +1216,6 @@ impl CplVar{
 			CplDataType::CplDict(_) 				=> eprintln!("Dictionary"),
 			CplDataType::CplFileReader(_) 			=> eprintln!("File Reader"),
 			CplDataType::CplFileWriter(_) 			=> eprintln!("File Writer"),
-			CplDataType::CplFileAppender(_) 		=> eprintln!("File Appender"),
 			CplDataType::CplStruct(a)				=> a.print(),
 		}
 	}
@@ -1255,7 +1248,6 @@ impl fmt::Display for CplVar{
 			CplDataType::CplDict(_) 			=> write!(f,"Dictionary"),
 			CplDataType::CplFileReader(_) 		=> write!(f,"File Reader"),
 			CplDataType::CplFileWriter(_) 		=> write!(f,"File Writer"),
-			CplDataType::CplFileAppender(_) 	=> write!(f,"File Appender"),
 			CplDataType::CplStruct(_)			=> write!(f,"Struct"),
 		}	
 	}
@@ -2063,11 +2055,25 @@ pub struct CplFileWriter{
 }
 
 impl CplFileWriter{
-	pub fn new(file_name : &str) -> CplFileWriter{
+	pub fn new(file_name : &str, append_flag : bool) -> CplFileWriter{
 		CplFileWriter{
 			file_name : file_name.to_string(),
 			last_error : String::new(),
-			writer : BufWriter::new(File::create(file_name).expect(&format!("--Unable to open {}--\n",file_name))),
+			//writer : BufWriter::new(File::create(file_name).expect(&format!("--Unable to open {}--\n",file_name))),
+			writer : if append_flag{
+				 BufWriter::new(OpenOptions::new()
+				.append(true)
+            	.create(true)
+            	.open(file_name)
+				.expect(&format!("--Unable to open {}--\n",file_name)))
+			}else{
+				BufWriter::new(OpenOptions::new()
+				.write(true)
+				.truncate(true)
+            	.create(true)
+            	.open(file_name)
+				.expect(&format!("--Unable to open {}--\n",file_name)))
+			},
 		}
 	}
 	
@@ -2130,82 +2136,6 @@ impl Ord for CplFileWriter {
     }
 }
 
-pub struct CplFileAppender{
-	pub file_name : String,
-	pub last_error : String,
-	pub writer : BufWriter<File>,
-}
-
-impl CplFileAppender{
-	pub fn new(file_name : &str) -> CplFileAppender{
-		CplFileAppender{
-			file_name : file_name.to_string(),
-			last_error : String::new(),
-			writer : BufWriter::new(OpenOptions::new()
-				.append(true)
-            	.create(true)
-            	.open(file_name)
-				.expect(&format!("--Unable to open {}--\n",file_name))),
-		}
-	}
-
-	pub fn write_array(&mut self, array : &CplVar, writeln : bool){
-		if let CplDataType::CplArray(ref a) = array.var{
-			let mut i = 0;
-			for item in &a.cpl_array{
-				if i > 0{
-					self.write(",",false);
-				}
-
-				match &item.var{
-					CplDataType::CplNumber (n) => self.write(&n.cpl_number.to_string(),false),
-					CplDataType::CplString (s) => {
-						match s.cpl_string.find(','){
-							None => self.write(&s.cpl_string,false),
-							Some(_) => {
-								self.write("\"", false);
-								self.write(&s.cpl_string,false);
-								self.write("\"", false);
-							},
-						}
-						
-					},
-					CplDataType::CplBool   (b) => self.write(&b.cpl_bool.to_string(),false),
-					_=> self.write(&format!("blat! {}",item.var),false),
-				}
-				i+=1;
-			}
-			
-			if writeln{
-				self.write("\n",false);
-			}
-		}
-	}
-	
-	pub fn write(&mut self, line : &str, writeln : bool){
-		if writeln{
-			self.writer.write_all(format!("{}\n",line).as_bytes()).expect("Unable to write data");
-		}else{
-			self.writer.write_all(line.as_bytes()).expect("Unable to write data");
-		}
-	}
-}
-impl PartialEq for CplFileAppender{
-	fn eq(&self, _other : &Self) -> bool{
-		abend!(format!(".....CplFileAppender"));
-	}
-}
-impl Eq for CplFileAppender{}
-impl PartialOrd for CplFileAppender {
-    fn partial_cmp(&self, _other: &Self) -> Option<Ordering> {
-        abend!(format!("......CplFileAppender"));
-    }
-}
-impl Ord for CplFileAppender {
-    fn cmp(&self, _other: &Self) -> Ordering {
-        abend!(format!("......CplFileAppender"));
-    }
-}
 
 #[derive(PartialEq,Clone, Eq, Hash, Debug, Ord, PartialOrd)]
 pub struct CplKey{

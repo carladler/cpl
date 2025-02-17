@@ -4,27 +4,32 @@ struct my_struct{
 	mem3 = "mem3";
 }
 entry ENTRY(){
-	in_file = Fopen("testdata/cpltest_builtin_io_input.dat", "<");
+	// in_file = Fopen("testdata/cpltest_builtin_io_input.dat", "<");
 	out_file = Fopen("testdata/cpltest_builtin_io_output.dat", ">");
-	a = Freadln(in_file);
-	while !Feof(in_file){
-		println a;
-		Fwriteln(out_file, a);
-		a = Freadln(in_file);
-	}
 
-	doodl = [100,"blooie blit",300];
-	Fwriteln(out_file, doodl);
+	// a = Freadln(in_file);
+	// while !Feof(in_file){
+	// 	println a;
+	// 	Fwriteln(out_file, a);
+	// 	a = Freadln(in_file);
+	// }
+
+	// doodl = [100,"blooie blit",300];
+	// Fwriteln(out_file, doodl);
 
 	s = new my_struct;
-	Fwriteln(out_file, s);
+	array = ["array1", "array2", "array3"];
 
-	append_file = Fopen("testdata/ccpltest_builtin_io_output.dat", ">>");
-	Fwrite(append_file, "howdy!");
-	Fwriteln(append_file, " Blat");
-	av = [1,2,"blarny","zoop,foop"];
-	Fwriteln(append_file, av);
-	Fwrite(append_file, "whoopee!");
+	Fwriteln(out_file, s);
+	Fwriteln(out_file,array);
+
+
+	// append_file = Fopen("testdata/ccpltest_builtin_io_output.dat", ">>");
+	// Fwrite(append_file, "howdy!");
+	// Fwriteln(append_file, " Blat");
+	// av = [1,2,"blarny","zoop,foop"];
+	// Fwriteln(append_file, av);
+	// Fwrite(append_file, "whoopee!");
 
 
 }

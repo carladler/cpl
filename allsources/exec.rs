@@ -1020,7 +1020,6 @@ impl<'a> Executor<'a>{
 			CplDataType::CplUndefined(_) => return CplVar::new(CplDataType::CplUndefined(CplUndefined::new())),
 			CplDataType::CplFileReader(handle) => return CplVar::new(CplDataType::CplFileReader(handle)),
 			CplDataType::CplFileWriter(handle) => return CplVar::new(CplDataType::CplFileWriter(handle)),
-			CplDataType::CplFileAppender(handle) => return CplVar::new(CplDataType::CplFileAppender(handle)),
 			CplDataType::CplDict(d) => return CplVar::new(CplDataType::CplDict(d.clone())),
 			CplDataType::CplStruct(s) => return CplVar::new(CplDataType::CplArray(s.clone())),
 			//_ => panic!("From grab_an_argument:  I don't understand this {}", tos.var)

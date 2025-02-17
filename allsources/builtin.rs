@@ -548,10 +548,10 @@ impl BuiltinFunctions {
 			},
 			'>' =>{
 				if open_mode.len() == 2 && open_mode.as_bytes()[1] as char == '>'{
-					self.opens.push(CplVar::new(CplDataType::CplFileAppender(CplFileAppender::new(&file_name))));
+					self.opens.push(CplVar::new(CplDataType::CplFileWriter(CplFileWriter::new(&file_name, true))));
 					return CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Int, (self.opens.len()-1) as f64)));
 				}else{
-					self.opens.push(CplVar::new(CplDataType::CplFileWriter(CplFileWriter::new(&file_name))));
+					self.opens.push(CplVar::new(CplDataType::CplFileWriter(CplFileWriter::new(&file_name, false))));
 					return CplVar::new(CplDataType::CplNumber(CplNumber::new(RustDataType::Int, (self.opens.len()-1) as f64)));	
 				}
 			},
@@ -618,17 +618,6 @@ impl BuiltinFunctions {
 		if let CplDataType::CplNumber(cpl_num) = &arguments[argslen-1].var{
 			let file_num = cpl_num.cpl_number;
 			if let CplDataType::CplFileWriter(ref mut w) = self.opens[file_num as usize].var{
-				match &arguments[argslen-2].var{
-					CplDataType::CplString(s) => w.write(&s.cpl_string, writeln),
-					CplDataType::CplNumber(n) => w.write(&n.cpl_number.to_string(), writeln),
-					CplDataType::CplBool(b) => w.write(&b.cpl_bool.to_string(), writeln),
-					CplDataType::CplVarRef(vr) => {
-						let array = operand_stack.operand_frames.get(vr.frame_num).unwrap().operand_blocks.get(vr.block_num).unwrap().operand_block.get(vr.address).unwrap();
-						w.write_array(array, writeln);					
-					}
-					_ => abend!(format!("Unable to write from a variable of type {}", &arguments[argslen-2].var)),
-				}
-			}else if let CplDataType::CplFileAppender(ref mut w) = self.opens[file_num as usize].var{
 				match &arguments[argslen-2].var{
 					CplDataType::CplString(s) => w.write(&s.cpl_string, writeln),
 					CplDataType::CplNumber(n) => w.write(&n.cpl_number.to_string(), writeln),
