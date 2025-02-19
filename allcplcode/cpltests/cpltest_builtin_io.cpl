@@ -1,35 +1,48 @@
 struct my_struct{
-	mem1 = "mem1";
-	mem2 = "mem2";
-	mem3 = "mem3";
+	mem1 = 1;
+	struct sub1{
+		sub1_mem1="1x";
+		struct sub1a{
+			sub1a_mem1="blah blah blah";
+			sub1a_mem2=4;
+		}
+		sub2_mem2=5;
+	}
+	mem2 = 6;
+	mem3 = 7;
 }
+
 entry ENTRY(){
-	// in_file = Fopen("testdata/cpltest_builtin_io_input.dat", "<");
+	in_file = Fopen("testdata/cpltest_builtin_io_input.dat", "<");
 	out_file = Fopen("testdata/cpltest_builtin_io_output.dat", ">");
 
-	// a = Freadln(in_file);
-	// while !Feof(in_file){
-	// 	println a;
-	// 	Fwriteln(out_file, a);
-	// 	a = Freadln(in_file);
-	// }
+	a = Freadln(in_file);
+	while !Feof(in_file){
+		println a;
+		Fwriteln(out_file, a);
+		a = Freadln(in_file);
+	}
 
-	// doodl = [100,"blooie blit",300];
-	// Fwriteln(out_file, doodl);
+	doodl = [100,"blooie blit",300];
+	Fwriteln(out_file, doodl);
 
+	a = ["array_item1", 0, "array_item3"];
+	b = [1,2,3];
+	a[1] = b;
 	s = new my_struct;
-	array = ["array1", "array2", "array3"];
 
+	Fwriteln(out_file, "******* Begin Struct Output ********");
 	Fwriteln(out_file, s);
-	Fwriteln(out_file,array);
+	Fwriteln(out_file, "******* End Struct Output ********");
+	Fwriteln(out_file, a);
 
 
-	// append_file = Fopen("testdata/ccpltest_builtin_io_output.dat", ">>");
-	// Fwrite(append_file, "howdy!");
-	// Fwriteln(append_file, " Blat");
-	// av = [1,2,"blarny","zoop,foop"];
-	// Fwriteln(append_file, av);
-	// Fwrite(append_file, "whoopee!");
-
-
+	append_file = Fopen("testdata/cpltest_builtin_io_output.dat", ">>");
+	
+	Fwriteln(out_file, "******* Begin Appended Data ********");
+	Fwrite(append_file, "howdy!");
+	Fwriteln(append_file, " Blat");
+	av = [1,2,"blarny","zoop,foop"];
+	Fwriteln(append_file, av);
+	Fwrite(append_file, "whoopee!");
 }

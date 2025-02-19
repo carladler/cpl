@@ -615,6 +615,18 @@ impl BuiltinFunctions {
 
 		let argslen = arguments.len();
 
+		//	Now fetch the qualifier from the open mode.  Open Modes are:
+		//
+		//		">"		create new and write normally
+		//		">>"	append to existing and write normally
+		//		">#"	Create new and write arrays as xml if possible
+		//		">>#"	Create new and write arrays as xml if possible
+		//
+		//	When "#" flag is set and the array and the interner name has a ":" suffix then
+		//	we interpret the array as a struct and, therefore, can generate an xml document
+		//	whose tags are the interners.  The tags are the same name as the struct, substruct and field
+		//	names.
+
 		if let CplDataType::CplNumber(cpl_num) = &arguments[argslen-1].var{
 			let file_num = cpl_num.cpl_number;
 			if let CplDataType::CplFileWriter(ref mut w) = self.opens[file_num as usize].var{
@@ -624,7 +636,10 @@ impl BuiltinFunctions {
 					CplDataType::CplBool(b) => w.write(&b.cpl_bool.to_string(), writeln),
 					CplDataType::CplVarRef(vr) => {
 						let array = operand_stack.operand_frames.get(vr.frame_num).unwrap().operand_blocks.get(vr.block_num).unwrap().operand_block.get(vr.address).unwrap();
-						w.write_array(array, writeln);					
+						match operand_stack.namelist[array.interner].find(':'){
+							None => w.write_array(array, writeln),
+							Some(_) => w.write_xml(array, &operand_stack.namelist),
+						}
 					}
 					_ => abend!(format!("Unable to write from a variable of type {}", &arguments[argslen-2].var)),
 				}

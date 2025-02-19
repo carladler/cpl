@@ -454,47 +454,6 @@ impl SymbolTableFrame{
 		}
 	}
 
-	//	Does exactly the same thing as add_normal_symbol but sets the type to
-	//	StructEntry
-	pub fn add_struct_symbol(&mut self, symbol : &String, interner : usize) -> StructEntry {
-		//	get the current block number
-		let block_num = self.table.len() - 1;
-
-		//println!("{}SymbolTableFrame.add_struct_symbol: block_num: {}", DEBUG_INDENT, block_num);
-
-		//	get the current block
-		let symbol_table_block = self.table.get_mut(block_num).unwrap();
-
-
-		//	If the current block already contains the symbol then
-		//	we return it's detail
-		match symbol_table_block.table.get(symbol){
-			Some(d) => if let SymbolTableEntryType::StructEntry(n) = d{
-				return n.clone();
-			},
-			None => {}
-		};
-
-
-		//	otherwise, get the current index
-		let index = symbol_table_block.current_index;
-
-		let struct_entry = StructEntry::new(block_num, index, interner);
-
-		let entry = SymbolTableEntryType::StructEntry(struct_entry.clone());
-
-		//	Add the new symbol
-		symbol_table_block.table.insert(symbol.clone(), entry.clone());
-
-
-		//	Update the index
-		symbol_table_block.current_index = index + 1;
-
-		//if self.cli.is_debug_bit(TRACE_CODE_GEN){println!("SymbolTable:add_symbol \"{}\" block={} address={}", symbol.clone(), block_num, symbol_table_block.current_index);}
-
-		struct_entry
-	}
-
 	//	Add a literal
 	pub fn add_literal (&mut self, symbol : &str, value : &LiteralType){
 		let block_num = self.table.len() - 1;
@@ -767,16 +726,16 @@ impl <'a> SymbolTable <'a>{
 		frame.get_normal_symbol_entry(symbol)
 	}
 
-	//	Add a struct symbol and return it's entry.  If it already exists, just
-	//	return the normal entry
-	pub fn add_struct_symbol(&mut self, symbol : &String) -> StructEntry {
+	//	Invokes add_normal_symbol after adding a special name to the names list
+	//	The name is <symbol>: (i.e. ":" appended to the symble)
+	pub fn add_struct_symbol(&mut self, symbol : &String) -> NormalSymbolEntry {
 		//	get the element of the function symbol list
 		let frame : &mut SymbolTableFrame = self.tables.last_mut().unwrap(); 
 
-		let interner = self.names.borrow_mut().add(symbol);
+		let interner = self.names.borrow_mut().add(&format!("{}:", symbol));
 
 		//	and return the entry (or None)
-		frame.add_struct_symbol(symbol, interner)
+		frame.add_normal_symbol(symbol, interner)
 	}
 
 	//	Add a normal symbol and return it's entry.  If it already exists, just

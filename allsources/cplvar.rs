@@ -159,7 +159,7 @@ impl fmt::Display for CplDataTypeInspected{
 pub struct OperandStack{
 	pub operand_frames : Vec<OperandFrame>,
 	cli_warnings : bool,
-	namelist : Vec<String>,
+	pub namelist : Vec<String>,
 }
 impl OperandStack{
 	pub fn new(cli_warnings : bool, namelist : Vec<String>) -> OperandStack{
@@ -2076,41 +2076,115 @@ impl CplFileWriter{
 			},
 		}
 	}
-	
-	pub fn write_array(&mut self, array : &CplVar, writeln : bool){
-		if let CplDataType::CplArray(ref a) = array.var{
-			let mut i = 0;
-			for item in &a.cpl_array{
-				if i > 0{
-					self.write(",",false);
-				}
 
-				match &item.var{
-					CplDataType::CplNumber (n) => self.write(&n.cpl_number.to_string(),false),
-					CplDataType::CplString (s) => {
-						match s.cpl_string.find(','){
-							None => self.write(&s.cpl_string,false),
-							Some(_) => {
-								self.write("\"", false);
-								self.write(&s.cpl_string,false);
-								self.write("\"", false);
-							},
-						}
-						
-					},
-					CplDataType::CplBool   (b) => self.write(&b.cpl_bool.to_string(),false),
-					_=> self.write(&format!("blat! {}",item.var),false),
-				}
-				i+=1;
+	
+	fn write_array_helper(&mut self, array : &CplArray){
+		let mut i = 0;
+		for item in &array.cpl_array{
+			if i > 0{
+				self.write(",",false);
 			}
-			
-			if writeln{
-				self.write("\n",false);
+			match &item.var{
+				CplDataType::CplNumber (n) => {
+					self.write(&n.cpl_number.to_string(),false);
+				}
+				CplDataType::CplString (s) => {
+					match s.cpl_string.find(','){
+						None => {
+							self.write(&s.cpl_string,false);
+						}
+						Some(_) => {
+							self.write("\"", false);
+							self.write(&s.cpl_string,false);
+							self.write("\"", false);
+						},
+					}
+				},
+				CplDataType::CplBool   (b) => {
+					self.write(&b.cpl_bool.to_string(),true);
+				}
+				CplDataType::CplArray  (a) => {
+					self.write_array_helper(a);
+				}
+				_=> self.write(&format!("blat! {}",item.var),false),
+			}
+			i+=1;
+		}
+	}
+
+	pub fn write_array(&mut self, array : &CplVar, writeln : bool){
+		//	if the array has a name then it mean we're writing a struct
+		if let CplDataType::CplArray(ref a) = array.var{
+			self.write_array_helper(a);
+		}
+		if writeln{
+			self.write("\n",false);
+		}
+	}
+
+	// fn xml_tag(&mut self, interner : usize, namelist : &Vec<String>) -> String{
+	// 	//let name = namelist[interner];
+	// 	// let parts = namelist[interner].split(':');
+	// 	// parts.last().unwrap().to_string()
+	// 	namelist[interner].split(':').last().unwrap().to_string()
+	// }
+
+	//	If the interner for the array has a ':' in it, we assumed that the output
+	//	of the array should be xml.  The structure of this xml is:
+	//
+	//		<array name>
+	//			<element name>value</element name>
+	//			<child name>
+	//				<element name>value</element name>
+	//			</child name>
+	//		</array name>
+	//
+	//	Or so we think.
+	fn write_xml_helper(&mut self, array : &CplArray, namelist : &Vec<String>){
+
+		#[macro_export]
+		macro_rules! xml_tag{
+			($interner:expr) =>{
+				{
+					namelist[$interner].split(':').last().unwrap().to_string()
+				}
+			}
+		}
+
+
+
+		for item in &array.cpl_array{
+			match &item.var{
+				CplDataType::CplNumber (n) => {
+					self.write(&format!("<{}>{}</{}>",xml_tag!(item.interner), n.cpl_number.to_string(),xml_tag!(item.interner)),true);
+				}
+				CplDataType::CplString (s) => {
+					self.write(&format!("<{}>{}</{}>",xml_tag!(item.interner), s.cpl_string, xml_tag!(item.interner)),true);
+				},
+				CplDataType::CplBool   (b) => {
+					self.write(&format!("<{}>{}</{}>",xml_tag!(item.interner), b.cpl_bool.to_string(), xml_tag!(item.interner)),true);
+				}
+				CplDataType::CplArray  (a) => {
+					self.write(&format!("<{}>",xml_tag!(item.interner)),true);
+					self.write_xml_helper(a, namelist);
+					self.write(&format!("</{}>",xml_tag!(item.interner)),true);
+				}
+				_=> self.write(&format!("blat! {}",item.var),false),
 			}
 		}
 	}
 
+	pub fn write_xml(&mut self, array : &CplVar, namelist : &Vec<String>){
+		self.write(&format!("<{}>",namelist[array.interner].trim_end_matches(':')),true);
+		//	if the array has a name then it mean we're writing a struct
+		if let CplDataType::CplArray(ref a) = array.var{
+			self.write_xml_helper(a, namelist);
+		}
+		self.write(&format!("</{}>",namelist[array.interner].trim_end_matches(':')),true);
+	}
+
 	pub fn write(&mut self, line : &str, writeln : bool){
+		//eprintln!("========= FileWriter.write:{}",line);
 		if writeln{
 			self.writer.write_all(format!("{}\n",line).as_bytes()).expect("Unable to write data");
 		}else{

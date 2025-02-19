@@ -1581,7 +1581,7 @@ impl<'a> CodeGen<'a>{
 		//  If the member is a child it goes into the symbol table as <target>:<child> with
 		//	and entry type of StructChildEntry.
 		let instantiated_struct_symbol = format!("{}",instantiated_struct.token_value);
-		let struct_detail = self.symbol_table.add_normal_symbol(&instantiated_struct_symbol);
+		let struct_detail = self.symbol_table.add_struct_symbol(&instantiated_struct_symbol);
 
 		//	and allocate an undefined variable
 		self.gen_alloc(&instantiated_struct, struct_detail.block_num, struct_detail.index, struct_detail.interner, function_num);
