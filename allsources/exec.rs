@@ -468,7 +468,7 @@ impl<'a> Executor<'a>{
 			}
 		}else{
 			self.dump_operands("================ at exec_fetch_indexed");
-			panic!("from exec_fetch_indexed: Can only index via a VarRef.  Got {}", self.operand_stack.operand_frames.last().unwrap().operand_blocks.last().unwrap().operand_block.get(tos_ix-index_count).unwrap());
+			panic!("from exec_fetch_indexed: Can only index via a VarRef.  It looks like you tried to index something that wasn't an array.  Got {}", self.operand_stack.operand_frames.last().unwrap().operand_blocks.last().unwrap().operand_block.get(tos_ix-index_count).unwrap());
 		}
 
 	}

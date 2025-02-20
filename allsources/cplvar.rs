@@ -2122,13 +2122,6 @@ impl CplFileWriter{
 		}
 	}
 
-	// fn xml_tag(&mut self, interner : usize, namelist : &Vec<String>) -> String{
-	// 	//let name = namelist[interner];
-	// 	// let parts = namelist[interner].split(':');
-	// 	// parts.last().unwrap().to_string()
-	// 	namelist[interner].split(':').last().unwrap().to_string()
-	// }
-
 	//	If the interner for the array has a ':' in it, we assumed that the output
 	//	of the array should be xml.  The structure of this xml is:
 	//
